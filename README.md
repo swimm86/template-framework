@@ -1,4 +1,4 @@
-# gpn-template-backend
+# gpn-contour-pps-backend
 
 
 
@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://bitbucket.inlinegroup.ru/contour/gpn-template/gpn-template-backend.git
+git remote add origin https://bitbucket.inlinegroup.ru/contour/gpn-contour-pps/gpn-contour-pps-backend.git
 git branch -M master
 git push -uf origin master
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://bitbucket.inlinegroup.ru/contour/gpn-template/gpn-template-backend/-/settings/integrations)
+- [ ] [Set up project integrations](https://bitbucket.inlinegroup.ru/contour/gpn-contour-pps/gpn-contour-pps-backend/-/settings/integrations)
 
 ## Collaborate with your team
 

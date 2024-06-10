@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <CodeAnalysisRuleSet>..\..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Getter\Abstractions\Gpn.Template.Getter.Application.Abstractions\Gpn.Template.Getter.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Setter\Abstractions\Gpn.Template.Setter.Application.Abstractions\Gpn.Template.Setter.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Shared\Shared.Application\Shared.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <AdditionalFiles Include="..\..\..\..\stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Dto\Responses\" />
+    <Folder Include="Dto\Requests\" />
+  </ItemGroup>
+
+</Project>

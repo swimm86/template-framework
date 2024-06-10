@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  ik-template-bff:
+    container_name: gpn-ik-template-bff-api
+    build:
+      context: ../../
+      dockerfile: ./src/Services/Bff/Gpn.Contour.Pps.Bff.Api/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_HTTPS_PORT: 8080
+      ASPNETCORE_ENVIRONMENT: "Development"
+      GetterApiClientSettings__BaseUrl: "http://ik-template-getter:8080/api/pps/getter/v1/"
+      SetterApiClientSettings__BaseUrl: "http://ik-template-setter:8080/api/pps/setter/v1/"
+      ExporterApiClientSettings__BaseUrl: "http://ik-template-exporter:8080/api/pps/exporter/v1/"
+
+  ik-template-getter:
+    container_name: gpn-ik-template-getter-api
+    build:
+      context: ../../
+      dockerfile: ./src/Services/Getter/Gpn.Contour.Pps.Getter.Api/Dockerfile
+    ports:
+      - "8086:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_HTTPS_PORT: 8080
+      ASPNETCORE_ENVIRONMENT: "Development"
+
+  ik-template-setter:
+    container_name: gpn-ik-template-setter-api
+    build:
+      context: ../../
+      dockerfile: ./src/Services/Setter/Gpn.Contour.Pps.Setter.Api/Dockerfile
+    ports:
+      - "8083:8080"
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_HTTPS_PORT: 8080
+      ASPNETCORE_ENVIRONMENT: "Development"
