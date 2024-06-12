@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Application.Core.Dal.Specification.Interfaces;
