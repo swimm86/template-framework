@@ -10,7 +10,7 @@ using Gpn.Template.Getter.Application.Interfaces;
 namespace Gpn.Template.Getter.Api.Controllers;
 
 /// <summary>
-/// Контроллер инвестиционного плана
+/// Person контроллер.
 /// </summary>
 public sealed class PersonsController(
     IPersonsService personsService,
@@ -18,9 +18,9 @@ public sealed class PersonsController(
     ) : GetterControllerBase(logger)
 {
     /// <summary>
-    /// Получение страницы инвестиционных планов
+    /// Возвращает список всех 'Person'-ов.
     /// </summary>
-    /// <returns>Страница инвестиционных планов</returns>
+    /// <returns>Список всех 'Person'-ов</returns>
     [HttpPost("list")]
     public IActionResult GetAsync()
     {
