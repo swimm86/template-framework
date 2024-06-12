@@ -42,10 +42,6 @@ public class PersonsService(
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     public GetPersonsResponseDto GetPersonsUnitOfWork()
     {
-        unitOfWork
-            .Execute<Person, List<PersonDto>>(r =>
-                r.Set().ProjectTo<PersonDto>(mapper).ToList());
-
         return mapper
             .Map<List<PersonDto>, GetPersonsResponseDto>(
                 unitOfWork
