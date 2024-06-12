@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Logging\Shared.Infrastructure.Logging\Shared.Infrastructure.Logging.csproj" />
     <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
     <ProjectReference Include="..\Gpn.Template.Getter.Application\Gpn.Template.Getter.Application.csproj" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">

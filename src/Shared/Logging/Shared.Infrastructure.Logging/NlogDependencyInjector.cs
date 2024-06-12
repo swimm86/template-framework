@@ -34,7 +34,7 @@ public class NlogDependencyInjector(
             var settings = configuration.GetOptions<NlogSettings>();
             var configPath = settings?.Path;
             loggerBuilder.ClearProviders();
-            loggerBuilder.AddNLog(string.IsNullOrEmpty(configPath) ? "nlog.config" : configPath);
+            loggerBuilder.AddNLog(string.IsNullOrEmpty(configPath) ? "nlog.base.config" : configPath);
         });
 
         return serviceCollection;

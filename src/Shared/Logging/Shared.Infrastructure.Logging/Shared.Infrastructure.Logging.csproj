@@ -29,4 +29,10 @@
     <ProjectReference Include="..\..\Core\Shared.Infrastructure.Core\Shared.Infrastructure.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="nlog.base.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

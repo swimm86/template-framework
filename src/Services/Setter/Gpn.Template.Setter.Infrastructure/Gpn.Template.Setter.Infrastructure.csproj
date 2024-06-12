@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Logging\Shared.Infrastructure.Logging\Shared.Infrastructure.Logging.csproj" />
     <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
     <ProjectReference Include="..\..\Common\Gpn.Template.Infrastructure.Dal\Gpn.Template.Infrastructure.Dal.csproj" />
     <ProjectReference Include="..\Gpn.Template.Setter.Application\Gpn.Template.Setter.Application.csproj" />
