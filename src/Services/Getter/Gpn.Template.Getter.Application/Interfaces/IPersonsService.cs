@@ -19,6 +19,6 @@ public interface IPersonsService
     /// Возвращает список 'Person-ов' с использованием указанного паттерна для доступа к Dal.
     /// </summary>
     /// <param name="dto"><inheritdoc cref="GetPersonsRequestDto"/></param>
-    /// <returns></returns>
-    Response<GetPersonsResponseDto> GetPersons(GetPersonsRequestDto dto);
+    /// <returns>Список всех 'Person-ов'.</returns>
+    Task<Response<GetPersonsResponseDto>> GetPersonsAsync(GetPersonsRequestDto dto);
 }

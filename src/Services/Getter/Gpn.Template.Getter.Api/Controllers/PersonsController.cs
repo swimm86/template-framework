@@ -21,10 +21,11 @@ public sealed class PersonsController(
     /// <summary>
     /// Возвращает список всех 'Person'-ов.
     /// </summary>
+    /// <param name="dto">DTO.</param>
     /// <returns>Список всех 'Person'-ов</returns>
     [HttpPost("list")]
-    public IActionResult GetPersonsAsync([FromBody] GetPersonsRequestDto dto)
+    public async Task<IActionResult> GetPersonsAsync([FromBody] GetPersonsRequestDto dto)
     {
-        return Ok(personsService.GetPersons(dto));
+        return Ok(await personsService.GetPersonsAsync(dto).ConfigureAwait(false));
     }
 }

@@ -14,8 +14,8 @@
 
   <ItemGroup>
     <Folder Include="Configuration\" />
-    <Folder Include="Specifiactions\" />
     <Folder Include="Repositories\" />
+    <Folder Include="Specifications\" />
   </ItemGroup>
 
   <ItemGroup>

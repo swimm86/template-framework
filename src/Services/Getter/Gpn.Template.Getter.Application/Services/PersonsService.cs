@@ -8,11 +8,13 @@ using Gpn.Template.Domain.Entities;
 using Gpn.Template.Getter.Application.Interfaces;
 using Gpn.Template.Getter.Application.Requests;
 using Gpn.Template.Getter.Application.Responses;
+using Gpn.Template.Getter.Application.Specifications;
 using Microsoft.AspNetCore.Http;
 using Shared.Application.Core.Dal.Repository.Interfaces;
+using Shared.Application.Core.Dal.Repository.Models;
+using Shared.Application.Core.Dal.Specification.Interfaces;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Core.Dto.Responses;
-using Shared.Application.Core.Mapping.Extensions;
 using Shared.Application.Core.Mapping.Interfaces;
 
 namespace Gpn.Template.Getter.Application.Services;
@@ -21,51 +23,61 @@ namespace Gpn.Template.Getter.Application.Services;
 public class PersonsService(
     IMapper mapper,
     IUnitOfWork unitOfWork,
-    IRepository<Person> personRepository)
+    IRepository<Person> personRepository,
+    ISpecificationRepository<Person> personSpecification)
     : IPersonsService
 {
     /// <inheritdoc />
-    public Response<GetPersonsResponseDto> GetPersons(GetPersonsRequestDto dto)
+    public async Task<Response<GetPersonsResponseDto>> GetPersonsAsync(
+        GetPersonsRequestDto dto)
     {
-        return new Response<GetPersonsResponseDto>(dto.DalPattern switch
+        var result = dto.DalPattern switch
         {
-            DalPattern.UnitOfWork => GetPersonsUnitOfWork(),
-            DalPattern.Repository => GetPersonsRepository(),
-            DalPattern.Specification => GetPersonsSpecification(),
+            DalPattern.UnitOfWork => GetPersonsUnitOfWorkAsync(),
+            DalPattern.Repository => GetPersonsRepositoryAsync(),
+            DalPattern.Specification => GetPersonsSpecificationAsync(),
             _ => throw new ArgumentOutOfRangeException()
-        }, StatusCodes.Status200OK);
+        };
+        return new Response<GetPersonsResponseDto>(await result.ConfigureAwait(false), StatusCodes.Status200OK);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'UnitOfWork'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    public GetPersonsResponseDto GetPersonsUnitOfWork()
+    public async Task<GetPersonsResponseDto> GetPersonsUnitOfWorkAsync()
     {
         return mapper
             .Map<List<PersonDto>, GetPersonsResponseDto>(
-                unitOfWork
-                    .Execute<Person, List<PersonDto>>(r =>
-                        r.Set().ProjectTo<PersonDto>(mapper).ToList()));
+                await unitOfWork
+                    .ExecuteAsync<Person, List<PersonDto>>(
+                        repo =>
+                            repo.GetRangeAsync<PersonDto>(new QueryOptions<Person>()),
+                        CancellationToken.None)
+                    .ConfigureAwait(false));
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Repository'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    private GetPersonsResponseDto GetPersonsRepository()
+    private async Task<GetPersonsResponseDto> GetPersonsRepositoryAsync()
     {
         return mapper
             .Map<List<PersonDto>, GetPersonsResponseDto>(
-                personRepository.Set().ProjectTo<PersonDto>(mapper).ToList());
+                await personRepository.GetRangeAsync<PersonDto>(new QueryOptions<Person>())
+                    .ConfigureAwait(false));
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Specification'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    public GetPersonsResponseDto GetPersonsSpecification()
+    private async Task<GetPersonsResponseDto> GetPersonsSpecificationAsync()
     {
-        throw new NotImplementedException();
+        return mapper
+            .Map<List<PersonDto>, GetPersonsResponseDto>(
+                await personSpecification.GetRangeAsync<PersonDto>(new PersonSpecification())
+                    .ConfigureAwait(false));
     }
 }

@@ -4,8 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Mapping.Interfaces;
 using System.Linq.Expressions;
+using Shared.Application.Core.Mapping.Interfaces;
 
 namespace Shared.Application.Core.Mapping.Extensions;
 

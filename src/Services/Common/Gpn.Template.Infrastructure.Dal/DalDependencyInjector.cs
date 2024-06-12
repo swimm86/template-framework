@@ -8,9 +8,11 @@ using System.Reflection;
 using Gpn.Template.Domain.Entities;
 using Gpn.Template.Infrastructure.Dal.Repositories;
 using Gpn.Template.Infrastructure.Dal.Settings;
+using Gpn.Template.Infrastructure.Dal.Specifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dal.Repository.Interfaces;
+using Shared.Application.Core.Dal.Specification.Interfaces;
 using Shared.Application.Core.DependencyInjection;
 using Shared.Infrastructure.Dal.EFCore.Extensions;
 
@@ -28,6 +30,7 @@ public class DalDependencyInjector(
     {
         return serviceCollection
             .AddDbContext<DbSettings, DbContext>(Assembly.GetExecutingAssembly().FullName!)
-            .AddTransient<IRepository<Person>, PersonRepository>();
+            .AddTransient<IRepository<Person>, PersonRepository>()
+            .AddTransient<ISpecificationRepository<Person>, PersonSpecificationRepository>();
     }
 }
