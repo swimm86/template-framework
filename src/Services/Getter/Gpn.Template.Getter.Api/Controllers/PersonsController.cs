@@ -6,6 +6,7 @@
 
 using Gpn.Template.Getter.Api.Controllers.Base;
 using Gpn.Template.Getter.Application.Interfaces;
+using Gpn.Template.Getter.Application.Requests;
 
 namespace Gpn.Template.Getter.Api.Controllers;
 
@@ -22,8 +23,8 @@ public sealed class PersonsController(
     /// </summary>
     /// <returns>Список всех 'Person'-ов</returns>
     [HttpPost("list")]
-    public IActionResult GetAsync()
+    public IActionResult GetPersonsAsync([FromBody] GetPersonsRequestDto dto)
     {
-        return Ok(personsService.GetPersons());
+        return Ok(personsService.GetPersons(dto));
     }
 }

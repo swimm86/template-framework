@@ -12,7 +12,7 @@ namespace Shared.Domain.Core.Interfaces;
 public interface IEntity
 {
     /// <summary>
-    /// Астрактный идентификатор сущности.
+    /// Абстрактный идентификатор сущности.
     /// </summary>
     object Id { get; }
 }

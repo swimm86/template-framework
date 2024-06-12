@@ -13,7 +13,7 @@ namespace Gpn.Template.Domain.Entities;
 /// </summary>
 public class Person : IEntity<Guid>
 {
-    /// <inheritdoc />
+    /// <inheritdoc cref="IEntity.Id"/>
     public Guid Id { get; set; }
 
     /// <summary>

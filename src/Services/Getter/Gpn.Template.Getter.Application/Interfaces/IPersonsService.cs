@@ -4,7 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Domain.Entities;
+using Gpn.Template.Getter.Application.Requests;
+using Gpn.Template.Getter.Application.Responses;
+using Shared.Application.Core.Dto.Responses;
 
 namespace Gpn.Template.Getter.Application.Interfaces;
 
@@ -14,8 +16,9 @@ namespace Gpn.Template.Getter.Application.Interfaces;
 public interface IPersonsService
 {
     /// <summary>
-    /// Получить коллекцию всех person-ов.
+    /// Возвращает список 'Person-ов' с использованием указанного паттерна для доступа к Dal.
     /// </summary>
-    /// <returns>Коллекцию person-ов.</returns>
-    List<Person> GetPersons();
+    /// <param name="dto"><inheritdoc cref="GetPersonsRequestDto"/></param>
+    /// <returns></returns>
+    Response<GetPersonsResponseDto> GetPersons(GetPersonsRequestDto dto);
 }

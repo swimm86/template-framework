@@ -5,6 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using AutoMapper;
+using Gpn.Template.Domain.Entities;
+using Gpn.Template.Getter.Application.Responses;
 
 namespace Gpn.Template.Getter.Infrastructure.Mapping;
 
@@ -18,5 +20,8 @@ public class MapperProfile : Profile
     /// </summary>
     public MapperProfile()
     {
+        CreateMap<Person, PersonDto>();
+        CreateMap<ICollection<PersonDto>, GetPersonsResponseDto>()
+            .ConstructUsing(persons => new GetPersonsResponseDto() { Persons = persons });
     }
 }
