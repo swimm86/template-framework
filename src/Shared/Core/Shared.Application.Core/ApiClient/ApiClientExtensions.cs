@@ -26,8 +26,8 @@ public static class ApiClientExtensions
     /// <param name="serviceCollection"> Сервисы <see cref="IServiceCollection"/>. </param>
     /// <param name="configuration"> Конфигурация. </param>
     /// <returns> Сервисы <see cref="IServiceCollection"/>. </returns>
-    public static IServiceCollection AddClient<TOptions, TDelegatingHandler, TIClient, TClient>
-        (this IServiceCollection serviceCollection, IConfiguration configuration)
+    public static IServiceCollection AddClient<TOptions, TDelegatingHandler, TIClient, TClient>(
+        this IServiceCollection serviceCollection, IConfiguration configuration)
         where TOptions : ApiClientSettingsBase
         where TDelegatingHandler : DelegatingHandler
         where TIClient : class
@@ -48,8 +48,8 @@ public static class ApiClientExtensions
     /// <param name="serviceCollection"> Сервисы <see cref="IServiceCollection"/>. </param>
     /// <param name="configuration"> Конфигурация. </param>
     /// <returns> Сервисы <see cref="IServiceCollection"/>. </returns>
-    public static IServiceCollection AddClient<TOptions, TIClient, TClient>
-        (this IServiceCollection serviceCollection, IConfiguration configuration)
+    public static IServiceCollection AddClient<TOptions, TIClient, TClient>(
+        this IServiceCollection serviceCollection, IConfiguration configuration)
         where TOptions : ApiClientSettingsBase
         where TIClient : class
         where TClient : class, TIClient
@@ -70,8 +70,8 @@ public static class ApiClientExtensions
     /// <param name="serviceCollection"> Сервисы <see cref="IServiceCollection"/>. </param>
     /// <param name="options"> Настройки. </param>
     /// <returns> Сервисы <see cref="IServiceCollection"/>. </returns>
-    public static IServiceCollection AddClient<TOptions, TDelegatingHandler, TIClient, TClient>
-        (this IServiceCollection serviceCollection, TOptions options)
+    public static IServiceCollection AddClient<TOptions, TDelegatingHandler, TIClient, TClient>(
+        this IServiceCollection serviceCollection, TOptions options)
         where TOptions : ApiClientSettingsBase
         where TDelegatingHandler : DelegatingHandler
         where TIClient : class

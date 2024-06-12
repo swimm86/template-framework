@@ -12,6 +12,8 @@ namespace Gpn.Template.Getter.Infrastructure;
 
 /// <summary>
 /// Класс для внедрения зависимостей Infrastructure-слоя в Getter
+/// В этот проект подключаются все инфраструктурные зависимости (mapper, dal и т.д.).
+/// Зависимости подключаются автоматически при запуске приложения. Самостоятельно их подключать не нужно.
 /// </summary>
 /// <param name="logger">Логгер.</param>
 public class InfrastructureDependencyInjector(

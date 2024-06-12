@@ -13,7 +13,7 @@ namespace Gpn.Template.Bff.Api.Controllers;
 /// <summary>
 /// Setter контроллер
 /// </summary>
-/// <param name="setterClient">Клиент Pps.Setter.</param>
+/// <param name="setterClient">Клиент Setter.</param>
 /// <param name="logger">Логгер.</param>
 public class SetterController(
     ISetterClient setterClient,

@@ -4,10 +4,13 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using Shared.Application.Core.Configuration;
 using Shared.Application.Core.DependencyInjection;
+using Shared.Infrastructure.Logging.Settings;
 
 namespace Shared.Infrastructure.Logging;
 
@@ -15,6 +18,7 @@ namespace Shared.Infrastructure.Logging;
 /// Класс, предназначенный для интеграции nLog в DI через <see cref="IServiceCollection"/>.
 /// </summary>
 public class NlogDependencyInjector(
+    IConfiguration configuration,
     ILogger<NlogDependencyInjector> logger
 ) : DependencyInjectorBase(logger)
 {
@@ -27,12 +31,11 @@ public class NlogDependencyInjector(
     {
         serviceCollection.AddLogging(loggerBuilder =>
         {
-            //todo: configPath
-            var configPath = string.Empty;
+            var settings = configuration.GetOptions<NlogSettings>();
+            var configPath = settings?.Path;
             loggerBuilder.ClearProviders();
             loggerBuilder.AddNLog(string.IsNullOrEmpty(configPath) ? "nlog.config" : configPath);
         });
-
 
         return serviceCollection;
     }

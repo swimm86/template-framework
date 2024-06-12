@@ -22,7 +22,7 @@ public interface IRepository<TEntity>
     /// Асинхронно возвращает экземпляр сущности по ее индентификатору.
     /// </summary>
     /// <param name="id">Идентификатор сущности.</param>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <returns>Экземпляр сущности, если найден, иначе null.</returns>
     Task<TEntity?> GetAsync(
         object id,
@@ -31,19 +31,19 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно возвращает коллекцию экземпляров сущности по переданной настройке.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
     /// <returns>Коллекция экземпляров сущности, полученная по переданной настройке.</returns>
     Task<List<TEntity>> GetRangeAsync(
-        QueryOptions<TEntity> options, 
-        int? skip = null, 
+        QueryOptions<TEntity> options,
+        int? skip = null,
         int? take = null);
 
     /// <summary>
     /// Асинхронно возвращает коллекцию сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
@@ -56,14 +56,14 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
     Task<TEntity?> FirstOrDefaultAsync(QueryOptions<TEntity> options);
 
     /// <summary>
     /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
     /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
     Task<TEntity?> SingleOrDefaultAsync(QueryOptions<TEntity> options);
@@ -71,7 +71,7 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
     Task<TEntity?> LastOrDefaultAsync(QueryOptions<TEntity> options);
 
@@ -82,7 +82,7 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно возвращает количество элементов в выборке по настройке.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <returns>Количество элементов в выборке по спецификации.</returns>
     Task<int> CountAsync(QueryOptions<TEntity> options);
 
@@ -103,20 +103,19 @@ public interface IRepository<TEntity>
     /// </summary>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
     /// <param name="entities">Коллекция экземпляров сущности.</param>
-    /// <returns></returns>
+    /// <returns><see cref="Task"/>.</returns>
     Task AddRangeAsync(IEnumerable<TEntity> entities);
 
     #endregion
 
     #region Remove methods
 
-    // Remove
     /// <summary>
     /// Асинхронно удаляет экземпляр сущности из БД.
     /// </summary>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
     /// <param name="entity">Экземпляр сущности.</param>
-    /// <returns></returns>
+    /// <returns><see cref="Task"/>.</returns>
     Task RemoveAsync(TEntity entity);
 
     /// <summary>
@@ -124,15 +123,15 @@ public interface IRepository<TEntity>
     /// </summary>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
     /// <param name="entities">Коллекция экземпляров сущности.</param>
-    /// <returns></returns>
+    /// <returns><see cref="Task"/>.</returns>
     Task RemoveRangeAsync(IEnumerable<TEntity> entities);
 
     /// <summary>
     /// Асинхронно удаляет выборку экземпляров сущности из БД, по переданной настройке.
     /// </summary>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
-    /// <returns></returns>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <returns><see cref="Task"/>.</returns>
     Task RemoveRangeAsync(QueryOptions<TEntity> options);
 
     #endregion
@@ -140,7 +139,6 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Выполняет операцию с сущностями.
     /// </summary>
-    /// <typeparam name="TEntity">Тип сущностей, для которых будет выполнена операция.</typeparam>
     /// <typeparam name="TResult">Тип результата выполнения операции.</typeparam>
     /// <param name="process">Реализация операции.</param>
     /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
@@ -152,7 +150,6 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Выполняет операцию асинхронно
     /// </summary>
-    /// /// <typeparam name="TEntity"> Тип сущности, для которой будет выполнена операция. </typeparam>
     /// <typeparam name="TResult">Тип результата выполнения операции.</typeparam>
     /// <param name="process">Асинхрорнная реализация операции.</param>
     /// <param name="token">Токен отмены операции.</param>
@@ -166,6 +163,7 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Возвращает <see cref="IQueryable{TEntity}"/>.
     /// </summary>
+    /// <returns><see cref="IQueryable{TEntity}"/>.</returns>
     IQueryable<TEntity> Set();
 
     /// <summary>
@@ -176,5 +174,6 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно применяет внесенные до вызова изменения.
     /// </summary>
+    /// <returns><see cref="Task"/>.</returns>
     Task SaveChangesAsync();
 }

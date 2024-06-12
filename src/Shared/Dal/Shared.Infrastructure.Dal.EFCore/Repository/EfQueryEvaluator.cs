@@ -20,8 +20,8 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options
-    ) where TEntity : class, IEntity
+        QueryOptions<TEntity> options)
+        where TEntity : class, IEntity
     {
         // Применяем фильтры
         queryable = options.Filters
@@ -47,7 +47,10 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
                         : acc.ThenByDescending(x.Expression));
         }
 
-        if (!options.WithTracking) queryable = queryable.AsNoTracking();
+        if (!options.WithTracking)
+        {
+            queryable = queryable.AsNoTracking();
+        }
 
         return queryable;
     }
@@ -55,8 +58,8 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options
-    ) where TEntity : class, IEntity
+        QueryOptions<TEntity> options)
+        where TEntity : class, IEntity
     {
         return mapper.ProjectTo<TOut>(Build(queryable, options));
     }

@@ -24,7 +24,8 @@ public class NotFoundException : AppException
     /// Инициализация <see cref="NotFoundException"/> с сообщением.
     /// </summary>
     /// <param name="message"> Сообщение. </param>
-    public NotFoundException(string message) : base(message)
+    public NotFoundException(string message)
+        : base(message)
     {
     }
 

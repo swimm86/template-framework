@@ -15,7 +15,7 @@ namespace Shared.Presentation.Core.Swagger;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class RequiredNotNullableSchemaFilter : ISchemaFilter
 {
-    /// <inheritdoc /> 
+    /// <inheritdoc />
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
         if (schema.Properties == null)

@@ -15,11 +15,12 @@ namespace Shared.Application.Core.ApiClient;
 public static class ApiClientSettingsExtensions
 {
     /// <summary>
-    /// Валидация настроек.
+    /// Проверяет корректность настроек API-клиента.
     /// </summary>
-    /// <param name="options"> Нстройки. </param>
-    /// <exception cref="ArgumentNullException"> Вызывается при значении настроек == null. </exception>
-    /// <exception cref="OptionsValidationException"> Вызывается при пустых значениях полей настроек. </exception>
+    /// <typeparam name="TOptions">Тип настроек, который должен быть проверен.</typeparam>
+    /// <param name="options">Экземпляр настроек для валидации.</param>
+    /// <exception cref="ArgumentNullException">Исключение, выбрасываемое, если переданный экземпляр настроек равен null.</exception>
+    /// <exception cref="OptionsValidationException">Исключение, выбрасываемое, если обязательные поля в настройках не заполнены или содержат пустые значения.</exception>
     public static void Validate<TOptions>(this ApiClientSettingsBase options)
     {
         var optionsType = typeof(TOptions);
@@ -27,13 +28,15 @@ public static class ApiClientSettingsExtensions
 
         if (options == default)
         {
-            throw new ArgumentNullException(optionsName,
+            throw new ArgumentNullException(
+                optionsName,
                 $"Настройки {typeof(TOptions).Name} должны быть заполнены. ");
         }
 
         if (string.IsNullOrWhiteSpace(options.BaseUrl))
         {
-            throw new OptionsValidationException(optionsName,
+            throw new OptionsValidationException(
+                optionsName,
                 optionsType,
                 new[] { $"Поле {nameof(options.BaseUrl)} должно быть заполнено. " });
         }

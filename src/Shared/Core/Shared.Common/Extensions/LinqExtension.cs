@@ -23,7 +23,11 @@ public static class LinqExtension
     {
         foreach (var element in enumerable)
         {
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
             action(element);
         }
     }

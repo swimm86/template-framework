@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dal.Repository.Interfaces;
@@ -13,16 +12,17 @@ using Shared.Infrastructure.Dal.EFCore.Repository;
 
 namespace Shared.Infrastructure.DAL.EFCore;
 
-public abstract class EfCoreDependencyInjectorBase(ILogger? logger) : DependencyInjectorBase(logger)
+/// <summary>
+/// Базовый абстрактный класс для внедрения зависимостей EF Core.
+/// </summary>
+public abstract class EfCoreDependencyInjectorBase(
+    ILogger? logger)
+    : DependencyInjectorBase(logger)
 {
-    protected static string AssemblyName => Assembly.GetCallingAssembly().FullName!;
-    protected virtual Action<DbContextOptionsBuilder>? DbConfigurationOptions => default;
-
+    /// <inheritdoc />
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        return AddPostgresDbContext(serviceCollection)
+        return serviceCollection
             .AddSingleton<IQueryEvaluator, EfQueryEvaluator>();
     }
-
-    protected abstract IServiceCollection AddPostgresDbContext(IServiceCollection serviceCollection);
 }

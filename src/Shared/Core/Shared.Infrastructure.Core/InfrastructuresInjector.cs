@@ -4,8 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.DependencyInjection;
 
 namespace Shared.Infrastructure.Core;
@@ -27,17 +27,17 @@ public static class InfrastructuresInjector
         var type = typeof(DependencyInjectorBase);
         using var provider = services.BuildServiceProvider();
 
-        // Сначала имплементируем 'Shared' инфраструктурные зависимости, затем инфраструктуры конкретного модуля,
+        // Сначала имплементируем 'Shared' зависимости, затем конкретного модуля,
         // начиная с более низкого уровня и вплоть до первого.
-        // Shared.Infrastructure.Core => Shared.Application.Core => App.Infrastructure => App.Application
+        // Shared.Application.Core => Shared.Infrastructure.Core => App.Application => App.Infrastructure
         var infrastructureTypes =
             AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
                 .Where(x => type.IsAssignableFrom(x) && x is { IsClass: true, IsAbstract: false })
                 .Distinct()
                 .OrderBy(x => !x.FullName!.StartsWith(nameof(Shared), StringComparison.OrdinalIgnoreCase))
-                .ThenBy(x => !x.FullName!.StartsWith(nameof(Infrastructure), StringComparison.OrdinalIgnoreCase))
                 .ThenBy(x => !x.FullName!.StartsWith(nameof(Application), StringComparison.OrdinalIgnoreCase))
+                .ThenBy(x => !x.FullName!.StartsWith(nameof(Infrastructure), StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => x.FullName!.Split('.').Length)
                 .ToList();
         infrastructureTypes.ForEach(x => services.AddInfrastructure(provider, x));
@@ -67,19 +67,19 @@ public static class InfrastructuresInjector
     /// Добвление инфраструктуры по типу <see cref="infrastructureType"/>.
     /// </summary>
     /// <param name="serviceCollection"><see cref="IServiceCollection"/>.</param>
-    /// <param name="provider"><see cref="ServiceProvider"/>.</param>
+    /// <param name="provider"><see cref="IServiceProvider"/>.</param>
     /// <param name="infrastructureType">Тип инфраструктуры.</param>
     /// <exception cref="ArgumentException">Ошибка при добавлении некорректной инфраструктуры.</exception>
     private static void AddInfrastructure(
         this IServiceCollection serviceCollection,
-        ServiceProvider provider,
+        IServiceProvider provider,
         Type infrastructureType)
     {
         if (!typeof(DependencyInjectorBase).IsAssignableFrom(infrastructureType) || !infrastructureType.IsClass ||
             infrastructureType.IsAbstract)
         {
             throw new ArgumentException(
-                $"Тип для имплементации зависимости должен быть не абстрактным и унаследованным от {nameof(DependencyInjectorBase)}.",
+                $"Тип для имплементируемой зависимости должен быть не абстрактным и унаследованным от {nameof(DependencyInjectorBase)}.",
                 nameof(infrastructureType));
         }
 

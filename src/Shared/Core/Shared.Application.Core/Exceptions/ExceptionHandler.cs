@@ -79,11 +79,11 @@ internal sealed class ExceptionHandler(ILogger<ExceptionHandler> logger) : IExce
 
     private static ProblemDetails CreateProblemDetails(
         string title, int statusCode = StatusCodes.Status500InternalServerError, string? detail = null)
-        => new()
+        => new ProblemDetails()
         {
             Status = statusCode,
             Title = title,
-            Detail = detail
+            Detail = detail,
         };
 
     private static ProblemDetails CreateProblemDetails(
@@ -96,5 +96,5 @@ internal sealed class ExceptionHandler(ILogger<ExceptionHandler> logger) : IExce
     }
 
     private static Dictionary<string, object?> ValidationErrorsToExtensions(IEnumerable<ValidationFailure> validationFailures)
-        => new() { { "details", validationFailures.Select(x => x.ErrorMessage) } };
+        => new Dictionary<string, object?>() { { "details", validationFailures.Select(x => x.ErrorMessage) } };
 }

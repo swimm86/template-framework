@@ -22,7 +22,8 @@ public abstract class AppException : Exception
     /// Инициализация <see cref="AppException"/> с сообщением.
     /// </summary>
     /// <param name="message"> Сообщение. </param>
-    protected AppException(string message) : base(message)
+    protected AppException(string message)
+        : base(message)
     {
     }
 

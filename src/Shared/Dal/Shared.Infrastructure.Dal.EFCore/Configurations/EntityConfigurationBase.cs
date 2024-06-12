@@ -9,9 +9,18 @@ using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Configurations;
 
+/// <summary>
+/// Базовый абстрактный класс для конфигурации сущностей в EF Core.
+/// </summary>
+/// <typeparam name="TEntity">Тип сущности.</typeparam>
 public abstract class EntityConfigurationBase<TEntity>
-    : IEntityTypeConfiguration<TEntity> where TEntity : class, IEntity
+    : IEntityTypeConfiguration<TEntity>
+    where TEntity : class, IEntity
 {
+    /// <summary>
+    /// Метод для конфигурации сущности.
+    /// </summary>
+    /// <param name="builder">Построитель сущности.</param>
     public void Configure(EntityTypeBuilder<TEntity> builder)
     {
         const string idName = nameof(IEntity.Id);
@@ -22,14 +31,11 @@ public abstract class EntityConfigurationBase<TEntity>
         ConfigureProcess(builder);
     }
 
+    /// <summary>
+    /// Основной метод для конфигурации сущности.
+    /// </summary>
+    /// <param name="builder">Построитель сущности.</param>
     protected virtual void ConfigureProcess(EntityTypeBuilder<TEntity> builder)
     {
     }
 }
-
-//public class UserConfiguration : EntityConfigurationBase<User>
-//{
-//    protected override void ConfigureProcess(EntityTypeBuilder<User> builder)
-//    {
-//    }
-//}

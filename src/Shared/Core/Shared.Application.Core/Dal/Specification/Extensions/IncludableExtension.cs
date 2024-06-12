@@ -23,8 +23,7 @@ public static class IncludableExtension
     /// <param name="navigationProperty">Выражение.</param>
     /// <typeparam name="TPreviousProperty">Предыдущий тип.</typeparam>
     /// <typeparam name="TProperty">Возвращаемый тип.</typeparam>
-    /// <returns><see cref="Includable{TProperty}"/></returns>
-    /// <returns></returns>
+    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
     public static IIncludable<TProperty> ThenInclude<TPreviousProperty, TProperty>(
         this IIncludable<TPreviousProperty> includable,
         Expression<Func<TPreviousProperty, TProperty>> navigationProperty)
@@ -44,7 +43,7 @@ public static class IncludableExtension
     /// <param name="navigationProperty">Выражение.</param>
     /// <typeparam name="TPreviousProperty">Предыдущий тип.</typeparam>
     /// <typeparam name="TProperty">Возвращаемый тип.</typeparam>
-    /// <returns><see cref="Includable{TProperty}"/></returns>
+    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
     public static IIncludable<TProperty> ThenInclude<TPreviousProperty, TProperty>(
         this IIncludable<ICollection<TPreviousProperty>> includable,
         Expression<Func<TPreviousProperty, TProperty>> navigationProperty)
@@ -64,7 +63,7 @@ public static class IncludableExtension
     /// <param name="navigationProperty">Выражение.</param>
     /// <typeparam name="TPreviousProperty">Предыдущий тип.</typeparam>
     /// <typeparam name="TProperty">Возвращаемый тип.</typeparam>
-    /// <returns><see cref="Includable{TProperty}"/></returns>
+    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
     public static IIncludable<TProperty> ThenInclude<TPreviousProperty, TProperty>(
         this IIncludable<IReadOnlyCollection<TPreviousProperty>> includable,
         Expression<Func<TPreviousProperty, TProperty>> navigationProperty)

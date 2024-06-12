@@ -8,7 +8,7 @@
     <UserSecretsId>7a8d4729-0476-4e01-9f4c-bc9cd043b6c0</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..\..\..</DockerfileContext>
-    <CodeAnalysisRuleSet>..\..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,21 +18,19 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <AdditionalFiles Include="..\..\..\..\stylecop.json" />
+    <AdditionalFiles Include="..\..\..\stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\..\.env" Link=".env">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Presentation.Core\Shared.Presentation.Core.csproj" />
-    <ProjectReference Include="..\..\Getter\Abstractions\Gpn.Template.Getter.Api.Abstractions\Gpn.Template.Getter.Api.Abstractions.csproj" />
-    <ProjectReference Include="..\..\Setter\Abstractions\Gpn.Template.Setter.Api.Abstractions\Gpn.Template.Setter.Api.Abstractions.csproj" />
     <ProjectReference Include="..\Gpn.Template.Bff.Application\Gpn.Template.Bff.Application.csproj" />
     <ProjectReference Include="..\Gpn.Template.Bff.Infrastructure\Gpn.Template.Bff.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update=".env">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

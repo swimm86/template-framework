@@ -6,6 +6,7 @@
 
 using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Application.Core.Dal.Repository.Models;
+using Shared.Common.Extensions;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
@@ -13,12 +14,14 @@ namespace Shared.Infrastructure.Dal.EFCore.Repository;
 /// <summary>
 /// Реализация интерфейса <see cref="IRepository{TEntity}"/> на основе ORM "Entity Framework Core"
 /// </summary>
-/// <param name="dbContext"><see cref="DbContext"/></param>
+/// <param name="dbContext"><see cref="DbContext"/>.</param>
+/// <param name="evaluator"><see cref="IQueryEvaluator"/>.</param>
 /// <typeparam name="TEntity">Тип сущности.</typeparam>
 public class EfRepository<TEntity>(
     DbContext dbContext,
     IQueryEvaluator evaluator
-) : IRepository<TEntity> where TEntity : class, IEntity
+) : IRepository<TEntity>
+    where TEntity : class, IEntity
 {
     /// <summary>
     /// Сет данных по сущности.
@@ -34,29 +37,15 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public Task<List<TEntity>> GetRangeAsync(QueryOptions<TEntity> spec, int? skip = null, int? take = null)
-    {
-        var q = evaluator.Build(DbSet, spec);
-
-        if (skip != null) q = q.Skip(skip.Value);
-        if (take != null) q = q.Take(take.Value);
-
-        return q.ToListAsync();
-    }
+    public Task<List<TEntity>> GetRangeAsync(QueryOptions<TEntity> spec, int? skip = null, int? take = null) =>
+        evaluator.Build(DbSet, spec).GetRange(skip, take).ToListAsync();
 
     /// <inheritdoc/>
     public Task<List<TOut>> GetRangeAsync<TOut>(
         QueryOptions<TEntity> spec,
         int? skip = null,
-        int? take = null)
-    {
-        var q = evaluator.BuildWithTransform<TEntity, TOut>(DbSet, spec);
-
-        if (skip != null) q = q.Skip(skip.Value);
-        if (take != null) q = q.Take(take.Value);
-
-        return q.ToListAsync();
-    }
+        int? take = null) =>
+        evaluator.BuildWithTransform<TEntity, TOut>(DbSet, spec).GetRange(skip, take).ToListAsync();
 
     /// <inheritdoc/>
     public Task<TEntity?> FirstOrDefaultAsync(QueryOptions<TEntity> spec)
@@ -121,7 +110,11 @@ public class EfRepository<TEntity>(
     {
         using var transaction = useTransaction ? dbContext.Database.BeginTransaction() : null;
         var result = process();
-        if (transaction == null) return result;
+        if (transaction == null)
+        {
+            return result;
+        }
+
         try
         {
             transaction.Commit();
@@ -143,7 +136,11 @@ public class EfRepository<TEntity>(
         await using var transaction =
             useTransaction ? await dbContext.Database.BeginTransactionAsync(token).ConfigureAwait(false) : null;
         var result = await process().ConfigureAwait(false);
-        if (transaction == null) return result;
+        if (transaction == null)
+        {
+            return result;
+        }
+
         try
         {
             await transaction.CommitAsync(token).ConfigureAwait(false);
@@ -163,7 +160,6 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public void SaveChanges() =>
         dbContext.SaveChanges();
-
 
     /// <inheritdoc/>
     public Task SaveChangesAsync() =>

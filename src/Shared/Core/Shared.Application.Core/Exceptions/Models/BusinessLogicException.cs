@@ -24,7 +24,8 @@ public class BusinessLogicException : AppException
     /// Инициализация <see cref="BusinessLogicException"/> с сообщением.
     /// </summary>
     /// <param name="message"> Сообщение. </param>
-    public BusinessLogicException(string message) : base(message)
+    public BusinessLogicException(string message)
+        : base(message)
     {
     }
 

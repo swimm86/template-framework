@@ -15,23 +15,27 @@ namespace Shared.Application.Core.Dal.Repository.Interfaces;
 public interface IQueryEvaluator
 {
     /// <summary>
-    /// Добавляет критерии выборки в заданный <see cref="IQueryable"/>
+    /// Добавляет критерии выборки к предоставленному <see cref="IQueryable"/> запросу.
     /// </summary>
-    /// <param name="queryable">Поставщик запросов для типа сущности <typeparamref name="TEntity"/>.</param>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
-    /// <typeparam name="TEntity">Тип сущности, для которой будет реализована спецификация.</typeparam>
+    /// <param name="queryable">Запрос <see cref="IQueryable"/> для типа сущности <typeparamref name="TEntity"/>.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <typeparam name="TEntity">Тип сущности, для которой будет реализован запрос.</typeparam>
+    /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки.</returns>
     IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options) where TEntity : class, IEntity;
+        QueryOptions<TEntity> options)
+        where TEntity : class, IEntity;
 
     /// <summary>
-    /// Добавляет критерии выборки в заданный <see cref="IQueryable"/> и производит преобразование из <typeparamref name="TEntity" /> в <typeparamref name="TOut"/>
+    /// Добавляет критерии выборки к предоставленному <see cref="IQueryable"/> запросу и осуществляет преобразование типов с <typeparamref name="TEntity" /> на <typeparamref name="TOut"/>.
     /// </summary>
-    /// <typeparam name="TOut">Целевой тип.</typeparam>
-    /// <param name="queryable">Поставщик запросов для типа сущности <see cref="TEntity"/>>.</param>
-    /// <param name="options">Настройки запроса. Если null, то запрос будет выполнен без дополнительных настроек.</param>
-    /// <typeparam name="TEntity">Тип сущности, для которой будет реализована спецификация.</typeparam>
+    /// <typeparam name="TEntity">Тип сущности, для которой будет реализован запрос.</typeparam>
+    /// <typeparam name="TOut">Тип результата, к которому будут преобразованы элементы запроса.</typeparam>
+    /// <param name="queryable">Запрос <see cref="IQueryable"/> для типа сущности <typeparamref name="TEntity"/>.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки и преобразованными элементами типа <typeparamref name="TOut"/>.</returns>
     IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options) where TEntity : class, IEntity;
+        QueryOptions<TEntity> options)
+        where TEntity : class, IEntity;
 }

@@ -4,11 +4,11 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Xml.Linq;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Xml.Linq;
 using Shared.Common.Extensions;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Shared.Presentation.Core.Swagger;
 
@@ -16,7 +16,6 @@ namespace Shared.Presentation.Core.Swagger;
 /// Фильтр для документирования enum-ов.
 /// </summary>
 /// <param name="xmlPaths">Пути к xml файлам</param>
-/// 
 public class EnumTypesSchemaFilter(params string[] xmlPaths) : ISchemaFilter
 {
     /// <summary>
@@ -31,7 +30,10 @@ public class EnumTypesSchemaFilter(params string[] xmlPaths) : ISchemaFilter
     /// <param name="context"><see cref="SchemaFilterContext"/>.</param>
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
-        if (schema.Enum is not { Count: > 0 } || context.Type is not { IsEnum: true }) return;
+        if (schema.Enum is not { Count: > 0 } || context.Type is not { IsEnum: true })
+        {
+            return;
+        }
 
         schema.Description += "<p>Members:</p><ul>";
         schema.Enum.OfType<OpenApiInteger>().Select(x => x.Value).ForEach(x =>

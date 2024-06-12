@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Getter.Application.Interfaces;
+using Gpn.Template.Getter.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.DependencyInjection;
@@ -21,6 +23,7 @@ public class ApplicationDependencyInjector(
     /// <inheritdoc />
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        return serviceCollection;
+        return serviceCollection
+            .AddTransient<IPersonsService, PersonsService>();
     }
 }

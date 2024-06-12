@@ -19,5 +19,5 @@ public enum OrderDirectionType
     /// <summary>
     /// Направление сортировки по убыванию
     /// </summary>
-    Descending
+    Descending,
 }

@@ -1,4 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ColumnsNamesConvention.cs" company="ООО Газпромнефть - Цифровые решения">
+// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Shared.Common.Extensions;
 

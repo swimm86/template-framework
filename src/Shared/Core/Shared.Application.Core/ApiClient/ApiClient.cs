@@ -24,19 +24,24 @@ public abstract class ApiClient : IDisposable
         _httpClient = clientFactory.CreateClient(GetType().Name);
     }
 
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _httpClient.Dispose();
+    }
+
     /// <summary>
     /// Get запрос.
     /// </summary>
     /// <param name="uri"> Адрес. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> <see cref="HttpResponseMessage"/>. </returns>
-    protected  Task<HttpResponseMessage> GetAsync(
+    protected Task<HttpResponseMessage> GetAsync(
         string uri,
         CancellationToken cancellationToken = default)
     {
         return _httpClient.GetAsync(new Uri(uri, UriKind.Relative), cancellationToken);
     }
-
 
     /// <summary>
     /// Типизированный Get запрос.
@@ -213,8 +218,10 @@ public abstract class ApiClient : IDisposable
         CancellationToken cancellationToken = default)
     {
         if (httpResponse.IsSuccessStatusCode)
+        {
             return await httpResponse.Content.ReadFromJsonAsync<TResult>(cancellationToken)
                 .ConfigureAwait(false);
+        }
 
         throw await CreateExceptionAsync(httpResponse, cancellationToken).ConfigureAwait(false);
     }
@@ -232,10 +239,5 @@ public abstract class ApiClient : IDisposable
         var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         return new Exception($"Запрос к {GetType().Name} вернул ошибку: Status Code={response.StatusCode:D} {response.ReasonPhrase} Content=[{content}]");
-    }
-
-    public void Dispose()
-    {
-        _httpClient.Dispose();
     }
 }

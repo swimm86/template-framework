@@ -4,11 +4,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <CodeAnalysisRuleSet>..\..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
+    <ProjectReference Include="..\..\Common\Gpn.Template.Infrastructure.Dal\Gpn.Template.Infrastructure.Dal.csproj" />
     <ProjectReference Include="..\Gpn.Template.Setter.Application\Gpn.Template.Setter.Application.csproj" />
   </ItemGroup>
 
@@ -17,7 +18,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <AdditionalFiles Include="..\..\..\..\stylecop.json" />
+    <AdditionalFiles Include="..\..\..\stylecop.json" />
   </ItemGroup>
   
 </Project>

@@ -4,8 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-	<CodeAnalysisRuleSet>..\..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
+	  <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	  <CodeAnalysisRuleSet>..\..\..\ruleset.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -18,7 +18,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-	<AdditionalFiles Include="..\..\..\..\stylecop.json" />
+	<AdditionalFiles Include="..\..\..\stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>

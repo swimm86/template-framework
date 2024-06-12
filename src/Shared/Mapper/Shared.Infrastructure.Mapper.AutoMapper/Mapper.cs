@@ -38,7 +38,7 @@ public class Mapper(
     /// <param name="membersToExpand">Выражения для раскрытия членов объектов.</param>
     /// <returns>IQueryable коллекция объектов типа TDestination.</returns>
     public IQueryable<TDestination> ProjectTo<TDestination>(
-        IQueryable source, 
+        IQueryable source,
         object? parameters = null,
         params Expression<Func<TDestination, object>>[] membersToExpand)
     {

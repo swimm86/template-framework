@@ -14,38 +14,70 @@ namespace Shared.Common.Extensions;
 /// </summary>
 public static class LoggerExtensions
 {
-    public static async Task<T> LogTaskAsync<T>(this ILogger? logger,
-        Func<Task<T>> action, 
+    /// <summary>
+    /// Выполняет асинхронную задачу с логированием её начала, окончания и ошибок.
+    /// </summary>
+    /// <typeparam name="T">Тип возвращаемого значения задачи.</typeparam>
+    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="action">Асинхронная функция, которая будет выполнена.</param>
+    /// <param name="token">Токен отмены задачи.</param>
+    /// <param name="methodName">Имя метода, вызывающего логирование; автоматически определяется.</param>
+    /// <returns>Результат выполнения асинхронной функции.</returns>
+    public static async Task<T> LogTaskAsync<T>(
+        this ILogger? logger,
+        Func<Task<T>> action,
         CancellationToken token,
         [CallerMemberName] string? methodName = null)
     {
         try
         {
-            logger?.LogInformation("'{methodName}' start.", methodName);
+            logger?.LogInformation("'{methodName}' запущен.", methodName);
             var result = await action().WaitAsync(token).ConfigureAwait(false);
-            logger?.LogInformation("'{methodName}' end.", methodName);
+            logger?.LogInformation("'{methodName}' выполнен.", methodName);
             return result;
         }
         catch
         {
-            logger?.LogError("'{methodName}' failed", methodName);
+            logger?.LogError("'{methodName}' прошла ошибка.", methodName);
             throw;
         }
     }
 
-    public static Task LogTaskAsync(this ILogger? logger, 
-        Func<Task> action, 
+    /// <summary>
+    /// Выполняет асинхронную задачу без возвращаемого значения с логированием её начала, окончания и ошибок.
+    /// </summary>
+    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="action">Асинхронная действие, которое будет выполнено.</param>
+    /// <param name="token">Токен отмены задачи.</param>
+    /// <param name="methodName">Имя метода, вызывающего логирование; автоматически определяется.</param>
+    /// <returns>Task представляющий асинхронную операцию.</returns>
+    public static Task LogTaskAsync(
+        this ILogger? logger,
+        Func<Task> action,
         CancellationToken token,
         [CallerMemberName] string? methodName = null)
     {
-        return LogTaskAsync(logger, async () =>
-        {
-            await action().WaitAsync(token).ConfigureAwait(false);
-            return Task.CompletedTask;
-        }, token, methodName);
+        return LogTaskAsync(
+            logger,
+            async () =>
+            {
+                await action().WaitAsync(token).ConfigureAwait(false);
+                return Task.CompletedTask;
+            },
+            token,
+            methodName);
     }
 
-    public static T LogTask<T>(this ILogger? logger, 
+    /// <summary>
+    /// Выполняет синхронную задачу с логированием её начала, окончания и ошибок.
+    /// </summary>
+    /// <typeparam name="T">Тип возвращаемого значения задачи.</typeparam>
+    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="action">Синхронная функция, которая будет выполнена.</param>
+    /// <param name="methodName">Имя метода, вызывающего логирование; автоматически определяется.</param>
+    /// <returns>Результат выполнения синхронной функции.</returns>
+    public static T LogTask<T>(
+        this ILogger? logger,
         Func<T> action,
         [CallerMemberName] string? methodName = null)
     {
@@ -54,14 +86,24 @@ public static class LoggerExtensions
             .GetResult();
     }
 
-    public static void LogTask(this ILogger? logger, 
+    /// <summary>
+    /// Выполняет синхронное действие с логированием его начала, окончания и ошибок.
+    /// </summary>
+    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="action">Синхронное действие, которое будет выполнено.</param>
+    /// <param name="methodName">Имя метода, вызывающего логирование; автоматически определяется.</param>
+    public static void LogTask(
+        this ILogger? logger,
         Action action,
         [CallerMemberName] string? methodName = null)
     {
-        LogTask<object?>(logger, () =>
-        {
-            action();
-            return default;
-        }, methodName);
+        LogTask<object?>(
+            logger,
+            () =>
+            {
+                action();
+                return default;
+            },
+            methodName);
     }
 }

@@ -14,8 +14,13 @@ namespace Shared.Common.Extensions;
 public static class ExpressionExtensions
 {
     /// <summary>
-    /// Получает имя выходного поля Func.
+    /// Получает имя свойства, указанного в лямбда-выражении.
     /// </summary>
+    /// <typeparam name="TPreviousProperty">Тип объекта, из которого извлекается имя свойства.</typeparam>
+    /// <typeparam name="TProperty">Тип свойства, имя которого необходимо получить.</typeparam>
+    /// <param name="propertyExpression">Лямбда-выражение, указывающее на свойство, имя которого нужно извлечь.</param>
+    /// <returns>Имя свойства, указанного в выражении.</returns>
+    /// <exception cref="ArgumentException">Исключение, вызываемое если выражение не представляет свойство.</exception>
     public static string GetPropertyName<TPreviousProperty, TProperty>(
         this Expression<Func<TPreviousProperty, TProperty>> propertyExpression)
     {

@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ServiceCollectionExtensions.cs" company="ООО Газпромнефть - Цифровые решения">
+// <copyright file="WebApplicationBuilderExtensions.cs" company="ООО Газпромнефть - Цифровые решения">
 // Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -26,10 +26,10 @@ public static class WebApplicationBuilderExtensions
     private const string Env = ".env";
 
     /// <summary>
-    /// Метод для конфигурования <see cref="WebApplicationBuilder"/>
+    /// Метод для конфигурования <see cref="WebApplicationBuilder"/>.
     /// </summary>
     /// <param name="builder"><see cref="WebApplicationBuilder"/>.</param>
-    /// <returns></returns>
+    /// <returns><see cref="WebApplicationBuilder"/>.</returns>
     public static WebApplicationBuilder AddSharedPresentationCore(this WebApplicationBuilder builder)
     {
         builder.Configuration.AddEnvironmentVariables();
@@ -60,7 +60,6 @@ public static class WebApplicationBuilderExtensions
             });
 
         return builder;
-
     }
 
     private static void LoadEnv(
@@ -71,10 +70,16 @@ public static class WebApplicationBuilderExtensions
 
         var appPath = AppDomain.CurrentDomain.BaseDirectory;
         var envPath = Path.Combine(appPath, Env);
-        if (File.Exists(envPath)) configurationBuilder.AddDotNetEnv(envPath);
+        if (File.Exists(envPath))
+        {
+            configurationBuilder.AddDotNetEnv(envPath);
+        }
 
         var currentEnv =
             Path.Combine(appPath, $"{Env}.{hostEnvironment.EnvironmentName.ToLower()}");
-        if (File.Exists(currentEnv)) configurationBuilder.AddDotNetEnv(currentEnv);
+        if (File.Exists(currentEnv))
+        {
+            configurationBuilder.AddDotNetEnv(currentEnv);
+        }
     }
 }

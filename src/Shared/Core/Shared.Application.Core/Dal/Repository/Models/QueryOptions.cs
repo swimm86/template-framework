@@ -13,7 +13,8 @@ namespace Shared.Application.Core.Dal.Repository.Models;
 /// Настройки запроса для операций с сущностями.
 /// </summary>
 /// <typeparam name="TEntity">Тип сущности, для которой реализована спецификация.</typeparam>
-public class QueryOptions<TEntity> where TEntity : IEntity
+public class QueryOptions<TEntity>
+    where TEntity : IEntity
 {
     /// <summary>
     /// Фильтры.

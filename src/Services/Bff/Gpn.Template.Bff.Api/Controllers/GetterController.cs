@@ -13,8 +13,8 @@ namespace Gpn.Template.Bff.Api.Controllers;
 /// <summary>
 /// Контроллер Getter
 /// </summary>
-/// <param name="logger">Логгер.</param>
 /// <param name="getterClient">Клиент геттера.</param>
+/// <param name="logger">Логгер.</param>
 public class GetterController(
     IGetterClient getterClient,
     ILogger<IGetterController> logger
