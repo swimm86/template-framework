@@ -4,7 +4,7 @@ services:
     container_name: gpn-ik-template-bff-api
     build:
       context: ../../
-      dockerfile: ./src/Services/Bff/Gpn.Contour.Pps.Bff.Api/Dockerfile
+      dockerfile: ./src/Services/Bff/Gpn.Teamplate.Bff.Api/Dockerfile
     ports:
       - "8081:8080"
     environment:
@@ -19,7 +19,7 @@ services:
     container_name: gpn-ik-template-getter-api
     build:
       context: ../../
-      dockerfile: ./src/Services/Getter/Gpn.Contour.Pps.Getter.Api/Dockerfile
+      dockerfile: ./src/Services/Getter/Gpn.Template.Getter.Api/Dockerfile
     ports:
       - "8086:8080"
     environment:
@@ -31,7 +31,7 @@ services:
     container_name: gpn-ik-template-setter-api
     build:
       context: ../../
-      dockerfile: ./src/Services/Setter/Gpn.Contour.Pps.Setter.Api/Dockerfile
+      dockerfile: ./src/Services/Setter/Gpn.Template.Setter.Api/Dockerfile
     ports:
       - "8083:8080"
     environment:
