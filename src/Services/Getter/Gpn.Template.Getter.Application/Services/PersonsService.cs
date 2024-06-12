@@ -31,53 +31,51 @@ public class PersonsService(
     public async Task<Response<GetPersonsResponseDto>> GetPersonsAsync(
         GetPersonsRequestDto dto)
     {
-        var result = dto.DalPattern switch
+        var personsTask = dto.DalPattern switch
         {
             DalPattern.UnitOfWork => GetPersonsUnitOfWorkAsync(),
             DalPattern.Repository => GetPersonsRepositoryAsync(),
             DalPattern.Specification => GetPersonsSpecificationAsync(),
             _ => throw new ArgumentOutOfRangeException()
         };
-        return new Response<GetPersonsResponseDto>(await result.ConfigureAwait(false), StatusCodes.Status200OK);
+        var result = mapper
+            .Map<ICollection<PersonDto>, GetPersonsResponseDto>(await personsTask.ConfigureAwait(false));
+        return new Response<GetPersonsResponseDto>(result, StatusCodes.Status200OK);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'UnitOfWork'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    public async Task<GetPersonsResponseDto> GetPersonsUnitOfWorkAsync()
+    public async Task<ICollection<PersonDto>> GetPersonsUnitOfWorkAsync()
     {
-        return mapper
-            .Map<List<PersonDto>, GetPersonsResponseDto>(
-                await unitOfWork
-                    .ExecuteAsync<Person, List<PersonDto>>(
-                        repo =>
-                            repo.GetRangeAsync<PersonDto>(new QueryOptions<Person>()),
-                        CancellationToken.None)
-                    .ConfigureAwait(false));
+        return await unitOfWork
+            .ExecuteAsync<Person, List<PersonDto>>(
+                repo =>
+                    repo.GetRangeAsync<PersonDto>(new QueryOptions<Person>()),
+                CancellationToken.None)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Repository'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    private async Task<GetPersonsResponseDto> GetPersonsRepositoryAsync()
+    private async Task<ICollection<PersonDto>> GetPersonsRepositoryAsync()
     {
-        return mapper
-            .Map<List<PersonDto>, GetPersonsResponseDto>(
-                await personRepository.GetRangeAsync<PersonDto>(new QueryOptions<Person>())
-                    .ConfigureAwait(false));
+        return await personRepository
+            .GetRangeAsync<PersonDto>(new QueryOptions<Person>())
+            .ConfigureAwait(false);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Specification'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    private async Task<GetPersonsResponseDto> GetPersonsSpecificationAsync()
+    private async Task<ICollection<PersonDto>> GetPersonsSpecificationAsync()
     {
-        return mapper
-            .Map<List<PersonDto>, GetPersonsResponseDto>(
-                await personSpecification.GetRangeAsync<PersonDto>(new PersonSpecification())
-                    .ConfigureAwait(false));
+        return await personSpecification
+            .GetRangeAsync<PersonDto>(new PersonSpecification())
+            .ConfigureAwait(false);
     }
 }
