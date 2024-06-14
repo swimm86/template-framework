@@ -36,8 +36,8 @@ public static class InfrastructuresInjector
                 .Where(x => type.IsAssignableFrom(x) && x is { IsClass: true, IsAbstract: false })
                 .Distinct()
                 .OrderBy(x => !x.FullName!.StartsWith(nameof(Shared), StringComparison.OrdinalIgnoreCase))
-                .ThenBy(x => !x.FullName!.StartsWith(nameof(Application), StringComparison.OrdinalIgnoreCase))
-                .ThenBy(x => !x.FullName!.StartsWith(nameof(Infrastructure), StringComparison.OrdinalIgnoreCase))
+                .ThenBy(x => !x.FullName!.Contains(nameof(Application), StringComparison.OrdinalIgnoreCase))
+                .ThenBy(x => !x.FullName!.Contains(nameof(Infrastructure), StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => x.FullName!.Split('.').Length)
                 .ToList();
         infrastructureTypes.ForEach(x => services.AddInfrastructure(provider, x));

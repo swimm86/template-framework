@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using DotNetEnv.Configuration;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,9 +45,8 @@ public static class WebApplicationBuilderExtensions
             }).Services
             .AddEndpointsApiExplorer()
             .AddSwagger()
-            .ConfigureJsonSerializer()
-            .AddExceptionsHandlers()
             .ImplementReferencedInfrastructures()
+            .AddFluentValidation()
             .AddCors(options =>
             {
                 options.AddPolicy(

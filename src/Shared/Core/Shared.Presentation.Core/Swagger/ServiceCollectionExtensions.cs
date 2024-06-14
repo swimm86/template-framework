@@ -8,7 +8,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Common;
+using Shared.Common.Helpers;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
@@ -87,7 +87,7 @@ public static class ServiceCollectionExtensions
     /// <returns>префикса имени проекта.</returns>
     private static string? GetPrefix()
     {
-        var prefix = Helpers.GetModuleName();
+        var prefix = AssemblyHelper.GetModuleName();
         var pos = prefix.LastIndexOf('.');
         if (pos > 0)
         {

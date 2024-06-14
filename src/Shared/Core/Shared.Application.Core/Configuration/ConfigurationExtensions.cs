@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.Configuration;
-using Shared.Common;
+using Shared.Common.Helpers;
 
 namespace Shared.Application.Core.Configuration;
 
@@ -32,7 +32,7 @@ public static class ConfigurationExtensions
     public static TOptions? GetOptions<TOptions>(this IConfiguration configuration)
         where TOptions : class
     {
-        var moduleName = Helpers.GetModuleName();
+        var moduleName = AssemblyHelper.GetModuleName();
         var parts = moduleName.Split('.').ToList();
         var results = new List<TOptions>();
         IConfigurationSection? entrySection = default;
