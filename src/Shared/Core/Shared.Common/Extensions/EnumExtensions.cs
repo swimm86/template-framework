@@ -10,7 +10,7 @@ using System.Reflection;
 namespace Shared.Common.Extensions;
 
 /// <summary>
-/// Расширение для <see cref="Enum"/>
+/// Расширение для <see cref="Enum"/>.
 /// </summary>
 public static class EnumExtensions
 {

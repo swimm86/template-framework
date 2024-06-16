@@ -7,6 +7,7 @@
 using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
+using Shared.Infrastructure.Dal.EFCore.Repository;
 
 namespace Shared.Infrastructure.Dal.EFCore;
 
@@ -20,12 +21,21 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     protected readonly TDbContext DbContext;
 
     /// <summary>
+    /// <inheritdoc cref="IQueryEvaluator"/>.
+    /// </summary>
+    private readonly IQueryEvaluator _evaluator;
+
+    /// <summary>
     /// Конструктор по умолчанию.
     /// </summary>
     /// <param name="dbContextFactory"><see cref="IDbContextFactory{TDbContext}"/>.</param>
-    public EfUnitOfWork(IDbContextFactory<TDbContext> dbContextFactory)
+    /// <param name="evaluator"><see cref="IQueryEvaluator"/>.</param>
+    public EfUnitOfWork(
+        IDbContextFactory<TDbContext> dbContextFactory,
+        IQueryEvaluator evaluator)
     {
         DbContext = dbContextFactory.CreateDbContext();
+        _evaluator = evaluator;
     }
 
     /// <inheritdoc />
@@ -34,7 +44,8 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         bool useTransaction = false)
         where TEntity : class, IEntity
     {
-        return DbContext.Execute(process, useTransaction);
+        var repository = GetRepository<TEntity>();
+        return repository.Execute(() => process(repository), useTransaction);
     }
 
     /// <inheritdoc />
@@ -44,7 +55,8 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         bool useTransaction = false)
         where TEntity : class, IEntity
     {
-        return DbContext.ExecuteAsync(process, token, useTransaction);
+        var repository = GetRepository<TEntity>();
+        return repository.ExecuteAsync(() => process(repository), token, useTransaction);
     }
 
     /// <inheritdoc />
@@ -58,6 +70,15 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     {
         return DbContext.SaveChangesAsync(token);
     }
+
+    /// <summary>
+    /// Возвращает репозиторий с сущностями типа <typeparamref name="TEntity"/>.
+    /// </summary>
+    /// <typeparam name="TEntity">Тип сущности, для которого создается репозиторий.</typeparam>
+    /// <returns>Репозиторий с сущностями типа <typeparamref name="TEntity"/>.</returns>
+    public IRepository<TEntity> GetRepository<TEntity>()
+        where TEntity : class, IEntity =>
+        new EfRepository<TEntity>(DbContext, _evaluator);
 
     /// <inheritdoc />
     public void Dispose()

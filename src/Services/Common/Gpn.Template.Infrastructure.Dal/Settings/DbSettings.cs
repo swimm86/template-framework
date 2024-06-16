@@ -4,13 +4,13 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.Settings;
+using Shared.Infrastructure.Dal.EFCore.Settings;
 
 namespace Gpn.Template.Infrastructure.Dal.Settings;
 
 /// <summary>
 /// Настройки подключения к БД.
 /// </summary>
-public class DbSettings : DbSettingsBase
+public class DbSettings : EfDbSettingsBase<DbContext>
 {
 }

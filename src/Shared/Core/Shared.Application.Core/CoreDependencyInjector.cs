@@ -6,6 +6,8 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Dal.Repository.Extensions;
+using Shared.Application.Core.Dal.Specification.Extensions;
 using Shared.Application.Core.DependencyInjection;
 using Shared.Application.Core.Exceptions;
 using Shared.Application.Core.Json;
@@ -25,6 +27,8 @@ public class CoreDependencyInjector(
     {
         return serviceCollection
             .ConfigureJsonSerializer()
-            .AddExceptionsHandlers();
+            .AddExceptionsHandlers()
+            .AddRepositories()
+            .AddSpecificationRepositories();
     }
 }

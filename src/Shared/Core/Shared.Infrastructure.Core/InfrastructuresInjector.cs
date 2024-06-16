@@ -7,6 +7,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.DependencyInjection;
+using Shared.Common.Helpers;
 
 namespace Shared.Infrastructure.Core;
 
@@ -24,17 +25,13 @@ public static class InfrastructuresInjector
     {
         DynamicLoadInfrastructureAssemblies();
 
-        var type = typeof(DependencyInjectorBase);
         using var provider = services.BuildServiceProvider();
 
         // Сначала имплементируем 'Shared' зависимости, затем конкретного модуля,
         // начиная с более низкого уровня и вплоть до первого.
         // Shared.Application.Core => Shared.Infrastructure.Core => App.Application => App.Infrastructure
         var infrastructureTypes =
-            AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .Where(x => type.IsAssignableFrom(x) && x is { IsClass: true, IsAbstract: false })
-                .Distinct()
+            AssemblyHelper.GetDerivedTypesFromAssemblies<DependencyInjectorBase>()
                 .OrderBy(x => !x.FullName!.StartsWith(nameof(Shared), StringComparison.OrdinalIgnoreCase))
                 .ThenBy(x => !x.FullName!.Contains(nameof(Application), StringComparison.OrdinalIgnoreCase))
                 .ThenBy(x => !x.FullName!.Contains(nameof(Infrastructure), StringComparison.OrdinalIgnoreCase))

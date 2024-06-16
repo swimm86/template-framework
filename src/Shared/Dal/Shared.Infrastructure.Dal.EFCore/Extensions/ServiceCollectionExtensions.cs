@@ -4,10 +4,14 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Application.Core.Dal.Settings;
+using Shared.Application.Core.Attributes;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Common.Extensions;
+using Shared.Common.Helpers;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
+using Shared.Infrastructure.Dal.EFCore.Settings;
 
 namespace Shared.Infrastructure.Dal.EFCore.Extensions;
 
@@ -27,7 +31,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDbContext<TSettings, TContext>(
         this IServiceCollection serviceCollection,
         string migrationAssemblyName)
-        where TSettings : DbSettingsBase
+        where TSettings : EfDbSettingsBase<TContext>
         where TContext : DbContextBase
     {
         using var serviceProvider = serviceCollection.BuildServiceProvider();
@@ -39,5 +43,37 @@ public static class ServiceCollectionExtensions
             .AddDbContextFactory<TContext>(opt =>
                 dbContextOptionsBuilderInitializer.Initialize<TSettings>(opt, migrationAssemblyName))
             .AddTransient<IUnitOfWork, EfUnitOfWork<TContext>>();
+    }
+
+    /// <summary>
+    /// Метод расширения для регистрации всех производных DbContext в IServiceCollection.
+    /// </summary>
+    /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
+    /// <returns>Измененная коллекция сервисов с добавленными контекстами данных.</returns>
+    public static IServiceCollection AddDbContexts(
+        this IServiceCollection serviceCollection)
+    {
+        AssemblyHelper.GetDerivedTypesFromAssemblies<DbContextBase>(
+                excludedAttributesTypes: [typeof(ManualConfigurationAttribute)])
+            .ForEach(type =>
+            {
+                var settings = AssemblyHelper
+                    .GetDerivedTypesFromAssemblies(
+                        typeof(EfDbSettingsBase<>).MakeGenericType(type),
+                        excludedAttributesTypes: [typeof(ManualConfigurationAttribute)])
+                    .FirstOrDefault();
+                if (settings is null)
+                {
+                    throw new InvalidOperationException($"Не удалось найти настройки для типа {type.FullName}");
+                }
+
+                typeof(ServiceCollectionExtensions)
+                    .GetMethods()
+                    .First(m => m is { Name: nameof(AddDbContext), IsGenericMethod: true })
+                    .MakeGenericMethod(settings, type)
+                    .Invoke(null, [serviceCollection, Assembly.GetExecutingAssembly().FullName!]);
+            });
+        
+        return serviceCollection;
     }
 }

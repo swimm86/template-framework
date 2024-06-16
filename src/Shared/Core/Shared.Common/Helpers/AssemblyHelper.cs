@@ -57,4 +57,63 @@ public static class AssemblyHelper
                     t.BaseType is { IsGenericType: true } &&
                     t.BaseType.GetGenericTypeDefinition() == type));
     }
+
+    /// <summary>
+    /// Получает все типы, производные от указанного типа, из всех загруженных сборок.
+    /// </summary>
+    /// <typeparam name="TType">Тип, для которого необходимо найти производные типы.</typeparam>
+    /// <param name="includedAttributesTypes">Список типов аттрибутов, которые должны содержать целевые типы.</param>
+    /// <param name="excludedAttributesTypes">Список типов аттрибутов, которые не должны содержать целевые типы.</param>
+    /// <returns>Перечисление производных типов.</returns>
+    public static IEnumerable<Type> GetDerivedTypesFromAssemblies<TType>(
+        Type[]? includedAttributesTypes = default,
+        Type[]? excludedAttributesTypes = default)
+    {
+        return GetDerivedTypesFromAssemblies(typeof(TType));
+    }
+
+    /// <summary>
+    /// Получает все типы, производные от указанного типа, из всех загруженных сборок.
+    /// </summary>
+    /// <param name="baseType">Тип, для которого необходимо найти производные типы.</param>
+    /// <param name="includedAttributesTypes">Список типов аттрибутов, которые должны содержать целевые типы.</param>
+    /// <param name="excludedAttributesTypes">Список типов аттрибутов, которые не должны содержать целевые типы.</param>
+    /// <returns>Перечисление производных типов.</returns>
+    public static IEnumerable<Type> GetDerivedTypesFromAssemblies(
+        Type baseType,
+        Type[]? includedAttributesTypes = default,
+        Type[]? excludedAttributesTypes = default)
+    {
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes())
+            .Where(type =>
+            {
+                if (type is not { IsClass: true, IsAbstract: false })
+                {
+                    return false;
+                }
+
+                if (includedAttributesTypes != null &&
+                    includedAttributesTypes.Any(attrType => type.GetCustomAttribute(attrType) == null))
+                {
+                    return false;
+                }
+
+                if (excludedAttributesTypes != null &&
+                    excludedAttributesTypes.Any(attrType => type.GetCustomAttribute(attrType) != null))
+                {
+                    return false;
+                }
+
+                var interfaces = type.GetInterfaces();
+                if (interfaces.Any(i => i == baseType || (i.IsGenericType && i.GetGenericTypeDefinition() == baseType)))
+                {
+                    return true;
+                }
+
+                // Если baseType не интерфейс, проверяем, что type наследуется от baseType
+                return !baseType.IsInterface && baseType.IsAssignableFrom(type);
+            })
+            .Distinct();
+    }
 }

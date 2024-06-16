@@ -54,4 +54,12 @@ public interface IUnitOfWork : IDisposable
     /// <param name="token">Токен отмены операции.</param>
     /// <returns>Код результата.</returns>
     Task<int> SaveChangesAsync(CancellationToken token = default);
+
+    /// <summary>
+    /// Возвращает репозиторий с сущностями типа <typeparamref name="TEntity"/>.
+    /// </summary>
+    /// <typeparam name="TEntity">Тип сущности, для которого создается репозиторий.</typeparam>
+    /// <returns>Репозиторий с сущностями типа <typeparamref name="TEntity"/>.</returns>
+    IRepository<TEntity> GetRepository<TEntity>()
+        where TEntity : class, IEntity;
 }
