@@ -73,7 +73,7 @@ public static class ServiceCollectionExtensions
                     .MakeGenericMethod(settings, type)
                     .Invoke(null, [serviceCollection, Assembly.GetExecutingAssembly().FullName!]);
             });
-        
+
         return serviceCollection;
     }
 }
