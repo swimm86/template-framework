@@ -4,14 +4,10 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using DotNetEnv.Configuration;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Shared.Application.Core.Exceptions;
-using Shared.Application.Core.Json;
+using Shared.Application.Core.Configuration;
 using Shared.Common;
 using Shared.Infrastructure.Core;
 using Shared.Presentation.Core.Conventions;
@@ -24,8 +20,6 @@ namespace Shared.Presentation.Core.Extensions;
 /// </summary>
 public static class WebApplicationBuilderExtensions
 {
-    private const string Env = ".env";
-
     /// <summary>
     /// Метод для конфигурования <see cref="WebApplicationBuilder"/>.
     /// </summary>
@@ -33,9 +27,7 @@ public static class WebApplicationBuilderExtensions
     /// <returns><see cref="WebApplicationBuilder"/>.</returns>
     public static WebApplicationBuilder AddSharedPresentationCore(this WebApplicationBuilder builder)
     {
-        builder.Configuration.AddEnvironmentVariables();
-        builder.Configuration.LoadEnv(builder.Environment);
-
+        builder.Configuration.InitializeConfiguration(builder.Environment);
         var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins");
         builder.Services
             .AddControllers(options =>
@@ -60,26 +52,5 @@ public static class WebApplicationBuilderExtensions
             });
 
         return builder;
-    }
-
-    private static void LoadEnv(
-        this ConfigurationManager configurationBuilder,
-        IHostEnvironment hostEnvironment)
-    {
-        configurationBuilder.AddEnvironmentVariables();
-
-        var appPath = AppDomain.CurrentDomain.BaseDirectory;
-        var envPath = Path.Combine(appPath, Env);
-        if (File.Exists(envPath))
-        {
-            configurationBuilder.AddDotNetEnv(envPath);
-        }
-
-        var currentEnv =
-            Path.Combine(appPath, $"{Env}.{hostEnvironment.EnvironmentName.ToLower()}");
-        if (File.Exists(currentEnv))
-        {
-            configurationBuilder.AddDotNetEnv(currentEnv);
-        }
     }
 }

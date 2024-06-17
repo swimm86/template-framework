@@ -28,16 +28,15 @@ public static class InfrastructuresInjector
         using var provider = services.BuildServiceProvider();
 
         // Сначала имплементируем 'Shared' зависимости, затем конкретного модуля,
-        // начиная с более низкого уровня и вплоть до первого.
-        // Shared.Application.Core => Shared.Infrastructure.Core => App.Application => App.Infrastructure
-        var infrastructureTypes =
+        // начиная с более низкого уровня и вплоть до верхнего.
+        var injectorsTypes =
             AssemblyHelper.GetDerivedTypesFromAssemblies<DependencyInjectorBase>()
                 .OrderBy(x => !x.FullName!.StartsWith(nameof(Shared), StringComparison.OrdinalIgnoreCase))
                 .ThenBy(x => !x.FullName!.Contains(nameof(Application), StringComparison.OrdinalIgnoreCase))
                 .ThenBy(x => !x.FullName!.Contains(nameof(Infrastructure), StringComparison.OrdinalIgnoreCase))
                 .ThenByDescending(x => x.FullName!.Split('.').Length)
                 .ToList();
-        infrastructureTypes.ForEach(x => services.AddInfrastructure(provider, x));
+        injectorsTypes.ForEach(x => services.AddInfrastructure(provider, x));
 
         return services;
     }

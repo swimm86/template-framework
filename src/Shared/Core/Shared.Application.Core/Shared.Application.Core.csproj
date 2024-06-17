@@ -13,6 +13,7 @@
 	</PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.0.0" />
     <PackageReference Include="FluentValidation" Version="11.9.1" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="8.5.0" />
   </ItemGroup>

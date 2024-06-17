@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.Settings;
+using Shared.Application.Core.Dal.Settings.Models.Base;
 
 namespace Shared.Infrastructure.Dal.EFCore.Settings;
 

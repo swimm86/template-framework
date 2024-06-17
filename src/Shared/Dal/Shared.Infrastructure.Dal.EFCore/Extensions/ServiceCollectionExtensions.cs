@@ -6,8 +6,8 @@
 
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Application.Core.Attributes;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Application.Core.DependencyInjection.Attributes;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;

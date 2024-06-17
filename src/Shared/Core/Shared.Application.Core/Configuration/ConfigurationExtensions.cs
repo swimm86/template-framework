@@ -4,7 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using DotNetEnv.Configuration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Shared.Common.Helpers;
 
 namespace Shared.Application.Core.Configuration;
@@ -14,6 +16,8 @@ namespace Shared.Application.Core.Configuration;
 /// </summary>
 public static class ConfigurationExtensions
 {
+    private const string Env = ".env";
+
     /// <summary>
     /// Получение настроек.
     /// </summary>
@@ -61,5 +65,48 @@ public static class ConfigurationExtensions
         }
 
         return results.LastOrDefault();
+    }
+
+    /// <summary>
+    /// Инициализирует конфигурацию.
+    /// </summary>
+    /// <param name="configuration">Построитель конфигурации.</param>
+    /// <param name="hostEnvironment">Среда выполнения приложения.</param>
+    public static void InitializeConfiguration(
+        this IConfigurationBuilder configuration,
+        IHostEnvironment hostEnvironment)
+    {
+        configuration
+            .AddEnvironmentVariables()
+            .LoadEnv(hostEnvironment);
+    }
+
+    /// <summary>
+    /// Загружает файлы конфигурации окружения.
+    /// </summary>
+    /// <param name="configurationBuilder">Построитель конфигурации.</param>
+    /// <param name="hostEnvironment">Среда выполнения приложения.</param>
+    /// <returns>Построитель конфигурации.</returns>
+    public static IConfigurationBuilder LoadEnv(
+        this IConfigurationBuilder configurationBuilder,
+        IHostEnvironment hostEnvironment)
+    {
+        configurationBuilder.AddEnvironmentVariables();
+
+        var appPath = AppDomain.CurrentDomain.BaseDirectory;
+        var envPath = Path.Combine(appPath, Env);
+        if (File.Exists(envPath))
+        {
+            configurationBuilder.AddDotNetEnv(envPath);
+        }
+
+        var currentEnv =
+            Path.Combine(appPath, $"{Env}.{hostEnvironment.EnvironmentName.ToLower()}");
+        if (File.Exists(currentEnv))
+        {
+            configurationBuilder.AddDotNetEnv(currentEnv);
+        }
+
+        return configurationBuilder;
     }
 }

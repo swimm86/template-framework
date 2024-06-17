@@ -6,7 +6,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.Dal.Specification.Interfaces;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Extensions;
 
 namespace Shared.Application.Core.Dal.Specification.Extensions;
 
@@ -21,5 +21,5 @@ public static class SpecificationDependencyInjection
     /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
     /// <returns>Измененная коллекция сервисов с добавленными спецификационными репозиториями.</returns>
     public static IServiceCollection AddSpecificationRepositories(this IServiceCollection serviceCollection) =>
-        serviceCollection.RegisterDerivedTypeDependenciesTransient(typeof(ISpecificationRepository<>));
+        serviceCollection.RegisterDerivedTypeDependencies(typeof(ISpecificationRepository<>));
 }

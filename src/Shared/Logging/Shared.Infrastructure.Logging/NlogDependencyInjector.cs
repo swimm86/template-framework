@@ -7,10 +7,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
-using Shared.Application.Core.Configuration;
 using Shared.Application.Core.DependencyInjection;
-using Shared.Infrastructure.Logging.Settings;
+using Shared.Infrastructure.Logging.Extensions;
 
 namespace Shared.Infrastructure.Logging;
 
@@ -29,14 +27,7 @@ public class NlogDependencyInjector(
     /// <returns><see cref="IServiceCollection"/>.</returns>
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddLogging(loggerBuilder =>
-        {
-            var settings = configuration.GetOptions<NlogSettings>();
-            var configPath = settings?.Path;
-            loggerBuilder.ClearProviders();
-            loggerBuilder.AddNLog(string.IsNullOrEmpty(configPath) ? "nlog.base.config" : configPath);
-        });
-
-        return serviceCollection;
+        return serviceCollection
+            .AddNlog(configuration);
     }
 }

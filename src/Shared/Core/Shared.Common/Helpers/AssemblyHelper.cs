@@ -116,4 +116,15 @@ public static class AssemblyHelper
             })
             .Distinct();
     }
+
+    /// <summary>
+    /// Получение сборки по наименованию.
+    /// </summary>
+    /// <param name="appDomain">Домен приложения.</param>
+    /// <param name="assemblyName"> Наименование сборки.</param>
+    /// <returns>Сборка.</returns>
+    public static Assembly? GetAssemblyByName(this AppDomain appDomain, string assemblyName)
+        => appDomain
+            .GetAssemblies()
+            .SingleOrDefault(assembly => assembly.GetName().Name == assemblyName);
 }

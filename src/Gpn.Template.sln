@@ -19,11 +19,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Bff.Api", "Ser
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{6B1CE3F8-0989-40A4-8487-BAD22C4A3FEA}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3. Gpn.Template.Getter", "3. Gpn.Template.Getter", "{8726103E-5424-4475-B172-E9AE202E0B9C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4. Gpn.Template.Getter", "4. Gpn.Template.Getter", "{8726103E-5424-4475-B172-E9AE202E0B9C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4. Gpn.Template.Setter", "4. Gpn.Template.Setter", "{B95E8038-D875-49B1-837F-C3FE53A621D9}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "5. Gpn.Template.Setter", "5. Gpn.Template.Setter", "{B95E8038-D875-49B1-837F-C3FE53A621D9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2. Gpn.Template.Bff", "2. Gpn.Template.Bff", "{C4613025-C99D-4C65-9223-C5ADB938ECCB}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3. Gpn.Template.Bff", "3. Gpn.Template.Bff", "{C4613025-C99D-4C65-9223-C5ADB938ECCB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Setter.Application", "Services\Setter\Gpn.Template.Setter.Application\Gpn.Template.Setter.Application.csproj", "{23F2971A-AA54-4872-82A9-2786C6751E7E}"
 EndProject
@@ -77,7 +77,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DbProviders", "DbProviders"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Infrastructure.Dal", "Services\Common\Gpn.Template.Infrastructure.Dal\Gpn.Template.Infrastructure.Dal.csproj", "{0BC2675E-CA31-459A-B32E-C6341F81BA9E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Application.Cqrs.Core", "Shared\Core\Shared.Application.Cqrs.Core\Shared.Application.Cqrs.Core.csproj", "{F8C9BE31-B14D-49A5-ACF3-B1F07197A788}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Application.Cqrs.Core", "Shared\Core\Shared.Application.Cqrs.Core\Shared.Application.Cqrs.Core.csproj", "{F8C9BE31-B14D-49A5-ACF3-B1F07197A788}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2. Gpn.Template.DatabaseUpgrade", "2. Gpn.Template.DatabaseUpgrade", "{5EE61A95-BFFB-401D-9612-AD88ECE251CF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.DatabaseUpgrade", "Services\DatabaseUpgrade\Gpn.Template.DatabaseUpgrade\Gpn.Template.DatabaseUpgrade.csproj", "{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utils", "Utils", "{4E8470CE-3203-4015-9D00-F4046628D121}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Utils.DatabaseUpgrade", "Shared\Utils\Shared.Utils.DatabaseUpgrade\Shared.Utils.DatabaseUpgrade.csproj", "{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Utils.DatabaseUpgrade.Tests", "Shared\Utils\Shared.Utils.Tests\Shared.Utils.DatabaseUpgrade.Tests.csproj", "{51965AD8-452A-4B3B-B6BA-19106ED00026}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -230,6 +240,24 @@ Global
 		{F8C9BE31-B14D-49A5-ACF3-B1F07197A788}.Publish|Any CPU.Build.0 = Debug|Any CPU
 		{F8C9BE31-B14D-49A5-ACF3-B1F07197A788}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8C9BE31-B14D-49A5-ACF3-B1F07197A788}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}.Publish|Any CPU.ActiveCfg = Debug|Any CPU
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}.Publish|Any CPU.Build.0 = Debug|Any CPU
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}.Publish|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}.Publish|Any CPU.Build.0 = Debug|Any CPU
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51965AD8-452A-4B3B-B6BA-19106ED00026}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51965AD8-452A-4B3B-B6BA-19106ED00026}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51965AD8-452A-4B3B-B6BA-19106ED00026}.Publish|Any CPU.ActiveCfg = Debug|Any CPU
+		{51965AD8-452A-4B3B-B6BA-19106ED00026}.Publish|Any CPU.Build.0 = Debug|Any CPU
+		{51965AD8-452A-4B3B-B6BA-19106ED00026}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51965AD8-452A-4B3B-B6BA-19106ED00026}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -271,6 +299,11 @@ Global
 		{6DA8CBAA-7F98-4DB3-A14E-864616C76A8E} = {A29FB115-7A45-4D9A-917A-85A826E004AD}
 		{0BC2675E-CA31-459A-B32E-C6341F81BA9E} = {6D40614C-8AA2-4A85-A4D7-1FB07F77F54B}
 		{F8C9BE31-B14D-49A5-ACF3-B1F07197A788} = {B0EA3733-B1F2-4324-86E9-AC24A53AC160}
+		{5EE61A95-BFFB-401D-9612-AD88ECE251CF} = {6B1CE3F8-0989-40A4-8487-BAD22C4A3FEA}
+		{23AE00D7-1F48-4BF6-80F9-EC8C94BB396C} = {5EE61A95-BFFB-401D-9612-AD88ECE251CF}
+		{4E8470CE-3203-4015-9D00-F4046628D121} = {30DEDAD4-3A5F-4E66-AD49-CA7F74EF9750}
+		{DA3F1D11-565B-4B0E-86EA-FAAE6A296A0D} = {4E8470CE-3203-4015-9D00-F4046628D121}
+		{51965AD8-452A-4B3B-B6BA-19106ED00026} = {4E8470CE-3203-4015-9D00-F4046628D121}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9890C3A-FAB7-4EC9-854B-41BF56852932}

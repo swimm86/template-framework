@@ -1,17 +1,17 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ServiceCollectionExtensions.cs" company="ООО Газпромнефть - Цифровые решения">
+// <copyright file="ExceptionsDependencyInjection.cs" company="ООО Газпромнефть - Цифровые решения">
 // Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Shared.Application.Core.Exceptions;
+namespace Shared.Application.Core.Exceptions.Extensions;
 
 /// <summary>
 ///  Содержит методы расширения <see cref="IServiceCollection"/>.
 /// </summary>
-public static class ServiceCollectionExtensions
+public static class ExceptionsDependencyInjection
 {
     /// <summary>
     /// Добавление обработчиков ошибок.

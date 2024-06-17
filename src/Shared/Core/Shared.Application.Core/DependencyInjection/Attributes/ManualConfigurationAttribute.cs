@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Application.Core.Attributes;
+namespace Shared.Application.Core.DependencyInjection.Attributes;
 
 /// <summary>
 /// Атрибут, наличие которого обозначает, что класс должен быть сконфигурирован вручную.

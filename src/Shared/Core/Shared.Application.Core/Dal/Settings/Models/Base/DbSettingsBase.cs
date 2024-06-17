@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Application.Core.Dal.Settings;
+namespace Shared.Application.Core.Dal.Settings.Models.Base;
 
 /// <summary>
 /// Базовая конфигурация для бд.

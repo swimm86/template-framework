@@ -1,14 +1,14 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="RepositoryDependencyInjection.cs" company="ООО Газпромнефть - Цифровые решения">
+// <copyright file="DbSeederDependencyInjection.cs" company="ООО Газпромнефть - Цифровые решения">
 // Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Application.Core.Dal.Repository.Interfaces;
+using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 using Shared.Application.Core.DependencyInjection.Extensions;
 
-namespace Shared.Application.Core.Dal.Repository.Extensions;
+namespace Shared.Application.Core.Dal.DbSeeder.Extensions;
 
 /// <summary>
 /// Методы расширения для <see cref="IServiceCollection"/>.
@@ -16,10 +16,10 @@ namespace Shared.Application.Core.Dal.Repository.Extensions;
 public static class DbSeederDependencyInjection
 {
     /// <summary>
-    /// Метод расширения для регистрации репозиториев в IServiceCollection.
+    /// Метод расширения для регистрации <see cref="IDbSeeder"/> в IServiceCollection.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
-    /// <returns>Измененная коллекция сервисов с добавленными репозиториями.</returns>
-    public static IServiceCollection AddRepositories(this IServiceCollection serviceCollection) =>
-        serviceCollection.RegisterDerivedTypeDependencies(typeof(IRepository<>));
+    /// <returns>Измененная коллекция сервисов с добавленными <see cref="IDbSeeder"/>.</returns>
+    public static IServiceCollection AddDbSeeder(this IServiceCollection serviceCollection) =>
+        serviceCollection.RegisterDerivedTypeDependencies(typeof(IDbSeeder), ServiceLifetime.Singleton);
 }

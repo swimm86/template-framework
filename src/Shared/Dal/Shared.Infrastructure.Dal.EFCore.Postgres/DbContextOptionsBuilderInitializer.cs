@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using Shared.Application.Core.Configuration;
-using Shared.Application.Core.Dal.Settings;
+using Shared.Application.Core.Dal.Settings.Models.Base;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Postgres;
