@@ -71,7 +71,7 @@ public static class ServiceCollectionExtensions
                     .GetMethods()
                     .First(m => m is { Name: nameof(AddDbContext), IsGenericMethod: true })
                     .MakeGenericMethod(settings, type)
-                    .Invoke(null, [serviceCollection, Assembly.GetExecutingAssembly().FullName!]);
+                    .Invoke(null, [serviceCollection, type.Assembly]);
             });
 
         return serviceCollection;
