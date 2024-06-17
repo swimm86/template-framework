@@ -4,8 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Getter.Application.Requests;
-using Gpn.Template.Getter.Application.Responses;
+using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
+using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
 using Shared.Application.Core.Dto.Responses;
 
 namespace Gpn.Template.Getter.Application.Interfaces;
@@ -20,5 +20,5 @@ public interface IPersonsService
     /// </summary>
     /// <param name="dto"><inheritdoc cref="GetPersonsRequestDto"/></param>
     /// <returns>Список всех 'Person-ов'.</returns>
-    Task<Response<GetPersonsResponseDto>> GetPersonsAsync(GetPersonsRequestDto dto);
+    Task<PageableResponse<PersonDto>> GetPersonsAsync(GetPersonsRequestDto dto);
 }

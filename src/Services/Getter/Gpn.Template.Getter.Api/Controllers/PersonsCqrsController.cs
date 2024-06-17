@@ -1,20 +1,21 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="PersonsController.cs" company="ООО Газпромнефть - Цифровые решения">
+// <copyright file="PersonsCqrsController.cs" company="ООО Газпромнефть - Цифровые решения">
 // Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Getter.Api.Controllers.Base;
+using Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries;
 using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
-using Gpn.Template.Getter.Application.Interfaces;
+using MediatR;
 
 namespace Gpn.Template.Getter.Api.Controllers;
 
 /// <summary>
-/// Person контроллер.
+/// Person контроллер с использованием CQRS.
 /// </summary>
-public sealed class PersonsController(
-    IPersonsService personsService,
+public sealed class PersonsCqrsController(
+    ISender sender,
     ILogger<PersonsController> logger
     ) : GetterControllerBase(logger)
 {
@@ -26,6 +27,6 @@ public sealed class PersonsController(
     [HttpPost("list")]
     public async Task<IActionResult> GetPersonsAsync([FromBody] GetPersonsRequestDto dto)
     {
-        return Ok(await personsService.GetPersonsAsync(dto).ConfigureAwait(false));
+        return Ok(await sender.Send(new PersonReadListQuery(dto)).ConfigureAwait(false));
     }
 }

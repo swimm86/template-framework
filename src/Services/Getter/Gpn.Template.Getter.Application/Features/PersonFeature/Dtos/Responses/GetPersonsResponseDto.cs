@@ -6,18 +6,7 @@
 
 using Gpn.Template.Domain.Entities;
 
-namespace Gpn.Template.Getter.Application.Responses;
-
-/// <summary>
-/// Response-Dto для получения всех 'Person-ов'.
-/// </summary>
-public sealed record GetPersonsResponseDto()
-{
-    /// <summary>
-    /// Список 'Person-ов'.
-    /// </summary>
-    public ICollection<PersonDto> Persons { get; init; } = [];
-}
+namespace Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
 
 /// <summary>
 /// Response-Dto с информацией об конкретном 'Person-е'.

@@ -5,32 +5,28 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Domain.Entities;
+using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
+using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
 using Gpn.Template.Getter.Application.Interfaces;
-using Gpn.Template.Getter.Application.Requests;
-using Gpn.Template.Getter.Application.Responses;
 using Gpn.Template.Getter.Application.Specifications;
 using Microsoft.AspNetCore.Http;
 using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Application.Core.Dal.Repository.Models;
-using Shared.Application.Core.Dal.Specification.Extensions;
 using Shared.Application.Core.Dal.Specification.Interfaces;
-using Shared.Application.Core.Dal.Specification.Models;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Core.Dto.Responses;
-using Shared.Application.Core.Mapping.Interfaces;
 
 namespace Gpn.Template.Getter.Application.Services;
 
 /// <inheritdoc />
 public class PersonsService(
-    IMapper mapper,
     IUnitOfWork unitOfWork,
     IRepository<Person> personRepository,
     ISpecificationRepository<Person> personSpecification)
     : IPersonsService
 {
     /// <inheritdoc />
-    public async Task<Response<GetPersonsResponseDto>> GetPersonsAsync(
+    public async Task<PageableResponse<PersonDto>> GetPersonsAsync(
         GetPersonsRequestDto dto)
     {
         var personsTask = dto.DalPattern switch
@@ -40,44 +36,58 @@ public class PersonsService(
             DalPattern.Specification => GetPersonsSpecificationAsync(),
             _ => throw new ArgumentOutOfRangeException()
         };
-        var result = mapper
-            .Map<ICollection<PersonDto>, GetPersonsResponseDto>(await personsTask.ConfigureAwait(false));
-        return new Response<GetPersonsResponseDto>(result, StatusCodes.Status200OK);
+        var result = await personsTask.ConfigureAwait(false);
+        var totalPages = dto.PageSize == 0 ? 0 : result.totalCount / dto.PageSize;
+        return new PageableResponse<PersonDto>(totalPages, result.collection, StatusCodes.Status200OK);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'UnitOfWork'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    public async Task<ICollection<PersonDto>> GetPersonsUnitOfWorkAsync()
+    public Task<(ICollection<PersonDto> collection, int totalCount)> GetPersonsUnitOfWorkAsync()
     {
-        return await unitOfWork
-            .ExecuteAsync<Person, List<PersonDto>>(
-                repo =>
-                    repo.GetRangeAsync<PersonDto>(new QueryOptions<Person>()),
-                CancellationToken.None)
-            .ConfigureAwait(false);
+        return unitOfWork
+            .ExecuteAsync<Person, (ICollection<PersonDto> collection, int totalCount)>(
+                async repo =>
+                {
+                    var options = new QueryOptions<Person>();
+                    var collection = await repo.GetRangeAsync<PersonDto>(options).ConfigureAwait(false);
+                    var totalCount = await repo.CountAsync(options).ConfigureAwait(false);
+                    return (collection, totalCount);
+                },
+                CancellationToken.None);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Repository'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    private async Task<ICollection<PersonDto>> GetPersonsRepositoryAsync()
+    private async Task<(ICollection<PersonDto> collection, int totalCount)> GetPersonsRepositoryAsync()
     {
-        return await personRepository
-            .GetRangeAsync<PersonDto>(new QueryOptions<Person>())
+        var options = new QueryOptions<Person>();
+        var collection = await personRepository
+            .GetRangeAsync<PersonDto>(options)
             .ConfigureAwait(false);
+        var totalCount = await personRepository
+            .CountAsync(options)
+            .ConfigureAwait(false);
+        return (collection, totalCount);
     }
 
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Specification'.
     /// </summary>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    private async Task<ICollection<PersonDto>> GetPersonsSpecificationAsync()
+    private async Task<(ICollection<PersonDto> collection, int totalCount)> GetPersonsSpecificationAsync()
     {
-        return await personSpecification
-            .GetRangeAsync<PersonDto>(new PersonSpecification())
+        var specification = new PersonSpecification();
+        var collection = await personSpecification
+            .GetRangeAsync<PersonDto>(specification)
             .ConfigureAwait(false);
+        var totalCount = await personSpecification
+            .CountAsync(specification)
+            .ConfigureAwait(false);
+        return (collection, totalCount);
     }
 }
