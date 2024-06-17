@@ -6,7 +6,6 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Infrastructure.Dal.EFCore;
 
 namespace Gpn.Template.Infrastructure.Dal;
@@ -16,9 +15,8 @@ namespace Gpn.Template.Infrastructure.Dal;
 /// </summary>
 public class DbContext(
     DbContextOptions<DbContext> options,
-    IQueryEvaluator evaluator,
     IHostEnvironment environment)
-    : DbContextBase(options, evaluator, environment)
+    : DbContextBase(options, environment)
 {
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)

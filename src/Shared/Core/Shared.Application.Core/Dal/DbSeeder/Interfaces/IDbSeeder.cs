@@ -20,4 +20,9 @@ public interface IDbSeeder
     /// Выполняет миграцию базы данных до последней версии.
     /// </summary>
     void Migrate();
+
+    /// <summary>
+    /// Выполняет инициализацию базы данных.
+    /// </summary>
+    void Initialize();
 }

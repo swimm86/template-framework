@@ -15,6 +15,7 @@ using var host = builder.Build();
 var dbSeeder = host.Services.GetRequiredService<IDbSeeder>();
 dbSeeder.CreateDbIfNotExists();
 dbSeeder.Migrate();
+dbSeeder.Initialize();
 return;
 
 static IHostBuilder CreateHostBuilder(string[] args) =>

@@ -6,7 +6,6 @@
 
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
-using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Conventions;
 
 namespace Shared.Infrastructure.Dal.EFCore;
@@ -16,7 +15,6 @@ namespace Shared.Infrastructure.Dal.EFCore;
 /// </summary>
 public abstract class DbContextBase(
     DbContextOptions options,
-    IQueryEvaluator evaluator,
     IHostEnvironment environment
 ) : DbContext(options)
 {

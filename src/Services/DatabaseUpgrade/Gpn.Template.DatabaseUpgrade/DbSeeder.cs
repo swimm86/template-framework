@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 using DbContext = Gpn.Template.Infrastructure.Dal.DbContext;
@@ -14,7 +15,7 @@ namespace Gpn.Template.DatabaseUpgrade;
 /// Реализация <see cref="IDbSeeder"/>.
 /// </summary>
 /// <param name="dbContextFactory">Фабрика DbContext-ов.</param>
-public class DbSeeder(IDbContextFactory<DbContext> dbContextFactory) : IDbSeeder
+public class DbSeeder(IDbContextFactory<DbContext> dbContextFactory) : IDbSeeder, IDisposable, IAsyncDisposable
 {
     private readonly DbContext _dbContext = dbContextFactory.CreateDbContext();
 
@@ -31,5 +32,35 @@ public class DbSeeder(IDbContextFactory<DbContext> dbContextFactory) : IDbSeeder
         {
             _dbContext.Database.Migrate();
         }
+    }
+
+    /// <inheritdoc />
+    public void Initialize()
+    {
+        if (_dbContext.Set<Person>().Any())
+        {
+            return;
+        }
+
+        _dbContext.AddRange(Enumerable.Range(1, 100).Select(i => new Person
+        {
+            Id = Guid.NewGuid(),
+            Name = $"Person {i}",
+            Email = $"person{i}@example.com",
+        }));
+
+        _dbContext.SaveChanges();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _dbContext.Dispose();
+    }
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync()
+    {
+        return _dbContext.DisposeAsync();
     }
 }
