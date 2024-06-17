@@ -21,5 +21,5 @@ public static class DbSeederDependencyInjection
     /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
     /// <returns>Измененная коллекция сервисов с добавленными <see cref="IDbSeeder"/>.</returns>
     public static IServiceCollection AddDbSeeder(this IServiceCollection serviceCollection) =>
-        serviceCollection.RegisterDerivedTypeDependencies(typeof(IDbSeeder), ServiceLifetime.Singleton);
+        serviceCollection.RegisterDerivedTypeDependencies<IDbSeeder>(ServiceLifetime.Singleton);
 }

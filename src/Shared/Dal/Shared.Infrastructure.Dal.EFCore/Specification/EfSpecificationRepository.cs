@@ -23,35 +23,4 @@ public class EfSpecificationRepository<TEntity>(
     : EfRepository<TEntity>(dbContext, evaluator), ISpecificationRepository<TEntity>
     where TEntity : class, IEntity
 {
-    /// <inheritdoc />
-    public Task<TEntity?> GetAsync(object id, ISpecification<TEntity>? options = null) =>
-        GetAsync(id, options?.BuildOptions());
-
-    /// <inheritdoc />
-    public Task<List<TEntity>> GetRangeAsync(ISpecification<TEntity> options, int? skip = null, int? take = null) =>
-        GetRangeAsync(options.BuildOptions(), skip, take);
-
-    /// <inheritdoc />
-    public Task<List<TOut>> GetRangeAsync<TOut>(ISpecification<TEntity> options, int? skip = null, int? take = null) =>
-        GetRangeAsync<TOut>(options.BuildOptions(), skip, take);
-
-    /// <inheritdoc />
-    public Task<TEntity?> FirstOrDefaultAsync(ISpecification<TEntity> options) =>
-        FirstOrDefaultAsync(options.BuildOptions());
-
-    /// <inheritdoc />
-    public Task<TEntity?> SingleOrDefaultAsync(ISpecification<TEntity> options) =>
-        SingleOrDefaultAsync(options.BuildOptions());
-
-    /// <inheritdoc />
-    public Task<TEntity?> LastOrDefaultAsync(ISpecification<TEntity> options) =>
-        LastOrDefaultAsync(options.BuildOptions());
-
-    /// <inheritdoc />
-    public Task<int> CountAsync(ISpecification<TEntity> options) =>
-        CountAsync(options.BuildOptions());
-
-    /// <inheritdoc />
-    public Task RemoveRangeAsync(ISpecification<TEntity> options) =>
-        RemoveRangeAsync(options.BuildOptions());
 }

@@ -5,21 +5,21 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Application.Core.Dal;
+using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Cqrs.Core.Utils;
+using Shared.Common.Helpers;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 
 /// <summary>
 /// Бзаовый класс для чтения с пагинацией
 /// </summary>
-/// <typeparam name="TFilter">Фильтр.</typeparam>
+/// <typeparam name="TRequest">Запрос.</typeparam>
+/// /// <typeparam name="TFilter">Фильтр.</typeparam>
 /// <typeparam name="TResponse">Ожидаемый ответ.</typeparam>
-public abstract class ReadListQuery<TFilter, TResponse>(
-    int? pageNumber = default,
-    int? pageSize = default,
-    TFilter? filter = default,
-    List<string>? sortOptions = default)
+public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest request)
     : IQuery<TResponse>
+    where TRequest : PageableRequest<TFilter>
     where TFilter : new()
 {
     /// <summary>
@@ -35,22 +35,27 @@ public abstract class ReadListQuery<TFilter, TResponse>(
     /// <summary>
     /// Номер страницы.
     /// </summary>
-    public int PageNumber { get; } = pageNumber is null or < MinPageNumber ? MinPageNumber : pageNumber.Value;
+    public int PageNumber { get; } = request.PageNumber < MinPageNumber ? MinPageNumber : request.PageNumber;
 
     /// <summary>
     /// Количество элементов на одной странице.
     /// </summary>
-    public int? PageSize { get; } = pageSize;
+    public int? PageSize { get; } = request.PageSize;
+
+    /// <summary>
+    /// Запрос.
+    /// </summary>
+    public TRequest Request => request;
 
     /// <summary>
     /// Фильтр.
     /// </summary>
-    public TFilter Filter { get; } = filter ?? new TFilter();
+    public TFilter Filter { get; } = request.Filter ?? new TFilter();
 
     /// <summary>
     /// Параметры сортировки.
     /// </summary>
-    public List<SortOption> SortOptions { get; } = ConvertSortOptions(sortOptions);
+    public List<SortOption> SortOptions { get; } = ConvertSortOptions(request.SortOptions);
 
     private static List<SortOption> ConvertSortOptions(List<string>? sortOptions)
     {
@@ -72,9 +77,5 @@ public abstract class ReadListQuery<TFilter, TResponse>(
     }
 
     private static OrderDirectionType GetDirectionType(string? str) =>
-        str?.ToLower() switch
-        {
-            "desc" => OrderDirectionType.Descending,
-            _ => OrderDirectionType.Ascending
-        };
+        EnumHelper.GetEnumByDescription(str?.ToLower(), OrderDirectionType.Ascending);
 }

@@ -82,10 +82,20 @@ public class QueryOptions<TEntity>
     /// </summary>
     /// <param name="expression">Сортировка.</param>
     /// <param name="orderDirectionType">Направление сортировки.</param>
+    /// <param name="index">Индекс.</param>
     public void AddOrderBy(
         Expression<Func<TEntity, object>> expression,
-        OrderDirectionType orderDirectionType)
+        OrderDirectionType orderDirectionType,
+        int? index = default)
     {
-        OrderBy.Add(new QueryOrderByOption<TEntity>(expression, orderDirectionType));
+        var newOrderBy = new QueryOrderByOption<TEntity>(expression, orderDirectionType);
+        if (index.HasValue)
+        {
+            OrderBy.Insert(index.Value, newOrderBy);
+        }
+        else
+        {
+            OrderBy.Add(new QueryOrderByOption<TEntity>(expression, orderDirectionType));
+        }
     }
 }

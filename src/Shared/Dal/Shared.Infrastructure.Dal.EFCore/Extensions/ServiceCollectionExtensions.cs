@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Core.DependencyInjection.Attributes;

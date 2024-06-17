@@ -9,7 +9,7 @@ namespace Shared.Application.Core.Dto.Requests;
 /// <summary>
 /// Базовая модель для Request-а с пагинацией.
 /// </summary>
-public abstract record PageableRequest
+public abstract record PageableRequest<TFilter>
 {
     /// <summary>
     /// Номер страницы.
@@ -20,4 +20,14 @@ public abstract record PageableRequest
     /// Размер страницы.
     /// </summary>
     public int PageSize { get; init; }
+
+    /// <summary>
+    /// Фильтр.
+    /// </summary>
+    public TFilter Filter { get; init; }
+
+    /// <summary>
+    /// Настройки сортировки.
+    /// </summary>
+    public List<string>? SortOptions { get; init; }
 }

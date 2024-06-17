@@ -9,7 +9,7 @@ using System.Reflection;
 namespace Shared.Common.Helpers;
 
 /// <summary>
-/// Предоставляет вспомогательные методы общего назначения.
+/// Предоставляет вспомогательные методы для <see cref="Assembly"/>.
 /// </summary>
 public static class AssemblyHelper
 {

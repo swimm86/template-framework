@@ -9,7 +9,7 @@ namespace Shared.Domain.Core.Interfaces;
 /// <summary>
 /// Интерфейс создания.
 /// </summary>
-public interface IWithCreated
+public interface IWithCreated : IWithDateCreated
 {
     /// <summary>
     /// Кем создано.
@@ -17,21 +17,10 @@ public interface IWithCreated
     Guid? CreatedByUserId { get; }
 
     /// <summary>
-    /// Дата удаления.
-    /// </summary>
-    DateTime DateCreated { get; }
-
-    /// <summary>
     /// Метод установки.
     /// </summary>
-    /// <param name="createdByUserId">Идентификатор пользователя, который является инициатором создания.</param>
+    /// <param name="createdByUserId">Идентификатор пользователя.</param>
     void SetCreatedByUserId(Guid? createdByUserId);
-
-    /// <summary>
-    /// Метод установки.
-    /// </summary>
-    /// <param name="dateCreated">Дата создания.</param>
-    void SetDateCreated(DateTime dateCreated);
 
     /// <summary>
     /// Делает полезные вещи при создании.

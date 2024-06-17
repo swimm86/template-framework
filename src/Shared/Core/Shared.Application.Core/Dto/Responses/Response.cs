@@ -14,4 +14,4 @@ namespace Shared.Application.Core.Dto.Responses;
 /// <typeparam name="T">Тип данных для ответа.</typeparam>
 /// <param name="Payload">Тело ответа.</param>
 /// <param name="StatusCode">Статус ответа.</param>
-public sealed record Response<T>(T Payload, [property: JsonIgnore] int StatusCode);
+public record Response<T>(T? Payload, [property: JsonIgnore] int StatusCode);

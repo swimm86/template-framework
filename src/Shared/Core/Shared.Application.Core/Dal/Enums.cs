@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.ComponentModel;
+
 namespace Shared.Application.Core.Dal;
 
 /// <summary>
@@ -14,10 +16,12 @@ public enum OrderDirectionType
     /// <summary>
     /// Направление сортировки по возрастанию
     /// </summary>
+    [Description("asc")]
     Ascending,
 
     /// <summary>
     /// Направление сортировки по убыванию
     /// </summary>
+    [Description("desc")]
     Descending,
 }

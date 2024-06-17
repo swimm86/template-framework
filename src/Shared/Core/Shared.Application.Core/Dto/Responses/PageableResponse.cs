@@ -10,8 +10,8 @@ namespace Shared.Application.Core.Dto.Responses;
 /// Данные с пагинацией.
 /// </summary>
 /// <typeparam name="T">Тип данных.</typeparam>
-/// <param name="PageNumber">Номер страницы.</param>
-/// <param name="PageSize">Размер страницы.</param>
 /// <param name="TotalPages">Всего страниц.</param>
-/// <param name="Payload">Данные.</param>
-public sealed record PageableResponse<T>(int PageNumber, int PageSize, int TotalPages, T? Payload);
+/// <param name="Payload">Тело ответа.</param>
+/// <param name="StatusCode">Статус ответа.</param>
+public sealed record PageableResponse<T>(int TotalPages, ICollection<T>? Payload, int StatusCode)
+    : Response<ICollection<T>>(Payload, StatusCode);
