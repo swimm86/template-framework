@@ -17,6 +17,6 @@ namespace Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries;
 /// Чтения с пагинацией, фильтрами и сортировкой сущностей <see cref="Person"/>.
 /// </summary>
 public class PersonReadListQuery(GetPersonsRequestDto request)
-    : ReadListQuery<GetPersonsRequestDto, PersonFilter, PageableResponse<PersonDto>>(request)
+    : ReadListQuery<GetPersonsRequestDto, PersonFilter, PageableResponse<ICollection<PersonDto>>>(request)
 {
 }

@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dal;
 using Shared.Application.Core.Dal.Repository.Interfaces;
@@ -33,14 +32,14 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TEntity, TDto, TFil
     ILoggerFactory loggerFactory,
     IRepository<TEntity> repository,
     IDtoPostProcessor<TDto>? postProcessor)
-    : RequestHandler<TQuery, PageableResponse<TDto>>(loggerFactory)
-    where TQuery : ReadListQuery<TRequest, TFilter, PageableResponse<TDto>>
+    : RequestHandler<TQuery, PageableResponse<ICollection<TDto>>>(loggerFactory)
+    where TQuery : ReadListQuery<TRequest, TFilter, PageableResponse<ICollection<TDto>>>
     where TRequest : PageableRequest<TFilter>
     where TEntity : class, IEntity
     where TFilter : new()
 {
     /// <inheritdoc/>
-    public override async Task<PageableResponse<TDto>> Handle(
+    public override async Task<PageableResponse<ICollection<TDto>>> Handle(
         TQuery query,
         CancellationToken cancellationToken)
     {
@@ -55,7 +54,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TEntity, TDto, TFil
     /// <param name="request"> Запрос. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> Ответ. </returns>
-    protected virtual async Task<PageableResponse<TDto>> FindAsync(
+    protected virtual async Task<PageableResponse<ICollection<TDto>>> FindAsync(
         TQuery request,
         CancellationToken cancellationToken)
     {
@@ -71,10 +70,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TEntity, TDto, TFil
         }
 
         var pagesCount = request.PageSize.HasValue && totalCount > 0 ? totalCount / request.PageSize.Value : 0;
-        return new PageableResponse<TDto>(
-            pagesCount,
-            dtoList,
-            StatusCodes.Status200OK);
+        return new PageableResponse<ICollection<TDto>>(pagesCount, dtoList);
     }
 
     /// <summary>

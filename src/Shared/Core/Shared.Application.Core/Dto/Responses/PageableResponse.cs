@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.AspNetCore.Http;
+
 namespace Shared.Application.Core.Dto.Responses;
 
 /// <summary>
@@ -13,5 +15,5 @@ namespace Shared.Application.Core.Dto.Responses;
 /// <param name="TotalPages">Всего страниц.</param>
 /// <param name="Payload">Тело ответа.</param>
 /// <param name="StatusCode">Статус ответа.</param>
-public sealed record PageableResponse<T>(int TotalPages, ICollection<T>? Payload, int StatusCode)
-    : Response<ICollection<T>>(Payload, StatusCode);
+public sealed record PageableResponse<T>(int TotalPages, T? Payload, int StatusCode = StatusCodes.Status200OK)
+    : Response<T>(Payload, StatusCode);

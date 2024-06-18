@@ -20,5 +20,5 @@ public interface IPersonsService
     /// </summary>
     /// <param name="dto"><inheritdoc cref="GetPersonsRequestDto"/></param>
     /// <returns>Список всех 'Person-ов'.</returns>
-    Task<PageableResponse<PersonDto>> GetPersonsAsync(GetPersonsRequestDto dto);
+    Task<PageableResponse<ICollection<PersonDto>>> GetPersonsAsync(GetPersonsRequestDto dto);
 }

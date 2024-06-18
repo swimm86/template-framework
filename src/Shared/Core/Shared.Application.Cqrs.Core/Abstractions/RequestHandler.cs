@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="RequestHandler.cs" company="ООО Газпромнефть - Цифровые решения">
 // Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
 // </copyright>
@@ -33,15 +33,15 @@ public abstract class RequestHandler<TRequest, TResponse>(
     /// </summary>
     /// <param name="request">запрос</param>
     /// <param name="cancellationToken">Cancellation Token</param>
-    /// <returns></returns>
+    /// <returns><see cref="Task"/>.</returns>
     public abstract Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Гарды.
     /// </summary>
-    /// <param name="request"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="request">Запрос.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <returns>True, если запрос валидный, иначе false.</returns>
     protected virtual Task<bool> GuardAsync(TRequest request, CancellationToken cancellationToken)
     {
         return Task.FromResult(true);
@@ -54,6 +54,8 @@ public abstract class RequestHandler<TRequest, TResponse>(
     /// <param name="validators">Коллекция валидаторов</param>
     /// <param name="cancellationToken">CancellationToken</param>
     /// <exception cref="ValidationException">Ошибка валидации</exception>
+    /// <typeparam name="TEntity">Тип сущности.</typeparam>
+    /// <returns><see cref="Task"/></returns>
     protected virtual async Task ValidateAsync<TEntity>(
         TEntity entity,
         IEnumerable<IValidator<TEntity>> validators,
