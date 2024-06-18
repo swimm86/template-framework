@@ -37,38 +37,38 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public Task<List<TEntity>> GetRangeAsync(QueryOptions<TEntity> spec, int? skip = null, int? take = null) =>
-        evaluator.Build(DbSet, spec).GetRange(skip, take).ToListAsync();
+    public Task<List<TEntity>> GetRangeAsync(QueryOptions<TEntity>? options = null, int? skip = null, int? take = null) =>
+        evaluator.Build(DbSet, options).GetRange(skip, take).ToListAsync();
 
     /// <inheritdoc/>
     public Task<List<TOut>> GetRangeAsync<TOut>(
-        QueryOptions<TEntity> spec,
+        QueryOptions<TEntity>? options = null,
         int? skip = null,
         int? take = null) =>
-        evaluator.BuildWithTransform<TEntity, TOut>(DbSet, spec).GetRange(skip, take).ToListAsync();
+        evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).GetRange(skip, take).ToListAsync();
 
     /// <inheritdoc/>
-    public Task<TEntity?> FirstOrDefaultAsync(QueryOptions<TEntity> spec)
+    public Task<TEntity?> FirstOrDefaultAsync(QueryOptions<TEntity>? options = null)
     {
-        return evaluator.Build(DbSet, spec).FirstOrDefaultAsync();
+        return evaluator.Build(DbSet, options).FirstOrDefaultAsync();
     }
 
     /// <inheritdoc/>
-    public Task<TEntity?> SingleOrDefaultAsync(QueryOptions<TEntity> spec)
+    public Task<TEntity?> SingleOrDefaultAsync(QueryOptions<TEntity>? options = null)
     {
-        return evaluator.Build(DbSet, spec).SingleOrDefaultAsync();
+        return evaluator.Build(DbSet, options).SingleOrDefaultAsync();
     }
 
     /// <inheritdoc/>
-    public Task<TEntity?> LastOrDefaultAsync(QueryOptions<TEntity> spec)
+    public Task<TEntity?> LastOrDefaultAsync(QueryOptions<TEntity>? options = null)
     {
-        return evaluator.Build(DbSet, spec).LastOrDefaultAsync();
+        return evaluator.Build(DbSet, options).LastOrDefaultAsync();
     }
 
     /// <inheritdoc/>
-    public Task<int> CountAsync(QueryOptions<TEntity> spec)
+    public Task<int> CountAsync(QueryOptions<TEntity>? options = null)
     {
-        return evaluator.Build(DbSet, spec).CountAsync();
+        return evaluator.Build(DbSet, options).CountAsync();
     }
 
     /// <inheritdoc/>

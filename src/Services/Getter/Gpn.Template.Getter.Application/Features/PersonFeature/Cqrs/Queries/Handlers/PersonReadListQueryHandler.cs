@@ -10,8 +10,8 @@ using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
 using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
 using Gpn.Template.Getter.Application.Specifications;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Application.Core.Dal.Repository.Models;
-using Shared.Application.Core.Dal.Specification.Interfaces;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 using Shared.Application.Cqrs.Core.Utils.PostProcessors;
@@ -24,7 +24,7 @@ namespace Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries.Ha
 public class PersonReadListQueryHandler(
     ILoggerFactory loggerFactory,
     IUnitOfWork unitOfWork,
-    ISpecificationRepository<Person>? repository = default,
+    IRepository<Person>? repository = default,
     IDtoPostProcessor<PersonDto>? postProcessor = default)
     : ReadListQueryHandler<PersonReadListQuery, GetPersonsRequestDto, Person, PersonDto, PersonFilter>(
         loggerFactory,

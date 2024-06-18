@@ -11,7 +11,6 @@ using Gpn.Template.Getter.Application.Interfaces;
 using Gpn.Template.Getter.Application.Specifications;
 using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Application.Core.Dal.Repository.Models;
-using Shared.Application.Core.Dal.Specification.Interfaces;
 using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Core.Dto.Responses;
 
@@ -20,8 +19,7 @@ namespace Gpn.Template.Getter.Application.Services;
 /// <inheritdoc />
 public class PersonsService(
     IUnitOfWork unitOfWork,
-    IRepository<Person> personRepository,
-    ISpecificationRepository<Person> personSpecification)
+    IRepository<Person> personRepository)
     : IPersonsService
 {
     /// <inheritdoc />
@@ -45,6 +43,8 @@ public class PersonsService(
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'UnitOfWork'.
     /// </summary>
+    /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
+    /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     public Task<(ICollection<PersonDto> collection, int totalCount)> GetPersonsUnitOfWorkAsync(int skip, int take)
     {
@@ -63,6 +63,8 @@ public class PersonsService(
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Repository'.
     /// </summary>
+    /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
+    /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonDto> collection, int totalCount)> GetPersonsRepositoryAsync(int skip, int take)
     {
@@ -79,14 +81,16 @@ public class PersonsService(
     /// <summary>
     /// Возвращает всех 'Person-ов' с использованием паттерна 'Specification'.
     /// </summary>
+    /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
+    /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonDto> collection, int totalCount)> GetPersonsSpecificationAsync(int skip, int take)
     {
         var specification = new PersonSpecification();
-        var collection = await personSpecification
+        var collection = await personRepository
             .GetRangeAsync<PersonDto>(specification, skip, take)
             .ConfigureAwait(false);
-        var totalCount = await personSpecification
+        var totalCount = await personRepository
             .CountAsync(specification)
             .ConfigureAwait(false);
         return (collection, totalCount);

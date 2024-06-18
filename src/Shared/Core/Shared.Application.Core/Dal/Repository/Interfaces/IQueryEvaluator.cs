@@ -23,7 +23,7 @@ public interface IQueryEvaluator
     /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки.</returns>
     IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity;
 
     /// <summary>
@@ -36,6 +36,6 @@ public interface IQueryEvaluator
     /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки и преобразованными элементами типа <typeparamref name="TOut"/>.</returns>
     IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity;
 }

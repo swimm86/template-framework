@@ -20,9 +20,14 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity
     {
+        if (options is null)
+        {
+            return queryable;
+        }
+
         // Применяем фильтры
         queryable = options.Filters
             .Aggregate(queryable, (acc, x) => acc.Where(x));
@@ -58,7 +63,7 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity> options)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity
     {
         return mapper.ProjectTo<TOut>(Build(queryable, options));
