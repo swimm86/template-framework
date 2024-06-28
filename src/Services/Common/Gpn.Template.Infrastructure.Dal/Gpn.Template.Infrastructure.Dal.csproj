@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Dal\Shared.Infrastructure.Dal.EFCore.Postgres\Shared.Infrastructure.Dal.EFCore.Postgres.csproj" />
+    <ProjectReference Include="..\Gpn.Template.Application\Gpn.Template.Application.csproj" />
     <ProjectReference Include="..\Gpn.Template.Domain\Gpn.Template.Domain.csproj" />
   </ItemGroup>
 

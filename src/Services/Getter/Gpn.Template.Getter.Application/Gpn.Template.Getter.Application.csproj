@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Shared\Core\Shared.Application.Cqrs.Core\Shared.Application.Cqrs.Core.csproj" />
+    <ProjectReference Include="..\..\Common\Gpn.Template.Application\Gpn.Template.Application.csproj" />
     <ProjectReference Include="..\..\Common\Gpn.Template.Domain\Gpn.Template.Domain.csproj" />
     <ProjectReference Include="..\Abstractions\Gpn.Template.Getter.Application.Abstractions\Gpn.Template.Getter.Application.Abstractions.csproj" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">

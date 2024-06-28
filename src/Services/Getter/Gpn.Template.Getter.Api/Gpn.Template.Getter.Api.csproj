@@ -29,12 +29,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\..\.env" Link=".env">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Presentation.Core\Shared.Presentation.Core.csproj" />
     <ProjectReference Include="..\..\Common\Gpn.Template.Infrastructure.Dal\Gpn.Template.Infrastructure.Dal.csproj" />
     <ProjectReference Include="..\Gpn.Template.Getter.Infrastructure\Gpn.Template.Getter.Infrastructure.csproj" />

@@ -23,4 +23,19 @@ public static class EnumExtensions
         value.GetType().GetField(value.ToString())!.GetCustomAttributes<DescriptionAttribute>(false)
             .FirstOrDefault()?.Description ??
         Enum.GetName(value.GetType(), value)!;
+
+    /// <summary>
+    /// Получить элемент enum по его описанию из <see cref="DescriptionAttribute"/>
+    /// </summary>
+    /// <param name="description">Описание.</param>
+    /// <param name="enumType">Тип enum.</param>
+    /// <returns>Элемент enum.</returns>
+    public static Enum? GetEnumValueByDescription(this string description, Type enumType)
+    {
+        ArgumentNullException.ThrowIfNull(description);
+
+        return Enum.GetValues(enumType)
+            .Cast<Enum>()
+            .FirstOrDefault(v => v.Description() == description);
+    }
 }

@@ -9,7 +9,7 @@ namespace Shared.Domain.Core.Interfaces;
 /// <summary>
 /// Интерфейс обновления.
 /// </summary>
-public interface IWithUpdated
+public interface IWithUpdated : IWithDateUpdated
 {
     /// <summary>
     /// Кем обновлено.
@@ -17,21 +17,10 @@ public interface IWithUpdated
     Guid? UpdatedByUserId { get; }
 
     /// <summary>
-    /// Дата удаления.
-    /// </summary>
-    DateTime? DateUpdated { get; }
-
-    /// <summary>
     /// Метод установки.
     /// </summary>
     /// <param name="updatedByUserId">Идентификатор пользователя, который является инициатором обновления.</param>
     void SetUpdatedByUserId(Guid? updatedByUserId);
-
-    /// <summary>
-    /// Метод установки.
-    /// </summary>
-    /// <param name="dateUpdated">Дата создания.</param>
-    void SetDateUpdated(DateTime? dateUpdated);
 
     /// <summary>
     /// Делает полезные вещи при обновлении.

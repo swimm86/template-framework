@@ -4,9 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
-using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
-using Shared.Application.Core.Dto.Responses;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 
 namespace Gpn.Template.Getter.Application.Interfaces;
 
@@ -18,7 +17,7 @@ public interface IPersonsService
     /// <summary>
     /// Возвращает список 'Person-ов' с использованием указанного паттерна для доступа к Dal.
     /// </summary>
-    /// <param name="dto"><inheritdoc cref="GetPersonsRequestDto"/></param>
+    /// <param name="request"><inheritdoc cref="PersonListRequest"/>.</param>
     /// <returns>Список всех 'Person-ов'.</returns>
-    Task<PageableResponse<ICollection<PersonDto>>> GetPersonsAsync(GetPersonsRequestDto dto);
+    Task<PersonListResponse> GetPersonsAsync(PersonListRequest request);
 }

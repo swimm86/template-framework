@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -22,14 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\..\.env" Link=".env">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Presentation.Core\Shared.Presentation.Core.csproj" />
-    <ProjectReference Include="..\Gpn.Template.Bff.Application\Gpn.Template.Bff.Application.csproj" />
     <ProjectReference Include="..\Gpn.Template.Bff.Infrastructure\Gpn.Template.Bff.Infrastructure.csproj" />
   </ItemGroup>
 

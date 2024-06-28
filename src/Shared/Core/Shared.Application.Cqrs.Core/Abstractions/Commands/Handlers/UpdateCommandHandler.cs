@@ -12,7 +12,6 @@ using Shared.Application.Core.Exceptions.Models;
 using Shared.Application.Core.Mapping.Interfaces;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
-using Shared.Application.Cqrs.Core.Utils.Mappers.EntityMapper;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
@@ -28,7 +27,6 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 /// <param name="loggerFactory"> Логгер. </param>
 public abstract class UpdateCommandHandler<TRequest, TEntity, TKey, TUpdateDto, TResponse>(
     ILoggerFactory loggerFactory,
-    IEntityMapper<TUpdateDto, TEntity> entityMapper,
     IMapper mapper,
     IRepository<TEntity> repository,
     IEnumerable<IValidator<TEntity>> validators)
@@ -80,7 +78,7 @@ public abstract class UpdateCommandHandler<TRequest, TEntity, TKey, TUpdateDto, 
         TEntity entity,
         CancellationToken cancellationToken)
     {
-        entityMapper.Map(request.Dto, entity);
+        mapper.Map(request.Dto, entity);
         await ValidateAsync(entity, validators, cancellationToken).ConfigureAwait(false);
         await repository.SaveChangesAsync().ConfigureAwait(false);
         return new TResponse { Key = request.Key, Result = mapper.Map<TEntity, TUpdateDto>(entity) };

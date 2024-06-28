@@ -4,14 +4,12 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Domain.Entities;
-
-namespace Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries.Filters;
+namespace Gpn.Template.Getter.Application.Abstractions.Dto.Person.Filters;
 
 /// <summary>
 /// Фильтра для <see cref="Person"/>.
 /// </summary>
-public class PersonFilter
+public class PersonListFilter
 {
     /// <summary>
     /// <inheritdoc cref="Person.Name"/>

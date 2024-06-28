@@ -7,7 +7,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Application.Core.Configuration;
+using Shared.Application.Core.Configuration.Extensions;
 using Shared.Common;
 using Shared.Infrastructure.Core;
 using Shared.Presentation.Core.Conventions;

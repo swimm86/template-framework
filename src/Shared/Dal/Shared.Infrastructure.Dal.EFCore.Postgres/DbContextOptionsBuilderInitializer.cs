@@ -7,7 +7,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
-using Shared.Application.Core.Configuration;
+using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dal.Settings.Models.Base;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 

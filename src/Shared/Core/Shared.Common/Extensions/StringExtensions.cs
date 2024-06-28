@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Text.RegularExpressions;
+
 namespace Shared.Common.Extensions;
 
 /// <summary>
@@ -39,6 +41,7 @@ public static class StringExtensions
     /// <returns>Преобразованная строка.</returns>
     private static string ToLowerCaseWithDelimiter(this string value, string delimiter)
     {
-        return string.Concat(value.Select((x, i) => i > 0 && char.IsUpper(x) ? delimiter + x : x.ToString())).ToLower();
+        var start = Regex.Replace(value, "(?<!^)([A-Z][a-z]|(?<=[a-z])[A-Z])", delimiter + "$1");
+        return start.ToLower();
     }
 }

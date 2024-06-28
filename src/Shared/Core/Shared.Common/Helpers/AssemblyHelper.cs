@@ -59,6 +59,20 @@ public static class AssemblyHelper
     }
 
     /// <summary>
+    /// Получает все атрибуты указанного типа из сборок.
+    /// </summary>
+    /// <typeparam name="TAttribute">Тип атрибута.</typeparam>
+    /// <param name="entryAssembly">Сборка, относительно которой происходит поиск. Если не указана, используется текущая сборка.</param>
+    /// <returns>Перечисление атрибутов указанного типа из всех найденных сборок.</returns>
+    public static IEnumerable<TAttribute> GetAttributesFromAssemblies<TAttribute>(
+        Assembly? entryAssembly = default)
+        where TAttribute : Attribute
+    {
+        var assemblies = GetAssembliesByPrefix(entryAssembly);
+        return assemblies.SelectMany(a => a.GetCustomAttributes<TAttribute>());
+    }
+
+    /// <summary>
     /// Получает все типы, производные от указанного типа, из всех загруженных сборок.
     /// </summary>
     /// <typeparam name="TType">Тип, для которого необходимо найти производные типы.</typeparam>

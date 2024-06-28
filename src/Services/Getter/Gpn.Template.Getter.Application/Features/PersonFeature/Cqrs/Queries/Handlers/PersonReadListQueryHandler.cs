@@ -5,9 +5,9 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Domain.Entities;
-using Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries.Filters;
-using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
-using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Filters;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Gpn.Template.Getter.Application.Specifications;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dal.Repository.Interfaces;
@@ -25,8 +25,8 @@ public class PersonReadListQueryHandler(
     ILoggerFactory loggerFactory,
     IUnitOfWork unitOfWork,
     IRepository<Person>? repository = default,
-    IDtoPostProcessor<PersonDto>? postProcessor = default)
-    : ReadListQueryHandler<PersonReadListQuery, GetPersonsRequestDto, Person, PersonDto, PersonFilter>(
+    IDtoPostProcessor<PersonListPayload>? postProcessor = default)
+    : ReadListQueryHandler<PersonReadListQuery, PersonListRequest, PersonListResponse, Person, PersonListPayload, PersonListFilter>(
         loggerFactory,
         repository ?? unitOfWork.GetRepository<Person>(),
         postProcessor)

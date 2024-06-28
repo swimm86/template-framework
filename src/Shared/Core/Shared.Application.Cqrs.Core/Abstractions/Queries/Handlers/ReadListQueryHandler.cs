@@ -25,16 +25,18 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 /// <param name="postProcessor">Пост обработка найденной коллекции Необязательный параметр</param>
 /// <typeparam name="TQuery">Query.</typeparam>
 /// <typeparam name="TRequest">Request.</typeparam>
+/// <typeparam name="TResponse">Response.</typeparam>
 /// <typeparam name="TEntity">Сущность.</typeparam>
-/// <typeparam name="TDto">ДТО.</typeparam>
+/// <typeparam name="TDto">Dto.</typeparam>
 /// <typeparam name="TFilter">Фильтр.</typeparam>
-public abstract class ReadListQueryHandler<TQuery, TRequest, TEntity, TDto, TFilter>(
+public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity, TDto, TFilter>(
     ILoggerFactory loggerFactory,
     IRepository<TEntity> repository,
     IDtoPostProcessor<TDto>? postProcessor)
     : RequestHandler<TQuery, PageableResponse<ICollection<TDto>>>(loggerFactory)
-    where TQuery : ReadListQuery<TRequest, TFilter, PageableResponse<ICollection<TDto>>>
+    where TQuery : ReadListQuery<TRequest, TFilter, TResponse>
     where TRequest : PageableRequest<TFilter>
+    where TResponse : PageableResponse<ICollection<TDto>>
     where TEntity : class, IEntity
     where TFilter : new()
 {

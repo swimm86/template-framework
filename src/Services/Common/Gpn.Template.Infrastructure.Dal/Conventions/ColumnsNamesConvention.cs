@@ -4,11 +4,12 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Shared.Common.Extensions;
 
-namespace Shared.Infrastructure.Dal.EFCore.Conventions;
+namespace Gpn.Template.Infrastructure.Dal.Conventions;
 
 /// <summary>
 /// Конвенция для приведения названия полей к snake_case.

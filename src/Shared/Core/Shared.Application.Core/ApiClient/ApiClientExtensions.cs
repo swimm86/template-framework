@@ -7,7 +7,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.ApiClient.Settings.Base;
-using Shared.Application.Core.Configuration;
+using Shared.Application.Core.Configuration.Extensions;
 
 namespace Shared.Application.Core.ApiClient;
 

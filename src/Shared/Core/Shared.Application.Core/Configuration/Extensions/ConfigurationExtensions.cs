@@ -4,20 +4,20 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Reflection;
 using DotNetEnv.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Shared.Application.Core.Configuration.Attributes;
 using Shared.Common.Helpers;
 
-namespace Shared.Application.Core.Configuration;
+namespace Shared.Application.Core.Configuration.Extensions;
 
 /// <summary>
 /// Класс, который содержит расширения для <see cref="IConfiguration"/>
 /// </summary>
 public static class ConfigurationExtensions
 {
-    private const string Env = ".env";
-
     /// <summary>
     /// Получение настроек.
     /// </summary>
@@ -91,17 +91,30 @@ public static class ConfigurationExtensions
         this IConfigurationBuilder configurationBuilder,
         IHostEnvironment hostEnvironment)
     {
-        configurationBuilder.AddEnvironmentVariables();
+        var envPath =
+            AssemblyHelper.GetAttributesFromAssemblies<EnvPathAttribute>().FirstOrDefault()?.Path;
+        var envDirectory = string.Empty;
+        if (!string.IsNullOrWhiteSpace(envPath))
+        {
+            var assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
+            Directory.SetCurrentDirectory(assemblyPath);
 
-        var appPath = AppDomain.CurrentDomain.BaseDirectory;
-        var envPath = Path.Combine(appPath, Env);
+            envPath = Path.GetFullPath(envPath);
+            envDirectory = Path.GetDirectoryName(envPath);
+        }
+
+        if (!Directory.Exists(envDirectory))
+        {
+            return configurationBuilder;
+        }
+
         if (File.Exists(envPath))
         {
             configurationBuilder.AddDotNetEnv(envPath);
         }
 
         var currentEnv =
-            Path.Combine(appPath, $"{Env}.{hostEnvironment.EnvironmentName.ToLower()}");
+            Path.Combine(envDirectory, $"{envPath}.{hostEnvironment.EnvironmentName.ToLower()}");
         if (File.Exists(currentEnv))
         {
             configurationBuilder.AddDotNetEnv(currentEnv);

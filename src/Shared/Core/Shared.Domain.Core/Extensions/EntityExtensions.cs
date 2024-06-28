@@ -1,24 +1,18 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="EntityMapperBase.cs" company="ООО Газпромнефть - Цифровые решения">
+// <copyright file="EntityExtensions.cs" company="ООО Газпромнефть - Цифровые решения">
 // Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Cqrs.Core.Utils.Mappers.EntityMapper;
 using Shared.Domain.Core.Interfaces;
 
-namespace Shared.Application.Cqrs.Core.Utils.Mappers;
+namespace Shared.Domain.Core.Extensions;
 
 /// <summary>
-/// Класс для слияния списка dto и списка сущностей.
+/// Расширения для <see cref="IEntity"/>.
 /// </summary>
-/// <typeparam name="TDto">Тип Дто.</typeparam>
-/// <typeparam name="TEntity">Тип сущности.</typeparam>
-public abstract class EntityMapperBase<TDto, TEntity> : IEntityMapper<TDto, TEntity>
+public static class EntityExtensions
 {
-    /// <inheritdoc/>
-    public abstract void Map(TDto dto, TEntity entity);
-
     /// <summary>
     /// Получение списков на добавление, удаление изменение.
     /// </summary>
@@ -27,13 +21,17 @@ public abstract class EntityMapperBase<TDto, TEntity> : IEntityMapper<TDto, TEnt
     /// <returns> Списки на добавление, удаление изменение. </returns>
     /// <typeparam name="TSubDto"> Тип dto. </typeparam>
     /// <typeparam name="TSubEntity"> Тип сущности. </typeparam>
-    protected virtual (IEnumerable<TSubDto> forAddItems, IEnumerable<TSubEntity> forRemoveItems, IEnumerable<TSubDto> forUpdateItems)
-        GetDifferenceForMerge<TSubDto, TSubEntity>(IEnumerable<TSubDto> dtos, IEnumerable<TSubEntity> entities)
-            where TSubDto : IEntity
-            where TSubEntity : IEntity
-            => (forAddItems: dtos.Where(dto => !entities.Any(x => x.Id!.Equals(dto.Id))).ToList(),
-                forRemoveItems: entities.Where(entitybcEvent => !dtos.Any(x => x.Id!.Equals(entitybcEvent.Id))).ToList(),
-                forUpdateItems: dtos.IntersectBy(entities.Select(x => x.Id), x => x.Id).ToList());
+    public static
+        (IEnumerable<TSubDto> forAddItems, IEnumerable<TSubEntity> forRemoveItems, IEnumerable<TSubDto> forUpdateItems)
+        GetDifferenceForMerge<TSubDto, TSubEntity>(this IEnumerable<TSubDto> dtos, IEnumerable<TSubEntity> entities)
+        where TSubDto : IEntity
+        where TSubEntity : IEntity
+    {
+        var forAddItems = dtos.ExceptBy(entities.Select(entity => entity.Id), dto => dto.Id);
+        var forRemoveItems = entities.ExceptBy(dtos.Select(dto => dto.Id), entity => entity.Id);
+        var forUpdateItems = dtos.IntersectBy(entities.Select(entity => entity.Id), dto => dto.Id);
+        return (forAddItems, forRemoveItems, forUpdateItems);
+    }
 
     /// <summary>
     /// Слияние списков.
@@ -45,7 +43,7 @@ public abstract class EntityMapperBase<TDto, TEntity> : IEntityMapper<TDto, TEnt
     /// <param name="updateEntity"> Делегат изменения. </param>
     /// <typeparam name="TSubDto"> Тип dto. </typeparam>
     /// <typeparam name="TSubEntity"> Тип сущности. </typeparam>
-    protected void Merge<TSubDto, TSubEntity>(
+    public static void Merge<TSubDto, TSubEntity>(
         IEnumerable<TSubDto> dtos,
         IEnumerable<TSubEntity> entities,
         Action<TSubDto> addEntity,

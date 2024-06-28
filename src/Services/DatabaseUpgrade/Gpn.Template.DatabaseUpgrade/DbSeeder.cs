@@ -15,7 +15,9 @@ namespace Gpn.Template.DatabaseUpgrade;
 /// Реализация <see cref="IDbSeeder"/>.
 /// </summary>
 /// <param name="dbContextFactory">Фабрика DbContext-ов.</param>
-public class DbSeeder(IDbContextFactory<DbContext> dbContextFactory) : IDbSeeder, IDisposable, IAsyncDisposable
+public class DbSeeder(
+    IDbContextFactory<DbContext> dbContextFactory)
+    : IDbSeeder, IDisposable, IAsyncDisposable
 {
     private readonly DbContext _dbContext = dbContextFactory.CreateDbContext();
 

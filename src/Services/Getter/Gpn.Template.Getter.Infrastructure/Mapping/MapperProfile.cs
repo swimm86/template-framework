@@ -6,7 +6,7 @@
 
 using AutoMapper;
 using Gpn.Template.Domain.Entities;
-using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Responses;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 
 namespace Gpn.Template.Getter.Infrastructure.Mapping;
 
@@ -20,6 +20,6 @@ public class MapperProfile : Profile
     /// </summary>
     public MapperProfile()
     {
-        CreateMap<Person, PersonDto>();
+        CreateMap<Person, PersonListPayload>();
     }
 }

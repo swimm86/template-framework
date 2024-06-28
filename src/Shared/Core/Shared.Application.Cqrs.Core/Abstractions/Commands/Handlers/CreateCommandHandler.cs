@@ -10,7 +10,6 @@ using Shared.Application.Core.Dal.Repository.Interfaces;
 using Shared.Application.Core.Mapping.Interfaces;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
-using Shared.Application.Cqrs.Core.Utils.Mappers.EntityMapper;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
@@ -26,8 +25,7 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 /// <param name="loggerFactory"> Фабрика логгирования. </param>
 public abstract class CreateCommandHandler<TRequest, TEntity, TKey, TCreateDto, TResponse>(
     ILoggerFactory loggerFactory,
-    IEntityMapper<TCreateDto, TEntity> entityMapper,
-    IMapper mapperService,
+    IMapper mapper,
     IRepository<TEntity> repository,
     IEnumerable<IValidator<TEntity>> validators)
     : RequestHandler<TRequest, TResponse>(loggerFactory)
@@ -68,8 +66,7 @@ public abstract class CreateCommandHandler<TRequest, TEntity, TKey, TCreateDto, 
         TEntity entity,
         CancellationToken cancellationToken)
     {
-        entityMapper.Map(request.Dto, entity);
-
+        mapper.Map(request.Dto, entity);
         await ValidateAsync(entity, validators, cancellationToken).ConfigureAwait(false);
         var result = await repository.AddAsync(entity).ConfigureAwait(false);
         return new TResponse { Id = result.Id, Result = CreateResponseDto(result) };
@@ -81,5 +78,5 @@ public abstract class CreateCommandHandler<TRequest, TEntity, TKey, TCreateDto, 
     /// <param name="entity"> Сущность. </param>
     /// <returns> Dto ответа. </returns>
     protected virtual TCreateDto CreateResponseDto(TEntity entity)
-        => mapperService.Map<TEntity, TCreateDto>(entity);
+        => mapper.Map<TEntity, TCreateDto>(entity);
 }

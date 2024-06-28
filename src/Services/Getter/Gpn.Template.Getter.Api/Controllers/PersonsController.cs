@@ -5,7 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Getter.Api.Controllers.Base;
-using Gpn.Template.Getter.Application.Features.PersonFeature.Dtos.Requests;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Gpn.Template.Getter.Application.Interfaces;
 
 namespace Gpn.Template.Getter.Api.Controllers;
@@ -22,10 +23,13 @@ public sealed class PersonsController(
     /// Возвращает список всех 'Person'-ов.
     /// </summary>
     /// <param name="dto">DTO.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
     /// <returns>Список всех 'Person'-ов</returns>
     [HttpPost("list")]
-    public async Task<IActionResult> GetPersonsAsync([FromBody] GetPersonsRequestDto dto)
-    {
-        return Ok(await personsService.GetPersonsAsync(dto).ConfigureAwait(false));
-    }
+    public Task<IActionResult> GetPersonsAsync(
+        [FromBody] PersonListRequest dto,
+        CancellationToken cancellationToken = default) =>
+        Process<PersonListResponse, ICollection<PersonListPayload>>(
+            personsService.GetPersonsAsync(dto),
+            cancellationToken);
 }

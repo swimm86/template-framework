@@ -6,7 +6,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shared.Application.Core.Configuration;
+using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 using Shared.Infrastructure.Core;
 
