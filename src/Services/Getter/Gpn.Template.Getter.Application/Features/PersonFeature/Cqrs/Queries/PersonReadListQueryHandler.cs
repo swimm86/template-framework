@@ -16,7 +16,7 @@ using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 using Shared.Application.Cqrs.Core.Utils.PostProcessors;
 
-namespace Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries.Handlers;
+namespace Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries;
 
 /// <summary>
 /// Handler множественного чтения для <see cref="Person"/>.
@@ -29,7 +29,8 @@ public class PersonReadListQueryHandler(
     : ReadListQueryHandler<PersonReadListQuery, PersonListRequest, PersonListResponse, Person, PersonListPayload, PersonListFilter>(
         loggerFactory,
         repository ?? unitOfWork.GetRepository<Person>(),
-        postProcessor)
+        postProcessor,
+        (totalPages, items, status) => new PersonListResponse(totalPages, items, status))
 {
     /// <inheritdoc />
     protected override QueryOptions<Person> ConstructOptions(PersonReadListQuery request)

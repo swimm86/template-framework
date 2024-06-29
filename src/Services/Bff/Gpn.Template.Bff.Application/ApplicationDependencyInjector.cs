@@ -4,15 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Bff.Application.HttpClients;
-using Gpn.Template.Bff.Application.HttpClients.Settings;
-using Gpn.Template.Bff.Application.Interfaces.HttpClients;
-using Gpn.Template.Bff.Application.Interfaces.Services;
-using Gpn.Template.Bff.Application.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.ApiClient;
 using Shared.Application.Core.DependencyInjection;
 
 namespace Gpn.Template.Bff.Application;
@@ -30,14 +24,6 @@ public class ApplicationDependencyInjector(
     /// <inheritdoc />
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        return serviceCollection
-
-            // HttpClients
-            .AddClient<GetterApiClientSettings, IGetterClient, GetterClient>(configuration)
-            .AddClient<SetterApiClientSettings, ISetterClient, SetterClient>(configuration)
-
-            // Services
-            .AddTransient<IGetterService, GetterService>()
-            .AddTransient<ISetterService, SetterService>();
+        return serviceCollection;
     }
 }

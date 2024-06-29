@@ -11,4 +11,6 @@ namespace Gpn.Template.Infrastructure.Dal.Settings;
 /// <summary>
 /// Настройки подключения к БД.
 /// </summary>
-public class DbSettings : EfDbSettingsBase<DbContext>;
+public class DbSettings : EfDbSettingsBase<DbContext>
+{
+}

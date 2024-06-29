@@ -14,4 +14,17 @@ namespace Shared.Application.Core.Dto.Responses;
 /// <typeparam name="T">Тип данных для ответа.</typeparam>
 /// <param name="Payload">Тело ответа.</param>
 /// <param name="StatusCode">Статус ответа.</param>
-public record Response<T>(T? Payload, [property: JsonIgnore] int StatusCode);
+public record Response<T>(T? Payload, int StatusCode) : ResponseBase(StatusCode);
+
+/// <summary>
+/// Базовый абстрактный класс для ответа.
+/// </summary>
+/// <param name="StatusCode">Статус ответа.</param>
+public abstract record ResponseBase(int StatusCode)
+{
+    /// <summary>
+    /// Статус ответа.
+    /// </summary>
+    [JsonIgnore]
+    public int StatusCode { get; set; } = StatusCode;
+}

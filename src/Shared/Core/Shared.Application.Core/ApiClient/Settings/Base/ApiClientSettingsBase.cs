@@ -9,7 +9,9 @@ namespace Shared.Application.Core.ApiClient.Settings.Base;
 /// <summary>
 /// Базовые настройки api-клиента.
 /// </summary>
-public abstract class ApiClientSettingsBase
+/// <typeparam name="TApiClient">Тип API-клиента.</typeparam>
+public abstract class ApiClientSettingsBase<TApiClient>
+    where TApiClient : ApiClient
 {
     /// <summary>
     /// Базовый адрес сервиса.

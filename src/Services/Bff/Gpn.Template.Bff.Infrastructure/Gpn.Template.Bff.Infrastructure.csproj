@@ -20,10 +20,5 @@
       <ProjectReference Include="..\Gpn.Template.Bff.Application\Gpn.Template.Bff.Application.csproj" />
       <ProjectReference Include="..\Gpn.Template.Bff.Infrastructure.Mapping\Gpn.Template.Bff.Infrastructure.Mapping.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Interfaces\" />
-      <Folder Include="Services\" />
-    </ItemGroup>
     
 </Project>

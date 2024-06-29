@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dal;
 using Shared.Application.Core.Dal.Repository.Interfaces;
@@ -32,8 +33,9 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity, TDto, TFilter>(
     ILoggerFactory loggerFactory,
     IRepository<TEntity> repository,
-    IDtoPostProcessor<TDto>? postProcessor)
-    : RequestHandler<TQuery, PageableResponse<ICollection<TDto>>>(loggerFactory)
+    IDtoPostProcessor<TDto>? postProcessor,
+    Func<int, ICollection<TDto>, int, TResponse> createResponseFunc)
+    : RequestHandler<TQuery, TResponse>(loggerFactory)
     where TQuery : ReadListQuery<TRequest, TFilter, TResponse>
     where TRequest : PageableRequest<TFilter>
     where TResponse : PageableResponse<ICollection<TDto>>
@@ -41,7 +43,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity,
     where TFilter : new()
 {
     /// <inheritdoc/>
-    public override async Task<PageableResponse<ICollection<TDto>>> Handle(
+    public override async Task<TResponse> Handle(
         TQuery query,
         CancellationToken cancellationToken)
     {
@@ -56,7 +58,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity,
     /// <param name="request"> Запрос. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> Ответ. </returns>
-    protected virtual async Task<PageableResponse<ICollection<TDto>>> FindAsync(
+    protected virtual async Task<TResponse> FindAsync(
         TQuery request,
         CancellationToken cancellationToken)
     {
@@ -72,7 +74,8 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity,
         }
 
         var pagesCount = request.PageSize.HasValue && totalCount > 0 ? totalCount / request.PageSize.Value : 0;
-        return new PageableResponse<ICollection<TDto>>(pagesCount, dtoList);
+        var status = dtoList.Any() ? StatusCodes.Status200OK : StatusCodes.Status204NoContent;
+        return createResponseFunc(pagesCount, dtoList, status);
     }
 
     /// <summary>

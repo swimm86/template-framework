@@ -4,16 +4,14 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Filters;
 using Gpn.Template.Getter.Application.Abstractions.Enums;
-using Shared.Application.Core.Dto.Requests;
 
-namespace Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
+namespace Gpn.Template.Bff.Application.Dto.Requests;
 
 /// <summary>
 /// Request-Dto для получения всех 'Person-ов'.
 /// </summary>
 /// <param name="DalPattern">Dal-паттерн, который необходимо использовать для получения 'Person-ов' из Dal-слоя.</param>
-public record PersonListRequest(DalPattern DalPattern) : PageableRequest<PersonListFilter>
-{
-}
+/// <param name="UseCqrs">Признак того, что нужно использовать CQRS-реализацию.</param>
+public record PersonListRequest(DalPattern DalPattern, bool UseCqrs)
+    : Getter.Application.Abstractions.Dto.Person.Requests.PersonListRequest(DalPattern);

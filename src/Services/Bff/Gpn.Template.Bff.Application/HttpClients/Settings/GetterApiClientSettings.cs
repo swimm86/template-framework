@@ -11,6 +11,7 @@ namespace Gpn.Template.Bff.Application.HttpClients.Settings;
 /// <summary>
 /// Настройки клиента Getter
 /// </summary>
-public sealed class GetterApiClientSettings : ApiClientSettingsBase
+public sealed class GetterApiClientSettings
+    : ApiClientSettingsBase<GetterClient>
 {
 }

@@ -6,6 +6,7 @@
 
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
+using Shared.Common.Extensions;
 
 namespace Shared.Infrastructure.Dal.EFCore;
 
@@ -21,7 +22,7 @@ public abstract class DbContextBase(
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetCallingAssembly());
+        AppDomain.CurrentDomain.GetAssemblies().ForEach(assembly => modelBuilder.ApplyConfigurationsFromAssembly(assembly));
     }
 
     /// <inheritdoc />

@@ -28,10 +28,10 @@ public static class ApiClientExtensions
     /// <returns> Сервисы <see cref="IServiceCollection"/>. </returns>
     public static IServiceCollection AddClient<TOptions, TDelegatingHandler, TIClient, TClient>(
         this IServiceCollection serviceCollection, IConfiguration configuration)
-        where TOptions : ApiClientSettingsBase
+        where TOptions : ApiClientSettingsBase<TClient>
         where TDelegatingHandler : DelegatingHandler
         where TIClient : class
-        where TClient : class, TIClient
+        where TClient : ApiClient, TIClient
     {
         var options = configuration.GetOptions<TOptions>();
         serviceCollection.AddClient<TOptions, TDelegatingHandler, TIClient, TClient>(options!);
@@ -49,10 +49,11 @@ public static class ApiClientExtensions
     /// <param name="configuration"> Конфигурация. </param>
     /// <returns> Сервисы <see cref="IServiceCollection"/>. </returns>
     public static IServiceCollection AddClient<TOptions, TIClient, TClient>(
-        this IServiceCollection serviceCollection, IConfiguration configuration)
-        where TOptions : ApiClientSettingsBase
+        this IServiceCollection serviceCollection,
+        IConfiguration configuration)
+        where TOptions : ApiClientSettingsBase<TClient>
         where TIClient : class
-        where TClient : class, TIClient
+        where TClient : ApiClient, TIClient
     {
         var options = configuration.GetOptions<TOptions>();
         serviceCollection.AddClient<TOptions, TIClient, TClient>(options!);
@@ -72,12 +73,11 @@ public static class ApiClientExtensions
     /// <returns> Сервисы <see cref="IServiceCollection"/>. </returns>
     public static IServiceCollection AddClient<TOptions, TDelegatingHandler, TIClient, TClient>(
         this IServiceCollection serviceCollection, TOptions options)
-        where TOptions : ApiClientSettingsBase
+        where TOptions : ApiClientSettingsBase<TClient>
         where TDelegatingHandler : DelegatingHandler
         where TIClient : class
-        where TClient : class, TIClient
+        where TClient : ApiClient, TIClient
     {
-        options.Validate<TOptions>();
         serviceCollection
             .AddClient<TOptions, TIClient, TClient>(options, x => x.AddHttpMessageHandler<TDelegatingHandler>());
         return serviceCollection;
@@ -97,11 +97,11 @@ public static class ApiClientExtensions
         this IServiceCollection serviceCollection,
         TOptions options,
         Action<IHttpClientBuilder>? builderAction = default)
-        where TOptions : ApiClientSettingsBase
+        where TOptions : ApiClientSettingsBase<TClient>
         where TIClient : class
-        where TClient : class, TIClient
+        where TClient : ApiClient, TIClient
     {
-        options.Validate<TOptions>();
+        options.Validate<TOptions, TClient>();
 
         var builder = serviceCollection
             .AddHttpClient(typeof(TClient).Name, client =>

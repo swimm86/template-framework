@@ -24,6 +24,7 @@ public class DbSeeder(
     /// <inheritdoc />
     public void CreateDbIfNotExists()
     {
+        _dbContext.Database.EnsureDeleted();
         _dbContext.Database.EnsureCreated();
     }
 

@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Net.Http.Json;
+using Shared.Application.Core.Dto.Responses;
 
 namespace Shared.Application.Core.ApiClient;
 
@@ -219,8 +220,15 @@ public abstract class ApiClient : IDisposable
     {
         if (httpResponse.IsSuccessStatusCode)
         {
-            return await httpResponse.Content.ReadFromJsonAsync<TResult>(cancellationToken)
+            var result = await httpResponse.Content
+                .ReadFromJsonAsync<TResult>(cancellationToken)
                 .ConfigureAwait(false);
+            if (result is ResponseBase response)
+            {
+                response.StatusCode = (int)httpResponse.StatusCode;
+            }
+
+            return result;
         }
 
         throw await CreateExceptionAsync(httpResponse, cancellationToken).ConfigureAwait(false);

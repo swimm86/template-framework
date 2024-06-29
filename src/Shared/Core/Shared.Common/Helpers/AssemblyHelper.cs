@@ -83,7 +83,10 @@ public static class AssemblyHelper
         Type[]? includedAttributesTypes = default,
         Type[]? excludedAttributesTypes = default)
     {
-        return GetDerivedTypesFromAssemblies(typeof(TType));
+        return GetDerivedTypesFromAssemblies(
+            typeof(TType),
+            includedAttributesTypes,
+            excludedAttributesTypes);
     }
 
     /// <summary>
