@@ -4,10 +4,10 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal;
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Dal.Repository.Models;
 using Shared.Application.Core.Mapping.Interfaces;
+using Shared.Domain.Core.Dal;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
@@ -20,7 +20,8 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null)
+        QueryOptions<TEntity>? options = null,
+        bool asSplitQuery = false)
         where TEntity : class, IEntity
     {
         if (options is null)
@@ -57,15 +58,21 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
             queryable = queryable.AsNoTracking();
         }
 
+        if (asSplitQuery)
+        {
+            queryable = queryable.AsSplitQuery();
+        }
+
         return queryable;
     }
 
     /// <inheritdoc />>
     public IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null)
+        QueryOptions<TEntity>? options = null,
+        bool asSplitQuery = false)
         where TEntity : class, IEntity
     {
-        return mapper.ProjectTo<TOut>(Build(queryable, options));
+        return mapper.ProjectTo<TOut>(Build(queryable, options, asSplitQuery));
     }
 }

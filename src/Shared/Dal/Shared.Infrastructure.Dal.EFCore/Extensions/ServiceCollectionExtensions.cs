@@ -5,10 +5,10 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Application.Core.DependencyInjection.Attributes;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Settings;
 

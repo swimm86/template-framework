@@ -28,6 +28,48 @@ public abstract class EntityConfigurationBase<TEntity>
         builder.HasKey(idName);
         builder.Property(idName).ValueGeneratedNever();
 
+        if (typeof(IWithDateCreated).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithDateCreated.DateCreated))
+                .HasColumnName("created_date");
+        }
+
+        if (typeof(IWithCreated).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithCreated.CreatedByUserId))
+                .HasColumnName("created_by");
+        }
+
+        if (typeof(IWithDateUpdated).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithDateUpdated.DateUpdated))
+                .HasColumnName("updated_date");
+        }
+
+        if (typeof(IWithUpdated).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithUpdated.UpdatedByUserId))
+                .HasColumnName("updated_by");
+        }
+
+        if (typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithDeleted.DateDeleted))
+                .HasColumnName("deleted_date");
+        }
+
+        if (typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithDeleted.DeletedByUserId))
+                .HasColumnName("deleted_by");
+        }
+
         ConfigureProcess(builder);
     }
 

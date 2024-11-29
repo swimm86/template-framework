@@ -4,9 +4,10 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Dal.Repository.Models;
+using System.Linq.Expressions;
 using Shared.Common.Extensions;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
@@ -54,9 +55,21 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
+    public Task<TOut?> FirstOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null)
+    {
+        return evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).FirstOrDefaultAsync();
+    }
+
+    /// <inheritdoc/>
     public Task<TEntity?> SingleOrDefaultAsync(QueryOptions<TEntity>? options = null)
     {
         return evaluator.Build(DbSet, options).SingleOrDefaultAsync();
+    }
+
+    /// <inheritdoc/>
+    public Task<TOut?> SingleOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null)
+    {
+        return evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).SingleOrDefaultAsync();
     }
 
     /// <inheritdoc/>
@@ -66,43 +79,100 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
+    public Task<TOut?> LastOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null)
+    {
+        return evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).LastOrDefaultAsync();
+    }
+
+    /// <inheritdoc/>
     public Task<int> CountAsync(QueryOptions<TEntity>? options = null)
     {
         return evaluator.Build(DbSet, options).CountAsync();
     }
 
     /// <inheritdoc/>
-    public async Task<TEntity> AddAsync(TEntity entity)
+    public Task<bool> AnyAsync(QueryOptions<TEntity>? options = null)
     {
-        await DbSet.AddAsync(entity).ConfigureAwait(false);
+        return evaluator.Build(DbSet, options).AnyAsync();
+    }
+
+    /// <inheritdoc/>
+    public Task<decimal> SumAsync(Expression<Func<TEntity, decimal>> selector, QueryOptions<TEntity>? options = null)
+    {
+        return evaluator.Build(DbSet, options).SumAsync(selector);
+    }
+
+    /// <inheritdoc/>
+    public async Task<TEntity> AddAsync(TEntity entity, Guid? userId)
+    {
+        await DbSet.AddAsync(entity);
+
+        if (entity is IWithCreated entityWithCreated)
+        {
+            entityWithCreated.OnCreate(userId);
+        }
+
         return entity;
     }
 
     /// <inheritdoc/>
-    public Task AddRangeAsync(IEnumerable<TEntity> entities)
+    public async Task AddRangeAsync(IEnumerable<TEntity> entities, Guid? userId)
     {
-        return DbSet.AddRangeAsync(entities);
+        foreach (var entity in entities)
+        {
+            await AddAsync(entity, userId);
+        }
     }
 
     /// <inheritdoc/>
-    public Task RemoveAsync(TEntity entity)
+    public Task RemoveAsync(TEntity entity, Guid? userId, bool hard = false)
     {
-        DbSet.Remove(entity);
+        if (!hard && entity is IDeletable deletable)
+        {
+            deletable.SetIsDeleted();
+            if (deletable is IWithDeleted withDeleted)
+            {
+                withDeleted.OnDelete(userId);
+            }
+        }
+        else
+        {
+            DbSet.Remove(entity);
+        }
+
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    public Task RemoveRangeAsync(IEnumerable<TEntity> entities)
+    public Task RemoveAsync(TEntity entity, bool hard = false)
     {
-        DbSet.RemoveRange(entities);
-        return Task.CompletedTask;
+        return RemoveAsync(entity, null, hard);
     }
 
     /// <inheritdoc/>
-    public async Task RemoveRangeAsync(QueryOptions<TEntity> spec)
+    public Task RemoveRangeAsync(IEnumerable<TEntity> entities, bool hard = false)
     {
-        var entities = await GetRangeAsync(spec).ConfigureAwait(false);
-        await RemoveRangeAsync(entities).ConfigureAwait(false);
+        return entities.ForeachAsync(entity => RemoveAsync(entity, null, hard));
+    }
+
+    /// <inheritdoc/>
+    public Task RemovePermanentRangeAsync(IEnumerable<TEntity> entities)
+    {
+        return entities.ForeachAsync(entity => RemoveAsync(entity, null, true));
+    }
+
+    /// <inheritdoc/>
+    public async Task RemoveRangeAsync(QueryOptions<TEntity> options, bool hard = false)
+    {
+        var entities = await GetRangeAsync(options);
+        await RemoveRangeAsync(entities, hard);
+    }
+
+    /// <inheritdoc/>
+    public async Task RemoveRangeAsync(Expression<Func<TEntity, bool>> conditions, bool hard = false)
+    {
+        var entities = await DbSet.Where(conditions).ToListAsync();
+        await RemoveRangeAsync(entities, hard);
     }
 
     /// <inheritdoc/>

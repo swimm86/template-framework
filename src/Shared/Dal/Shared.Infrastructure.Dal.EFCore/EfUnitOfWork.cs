@@ -4,8 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Repository;
 

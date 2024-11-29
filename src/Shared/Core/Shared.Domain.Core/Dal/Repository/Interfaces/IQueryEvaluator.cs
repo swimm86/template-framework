@@ -19,11 +19,13 @@ public interface IQueryEvaluator
     /// </summary>
     /// <param name="queryable">Запрос <see cref="IQueryable"/> для типа сущности <typeparamref name="TEntity"/>.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <param name="asSplitQuery">>Выполнить ли разделенным запросом.</param>
     /// <typeparam name="TEntity">Тип сущности, для которой будет реализован запрос.</typeparam>
     /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки.</returns>
     IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null)
+        QueryOptions<TEntity>? options = null,
+        bool asSplitQuery = false)
         where TEntity : class, IEntity;
 
     /// <summary>
