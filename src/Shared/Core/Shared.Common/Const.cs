@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="Const.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="Const.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -14,5 +14,20 @@ public static class Const
     /// <summary>
     /// Имя политики, которая используется в Cors.
     /// </summary>
-    public const string CorsDefaultPolicyName = "CorsDefaultPolicyName";
+    public const string CorsDefaultPolicyName = nameof(CorsDefaultPolicyName);
+
+    /// <summary>
+    /// Формат для даты.
+    /// </summary>
+    public const string DateOnlyFormat = "dd.MM.yyyy";
+
+    /// <summary>
+    /// Формат для даты и времени.
+    /// </summary>
+    public const string DateTimeFormat = "dd.MM.yyyy HH:mm";
+
+    /// <summary>
+    /// Размер батча по-умолчанию.
+    /// </summary>
+    public const int DefaultBatchSize = 100;
 }

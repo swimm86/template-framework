@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="PageableResponse.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="PageableResponse.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -12,8 +12,36 @@ namespace Shared.Application.Core.Dto.Responses;
 /// Данные с пагинацией.
 /// </summary>
 /// <typeparam name="T">Тип данных.</typeparam>
-/// <param name="TotalPages">Всего страниц.</param>
-/// <param name="Payload">Тело ответа.</param>
-/// <param name="StatusCode">Статус ответа.</param>
-public record PageableResponse<T>(int TotalPages, T? Payload, int StatusCode = StatusCodes.Status200OK)
-    : Response<T>(Payload, StatusCode);
+public record PageableResponse<T> : Response<T>
+{
+    /// <summary>
+    /// Пустой конструктор.
+    /// </summary>
+    public PageableResponse()
+    {
+    }
+
+    /// <summary>
+    /// Конструктор.
+    /// </summary>
+    /// <param name="totalPages">Всего страниц.</param>
+    /// <param name="pageNumber">Номер текущей страницы.</param>
+    /// <param name="payload">Payload.</param>
+    /// <param name="statusCode">Статус ответа.</param>
+    public PageableResponse(int totalPages, int pageNumber, T? payload, int statusCode = StatusCodes.Status200OK)
+        : base(payload, statusCode)
+    {
+        TotalPages = totalPages;
+        PageNumber = pageNumber;
+    }
+
+    /// <summary>
+    /// Всего страниц.
+    /// </summary>
+    public int TotalPages { get; init; }
+
+    /// <summary>
+    /// Номер текущей страницы.
+    /// </summary>
+    public int PageNumber { get; init; }
+}

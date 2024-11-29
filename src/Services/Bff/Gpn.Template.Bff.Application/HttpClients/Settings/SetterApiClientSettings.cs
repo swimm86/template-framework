@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="SetterApiClientSettings.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="SetterApiClientSettings.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 

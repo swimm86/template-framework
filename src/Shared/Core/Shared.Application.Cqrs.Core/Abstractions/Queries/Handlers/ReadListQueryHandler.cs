@@ -1,19 +1,20 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ReadListQueryHandler.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="ReadListQueryHandler.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.Dal;
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Dal.Repository.Models;
 using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 using Shared.Application.Cqrs.Core.Utils;
-using Shared.Application.Cqrs.Core.Utils.PostProcessors;
+using Shared.Common.Helpers;
+using Shared.Domain.Core.Dal;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
@@ -22,23 +23,20 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 /// Базовый Handler множественного чтения
 /// </summary>
 /// <param name="loggerFactory">Фабрика логирования</param>
-/// <param name="repository">Репозиторий из которого идет чтение</param>
-/// <param name="postProcessor">Пост обработка найденной коллекции Необязательный параметр</param>
+/// <param name="unitOfWork"><see cref="IUnitOfWork"/>.</param>
 /// <typeparam name="TQuery">Query.</typeparam>
-/// <typeparam name="TRequest">Request.</typeparam>
-/// <typeparam name="TResponse">Response.</typeparam>
-/// <typeparam name="TEntity">Сущность.</typeparam>
-/// <typeparam name="TDto">Dto.</typeparam>
+/// <typeparam name="TRequest">Запрос.</typeparam>
 /// <typeparam name="TFilter">Фильтр.</typeparam>
-public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity, TDto, TFilter>(
+/// <typeparam name="TResponse">Ответ.</typeparam>
+/// <typeparam name="TPayload">ДТО.</typeparam>
+/// <typeparam name="TEntity">Сущность.</typeparam>
+public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse, TPayload, TEntity>(
     ILoggerFactory loggerFactory,
-    IRepository<TEntity> repository,
-    IDtoPostProcessor<TDto>? postProcessor,
-    Func<int, ICollection<TDto>, int, TResponse> createResponseFunc)
-    : RequestHandler<TQuery, TResponse>(loggerFactory)
+    IUnitOfWork unitOfWork)
+    : EntityRequestHandler<TQuery, TResponse, TEntity>(unitOfWork, loggerFactory)
     where TQuery : ReadListQuery<TRequest, TFilter, TResponse>
     where TRequest : PageableRequest<TFilter>
-    where TResponse : PageableResponse<ICollection<TDto>>
+    where TResponse : PageableResponse<ICollection<TPayload>>, new()
     where TEntity : class, IEntity
     where TFilter : new()
 {
@@ -55,35 +53,60 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity,
     /// <summary>
     /// Виртуальный метод поиска.
     /// </summary>
-    /// <param name="request"> Запрос. </param>
+    /// <param name="query"> Запрос. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> Ответ. </returns>
     protected virtual async Task<TResponse> FindAsync(
-        TQuery request,
+        TQuery query,
         CancellationToken cancellationToken)
     {
-        var specification = ConstructOptions(request);
-        ApplySortOptions(request.SortOptions, specification);
-        var (skip, take) = CalculatePagination(request.PageNumber, request.PageSize);
+        var options = ConstructOptions(query);
+        ApplySortOptions(query.SortOptions, options);
+        var (skip, take) = CalculatePagination(query.PageNumber, query.PageSize);
 
-        var dtoList = await repository.GetRangeAsync<TDto>(specification, skip, take).ConfigureAwait(false);
-        var totalCount = await repository.CountAsync(specification).ConfigureAwait(false);
-        if (postProcessor != null)
+        var repository = unitOfWork.GetRepository<TEntity>();
+        var dtoList = await GetPayloadAsync(repository, options, skip, take);
+        var totalCount = await repository.CountAsync(options);
+        await PostProcessAsync(dtoList, query);
+        var pagesCount = PaginationHelper.GetTotalPages(totalCount, query.PageSize);
+        var response = new TResponse
         {
-            await postProcessor.HandleAsync(dtoList).ConfigureAwait(false);
-        }
-
-        var pagesCount = request.PageSize.HasValue && totalCount > 0 ? totalCount / request.PageSize.Value : 0;
-        var status = dtoList.Any() ? StatusCodes.Status200OK : StatusCodes.Status204NoContent;
-        return createResponseFunc(pagesCount, dtoList, status);
+            Payload = dtoList,
+            StatusCode = StatusCodes.Status200OK,
+            TotalPages = pagesCount,
+            PageNumber = query.PageNumber,
+        };
+        await ProcessResponseAsync(response, query);
+        return response;
     }
 
     /// <summary>
-    /// Построение спецификации.
+    /// Возвращает коллекцию проекций сущностей <see cref="TEntity"/> к <see cref="TPayload"/>.
     /// </summary>
-    /// <param name="request"> Запрос. </param>
-    /// <returns> Спецификация. </returns>
-    protected abstract QueryOptions<TEntity> ConstructOptions(TQuery request);
+    /// <param name="repository"><see cref="IRepository{TEntity}"/>.</param>
+    /// <param name="options"><inheritdoc cref="QueryOptions{TEntity}"/>.</param>
+    /// <param name="skip">Количество пропускаемых элементов.</param>
+    /// <param name="take">Количество возвращаемых элементов.</param>
+    /// <returns>Коллекция проекций сущностей <see cref="TEntity"/> к <see cref="TPayload"/>.</returns>
+    protected virtual async Task<ICollection<TPayload>> GetPayloadAsync(
+        IRepository<TEntity> repository,
+        QueryOptions<TEntity> options,
+        int? skip,
+        int? take)
+    {
+        return await repository.GetRangeAsync<TPayload>(options, skip, take);
+    }
+
+    /// <summary>
+    /// Пост обработка Payload-а.
+    /// </summary>
+    /// <param name="dtoCollection">Payload.</param>
+    /// <param name="query"><see cref="TQuery"/>.</param>
+    /// <returns><see cref="Task"/>.</returns>
+    protected virtual Task PostProcessAsync(ICollection<TPayload> dtoCollection, TQuery query)
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Добавление сортировки.
@@ -106,5 +129,36 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TResponse, TEntity,
                 ?.DirectionType ??
             OrderDirectionType.Ascending;
         options.AddOrderBy(x => (x as IWithDateCreated)!.DateCreated, orderDirection, 0);
+    }
+
+    /// <inheritdoc/>
+    protected override QueryOptions<TEntity> ConstructOptions(TQuery request)
+    {
+        var options = base.ConstructOptions(request);
+        if (request.Filter is ListFilterBase baseFilter && (baseFilter.Ids?.Any() ?? false))
+        {
+            options.AddFilter(x => baseFilter.Ids.Any(id => id.Equals(x.Id)));
+        }
+
+        return options;
+    }
+
+    /// <summary>
+    /// Расчет пагинации.
+    /// </summary>
+    /// <param name="pageNumber">Номер страницы.</param>
+    /// <param name="pageSize">Количество элементов на странице.</param>
+    /// <returns>Кортеж (кол-во элементов для пропуска, кол-во элементов для взятия)</returns>
+    protected virtual (int? skip, int? take) CalculatePagination(int? pageNumber, int? pageSize)
+    {
+        if (pageSize == null)
+        {
+            return (null, null);
+        }
+
+        const int minPageAmount = 1;
+        var skip = (pageNumber - minPageAmount) * pageSize;
+        var take = pageSize;
+        return (skip, take);
     }
 }

@@ -1,43 +1,40 @@
-// ----------------------------------------------------------------------------------------------
-// <copyright file="DeleteCommandHandler.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="DeleteCommandHandler.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Contour.Admin.Auth.Sdk.Context;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Exceptions.Models;
-using Shared.Application.Core.Mapping.Interfaces;
+using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
-using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
+using Shared.Domain.Core.Dal.Repository.Extensions;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 
 /// <summary>
-/// Обработчик команды удулаения
+/// Обработчик команды удаления.
 /// </summary>
 /// <param name="loggerFactory">Фабрика логгеров.</param>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
+/// <typeparam name="TCommand">Тип команды.</typeparam>
 /// <typeparam name="TEntity">Тип сущности.</typeparam>
-/// <typeparam name="TKey">Тип ключа.</typeparam>
-/// <typeparam name="TDeleteDto">Тип ДТО удаления.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
-public abstract class DeleteCommandHandler<TRequest, TEntity, TKey, TDeleteDto, TResponse>(
-    IRepository<TEntity> repository,
-    IMapper mapper,
-    ILoggerFactory loggerFactory)
-    : RequestHandler<TRequest, TResponse>(loggerFactory)
-    where TRequest : DeleteCommand<TKey, TResponse>
+public abstract class DeleteCommandHandler<TCommand, TEntity>(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory,
+    IUserProvider userProvider)
+    : EntityRequestHandler<TCommand, Response, TEntity>(unitOfWork, loggerFactory)
+    where TCommand : DeleteCommand
     where TEntity : class, IEntity
-    where TResponse : DeleteResponse<TKey, TDeleteDto>, new()
 {
     /// <inheritdoc />
-    public override async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken)
+    public override async Task<Response> Handle(TCommand command, CancellationToken cancellationToken)
     {
-        await GuardAsync(request, cancellationToken).ConfigureAwait(false);
-        var entity = await FindAsync(request).ConfigureAwait(false);
-        var response = await DeleteAsync(entity, request).ConfigureAwait(false);
+        await GuardAsync(command, cancellationToken);
+        var entity = await FindAsync(command);
+        var response = await DeleteAsync(entity, command);
 
         return response;
     }
@@ -45,18 +42,13 @@ public abstract class DeleteCommandHandler<TRequest, TEntity, TKey, TDeleteDto, 
     /// <summary>
     /// Поиск ентити.
     /// </summary>
-    /// <param name="request">Запрос</param>
+    /// <param name="command">Запрос</param>
     /// <returns>Ентити</returns>
-    /// <exception cref="NotFoundException">Ошибка если ентити не найдена</exception>
-    protected virtual async Task<TEntity> FindAsync(TRequest request)
+    protected virtual async Task<TEntity> FindAsync(TCommand command)
     {
-        var entity = await repository.GetAsync(request.Key!).ConfigureAwait(false);
-
-        if (entity is null)
-        {
-            throw new NotFoundException($"Сущность не найдена. Поиск по ключу: {request.Key}");
-        }
-
+        var options = ConstructOptions(command);
+        options.WithTracking = true;
+        var entity = await Repository.GetByIdOrThrowAsync(command.Key, options);
         return entity;
     }
 
@@ -64,13 +56,12 @@ public abstract class DeleteCommandHandler<TRequest, TEntity, TKey, TDeleteDto, 
     /// Удаление ентити.
     /// </summary>
     /// <param name="entity">Ентити</param>
-    /// <param name="request">Запрос</param>
+    /// <param name="command">Запрос</param>
     /// <returns>Ответ</returns>
-    protected virtual async Task<TResponse> DeleteAsync(TEntity entity, TRequest request)
+    protected virtual async Task<Response> DeleteAsync(TEntity entity, TCommand command)
     {
-        await repository.RemoveAsync(entity).ConfigureAwait(false);
-        await repository.SaveChangesAsync().ConfigureAwait(false);
-
-        return new TResponse { Key = request.Key, Result = mapper.Map<TEntity, TDeleteDto>(entity) };
+        await Repository.RemoveAsync(entity, userId: userProvider.GetUserId());
+        await unitOfWork.SaveChangesAsync();
+        return new Response { StatusCode = StatusCodes.Status200OK };
     }
 }

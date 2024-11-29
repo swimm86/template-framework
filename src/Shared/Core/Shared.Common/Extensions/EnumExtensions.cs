@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="EnumExtensions.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="EnumExtensions.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -37,5 +37,20 @@ public static class EnumExtensions
         return Enum.GetValues(enumType)
             .Cast<Enum>()
             .FirstOrDefault(v => v.Description() == description);
+    }
+
+    /// <summary>
+    /// Получить элементы enum по их частичному описанию из <see cref="DescriptionAttribute"/>
+    /// </summary>
+    /// <param name="description">Описание.</param>
+    /// <param name="enumType">Тип enum.</param>
+    /// <returns>Элемент enum.</returns>
+    public static IEnumerable<Enum> GetEnumValueByPartOfDescription(this string description, Type enumType)
+    {
+        ArgumentNullException.ThrowIfNull(description);
+
+        return Enum.GetValues(enumType)
+            .Cast<Enum>()
+            .Where(v => v.Description().ToLower().Contains(description.ToLower()));
     }
 }

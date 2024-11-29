@@ -1,17 +1,15 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ReadQueryHandler.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="ReadQueryHandler.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Dal.Repository.Models;
-using Shared.Application.Core.Exceptions.Models;
-using Shared.Application.Core.Mapping.Interfaces;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
-using Shared.Application.Cqrs.Core.Utils.PostProcessors;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Exceptions.Models;
 using Shared.Domain.Core.Interfaces;
+using Shared.Domain.Core.Mapping.Interfaces;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 
@@ -26,53 +24,40 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 public abstract class ReadQueryHandler<TQuery, TEntity, TResponse>(
     ILoggerFactory loggerFactory,
     IMapper mapper,
-    IRepository<TEntity> repository,
-    IDtoPostProcessor<TResponse>? postProcessor)
-    : RequestHandler<TQuery, TResponse>(loggerFactory), IQueryHandler<TQuery, TResponse>
+    IUnitOfWork unitOfWork)
+    : EntityRequestHandler<TQuery, TResponse, TEntity>(unitOfWork, loggerFactory), IQueryHandler<TQuery, TResponse>
     where TQuery : ReadByKeyQuery<TResponse>
     where TEntity : class, IEntity
 {
     /// <summary>
     /// Обработчик.
     /// </summary>
-    /// <param name="request"> Запрос. </param>
+    /// <param name="query"> Запрос. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> Dto. </returns>
-    public override async Task<TResponse> Handle(TQuery request, CancellationToken cancellationToken)
+    public override async Task<TResponse> Handle(TQuery query, CancellationToken cancellationToken)
     {
-        await GuardAsync(request, cancellationToken).ConfigureAwait(false);
-        var entity = await FindAsync(request, cancellationToken).ConfigureAwait(false);
+        await GuardAsync(query, cancellationToken);
+        var entity = await FindAsync(query, cancellationToken);
         var dto = mapper.Map<TEntity, TResponse>(entity);
-        if (postProcessor != null)
-        {
-            await postProcessor.HandleAsync([dto]).ConfigureAwait(false);
-        }
-
         return dto;
     }
 
     /// <summary>
     /// Поиск сущности.
     /// </summary>
-    /// <param name="request">  Запрос. </param>
+    /// <param name="query">  Запрос. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> Сущность. </returns>
     /// <exception cref="NullReferenceException"> Вызывается, когда сущность не найдена. </exception>
-    protected virtual async Task<TEntity> FindAsync(TQuery request, CancellationToken cancellationToken)
+    protected virtual async Task<TEntity> FindAsync(TQuery query, CancellationToken cancellationToken)
     {
-        var entity = await repository.GetAsync(request.Key, ConstructQueryOptions(request)).ConfigureAwait(false);
+        var entity = await Repository.GetAsync(query.Key, ConstructOptions(query));
         if (entity is null)
         {
-            throw new NotFoundException($"Сущность не найдена. Поиск по ключу: {request.Key}");
+            throw new NotFoundException($"Сущность не найдена. Поиск по ключу: {query.Key}");
         }
 
         return entity;
     }
-
-    /// <summary>
-    /// Построение настроек для запроса.
-    /// </summary>
-    /// <param name="request">Запрос.</param>
-    /// <returns>Настройки для запроса.</returns>
-    protected virtual QueryOptions<TEntity>? ConstructQueryOptions(TQuery request) => null;
 }

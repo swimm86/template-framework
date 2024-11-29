@@ -1,13 +1,13 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ReadListQuery.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="ReadListQuery.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal;
 using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Cqrs.Core.Utils;
 using Shared.Common.Helpers;
+using Shared.Domain.Core.Dal;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 
@@ -25,7 +25,7 @@ public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest reque
     /// <summary>
     /// Разделитель значений в объекте строки.
     /// </summary>
-    private const char ValueDelimiter = '.';
+    public const char ValueDelimiter = '.';
 
     /// <summary>
     /// Минимальный номер страницы.
@@ -70,8 +70,9 @@ public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest reque
             {
                 var sortOptionValues = value.Split(ValueDelimiter);
                 return new SortOption(
-                    key: sortOptionValues[0],
-                    directionType: GetDirectionType(sortOptionValues.ElementAtOrDefault(1)));
+                    key: string.Join(ValueDelimiter, sortOptionValues[..^1]),
+                    directionType: GetDirectionType(
+                        sortOptionValues.ElementAtOrDefault(sortOptionValues.Length - 1)));
             })
             .ToList();
     }

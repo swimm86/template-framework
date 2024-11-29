@@ -13,9 +13,10 @@
 	</PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNetEnv" Version="3.0.0" />
-    <PackageReference Include="FluentValidation" Version="11.9.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="8.5.0" />
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="Gpn.Contour.Admin.Auth.Sdk" Version="1.0.27" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,11 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shared.Domain.Core\Shared.Domain.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Configuration\Attributes\" />
-    <Folder Include="Dto\Requests\" />
   </ItemGroup>
 
 </Project>

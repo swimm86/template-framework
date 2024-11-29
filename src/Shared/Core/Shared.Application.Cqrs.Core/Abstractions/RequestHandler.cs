@@ -1,6 +1,6 @@
-﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="RequestHandler.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// ----------------------------------------------------------------------------------------------
+// <copyright file="RequestHandler.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -31,20 +31,20 @@ public abstract class RequestHandler<TRequest, TResponse>(
     /// Метод вызыва. Вызывается внутри IMediatr.
     /// Вызывается первым.
     /// </summary>
-    /// <param name="request">запрос</param>
+    /// <param name="query">запрос</param>
     /// <param name="cancellationToken">Cancellation Token</param>
     /// <returns><see cref="Task"/>.</returns>
-    public abstract Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken);
+    public abstract Task<TResponse> Handle(TRequest query, CancellationToken cancellationToken);
 
     /// <summary>
     /// Гарды.
     /// </summary>
     /// <param name="request">Запрос.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
-    /// <returns>True, если запрос валидный, иначе false.</returns>
-    protected virtual Task<bool> GuardAsync(TRequest request, CancellationToken cancellationToken)
+    /// <returns><see cref="Task"/>.</returns>
+    protected virtual Task GuardAsync(TRequest request, CancellationToken cancellationToken)
     {
-        return Task.FromResult(true);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -80,24 +80,5 @@ public abstract class RequestHandler<TRequest, TResponse>(
         {
             throw new ValidationException(failures);
         }
-    }
-
-    /// <summary>
-    /// Расчет пагинации.
-    /// </summary>
-    /// <param name="pageNumber">Номер страницы.</param>
-    /// <param name="pageSize">Количество элементов на странице.</param>
-    /// <returns>Кортеж (кол-во элементов для пропуска, кол-во элементов для взятия)</returns>
-    protected virtual (int? skip, int? take) CalculatePagination(int? pageNumber, int? pageSize)
-    {
-        if (pageSize == null)
-        {
-            return (null, null);
-        }
-
-        const int minPageAmount = 1;
-        var skip = (pageNumber - minPageAmount) * pageSize;
-        var take = pageSize;
-        return (skip, take);
     }
 }

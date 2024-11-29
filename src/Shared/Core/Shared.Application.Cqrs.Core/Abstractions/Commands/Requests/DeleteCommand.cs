@@ -1,8 +1,10 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DeleteCommand.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="DeleteCommand.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
+
+using Shared.Application.Core.Dto.Responses;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 
@@ -10,6 +12,4 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 /// Команда на удаление
 /// </summary>
 /// <param name="Key">Ключ.</param>
-/// <typeparam name="TKey">Тип ключа.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
-public abstract record DeleteCommand<TKey, TResponse>(TKey Key) : ICommand<TResponse>;
+public abstract record DeleteCommand(object Key) : ICommand<Response>;

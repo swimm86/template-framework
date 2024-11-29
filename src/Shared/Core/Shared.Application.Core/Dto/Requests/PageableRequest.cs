@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="PageableRequest.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="PageableRequest.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -14,12 +14,12 @@ public abstract record PageableRequest<TFilter>
     /// <summary>
     /// Номер страницы.
     /// </summary>
-    public int PageNumber { get; init; }
+    public int PageNumber { get; set; }
 
     /// <summary>
     /// Размер страницы.
     /// </summary>
-    public int PageSize { get; init; }
+    public int PageSize { get; set; }
 
     /// <summary>
     /// Фильтр.

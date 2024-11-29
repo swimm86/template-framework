@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ServiceCollectionExtensions.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="ServiceCollectionExtensions.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -8,6 +8,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Common.Extensions;
 using Shared.Common.Helpers;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
@@ -76,6 +77,7 @@ public static class ServiceCollectionExtensions
             .Select(x => Path.Combine(AppContext.BaseDirectory, $"{x.GetName().Name}.xml"))
             .Where(Path.Exists)
             .ToArray();
+        documentationsPaths.ForEach(xmlFile => options.IncludeXmlComments(xmlFile, true));
         options.SupportNonNullableReferenceTypes();
         options.SchemaFilter<RequiredNotNullableSchemaFilter>();
         options.SchemaFilter<EnumTypesSchemaFilter>(new[] { documentationsPaths });

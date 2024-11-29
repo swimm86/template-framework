@@ -1,9 +1,11 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="EntityWithMetadata.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="EntityWithMetadata.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Base;
@@ -11,9 +13,11 @@ namespace Shared.Domain.Core.Base;
 /// <summary>
 /// Абстрактный базовый класс сущности с метаданными.
 /// </summary>
+/// <typeparam name="TEntity">Тип сущности.</typeparam>
 /// <typeparam name="TKey">Тип ключа сущности.</typeparam>
-public abstract class EntityWithMetadata<TKey>
-    : BaseEntity<TKey>, IEntityWithMetadata
+public abstract class EntityWithMetadata<TEntity, TKey>
+    : BaseEntity<TKey>, IEntityWithMetadata, IWithDeleteAction<TEntity>
+    where TEntity : class, IEntity<TKey>
 {
     /// <inheritdoc/>
     public Guid? CreatedByUserId { get; protected set; }
@@ -76,5 +80,23 @@ public abstract class EntityWithMetadata<TKey>
     {
         SetDeletedByUserId(userId);
         SetDateDeleted(DateTimeOffset.UtcNow.DateTime);
+    }
+
+    /// <inheritdoc/>
+    public virtual Task DeleteAsync(
+        IUnitOfWork unitOfWork,
+        bool soft = true)
+    {
+        SetIsDeleted();
+        return unitOfWork.GetRepository<TEntity>().RemoveRangeAsync(x => x.Id!.Equals(Id), !soft);
+    }
+
+    /// <inheritdoc/>
+    public virtual Task DeleteAsync(
+        IRepository<TEntity> repository,
+        bool soft = true)
+    {
+        SetIsDeleted();
+        return repository.RemoveAsync((this as TEntity)!, !soft);
     }
 }

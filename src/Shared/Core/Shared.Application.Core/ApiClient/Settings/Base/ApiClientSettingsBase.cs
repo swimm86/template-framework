@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ApiClientSettingsBase.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="ApiClientSettingsBase.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -14,6 +14,12 @@ public abstract class ApiClientSettingsBase<TApiClient>
     where TApiClient : ApiClient
 {
     /// <summary>
+    /// Таймаут в секундах.
+    /// </summary>
+    // TODO: перенести в конфиг.
+    private const int TimeoutSec = 10000;
+
+    /// <summary>
     /// Базовый адрес сервиса.
     /// </summary>
     public virtual string BaseUrl { get; set; } = null!;
@@ -21,5 +27,5 @@ public abstract class ApiClientSettingsBase<TApiClient>
     /// <summary>
     /// Http timeout.
     /// </summary>
-    public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+    public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(TimeoutSec);
 }

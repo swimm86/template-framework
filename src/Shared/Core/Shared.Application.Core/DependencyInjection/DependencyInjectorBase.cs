@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DependencyInjectorBase.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="DependencyInjectorBase.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -26,12 +26,12 @@ namespace Shared.Application.Core.DependencyInjection
             try
             {
                 var result = Process(serviceCollection);
-                logger.LogInformation("Инфраструктура внедрена");
+                logger.LogInformation("Зависимость внедрена");
                 return result;
             }
             catch
             {
-                logger.LogError("Не удалось внедрить инфраструктуру");
+                logger.LogError("Не удалось внедрить зависимость");
                 throw;
             }
         }

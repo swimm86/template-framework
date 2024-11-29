@@ -26,12 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-    <Folder Include="Attributes\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0" />
   </ItemGroup>
 
 </Project>

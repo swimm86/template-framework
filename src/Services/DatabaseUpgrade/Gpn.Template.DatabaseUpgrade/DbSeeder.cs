@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DbSeeder.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="DbSeeder.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -24,7 +24,6 @@ public class DbSeeder(
     /// <inheritdoc />
     public void CreateDbIfNotExists()
     {
-        _dbContext.Database.EnsureDeleted();
         _dbContext.Database.EnsureCreated();
     }
 

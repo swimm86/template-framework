@@ -1,6 +1,6 @@
-﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ICommand.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// ----------------------------------------------------------------------------------------------
+// <copyright file="ICommand.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -21,4 +21,17 @@ public interface ICommand : IRequest<Unit>
 /// <typeparam name="TResponse">Тип ответа.</typeparam>
 public interface ICommand<TResponse> : IRequest<TResponse>
 {
+}
+
+/// <summary>
+/// Интерфейс команды с ответом
+/// </summary>
+/// <typeparam name="TRequest">Тип запроса.</typeparam>
+/// <typeparam name="TResponse">Тип ответа.</typeparam>
+public interface ICommand<TRequest, TResponse> : ICommand<TResponse>
+{
+    /// <summary>
+    /// Запрос.
+    /// </summary>
+    TRequest Request { get; }
 }

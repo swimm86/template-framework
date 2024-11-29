@@ -1,6 +1,6 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ControllerBase.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="ControllerBase.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
@@ -13,10 +13,13 @@ using Shared.Common.Extensions;
 namespace Shared.Presentation.Core.Controllers;
 
 /// <summary>
+/// Базовый класс для контроллеров
+/// </summary>
+/// <summary>
 /// Абстрактный базовый класс для всех контроллеров, обеспечивающий общую логику обработки запросов.
 /// </summary>
 [ApiController]
-[Route("api/pps/[controllerType]/v1/[controller]")]
+[Route("api/pir/[controllerType]/v1/[controller]")]
 public abstract class ControllerBase(ILogger logger)
     : Microsoft.AspNetCore.Mvc.ControllerBase
 {
@@ -27,15 +30,14 @@ public abstract class ControllerBase(ILogger logger)
     /// <param name="cancellationToken">Токен отмены операции, позволяющий отменить асинхронную операцию.</param>
     /// <param name="methodName">Наименование метода, вызвавшего асинхронную операцию.</param>
     /// <typeparam name="TResponse">Тип ответа, который должен наследоваться от <see cref="Response{TPayload}"/>, где TPayload - тип данных в теле ответа.</typeparam>
-    /// <typeparam name="TPayload">Тип данных, содержащихся в теле ответа.</typeparam>
     /// <returns>Объект <see cref="Task{IActionResult}"/>, представляющий асинхронную операцию. Результат содержит статус код и данные ответа, упакованные в соответствующий формат HTTP-ответа.</returns>
-    protected Task<IActionResult> Process<TResponse, TPayload>(
+    protected Task<IActionResult> Process<TResponse>(
         Func<Task<TResponse>> processFunc,
         CancellationToken cancellationToken = default,
         [CallerMemberName] string? methodName = null)
-        where TResponse : Response<TPayload>
+        where TResponse : Response
     {
-        return Process<TResponse, TPayload>(processFunc(), cancellationToken, methodName);
+        return Process(processFunc(), cancellationToken, methodName);
     }
 
     /// <summary>
@@ -45,13 +47,12 @@ public abstract class ControllerBase(ILogger logger)
     /// <param name="cancellationToken">Токен отмены операции, позволяющий отменить асинхронную операцию.</param>
     /// <param name="methodName">Наименование метода, вызвавшего асинхронную операцию.</param>
     /// <typeparam name="TResponse">Тип ответа, который должен наследоваться от <see cref="Response{TPayload}"/>, где TPayload - тип данных в теле ответа.</typeparam>
-    /// <typeparam name="TPayload">Тип данных, содержащихся в теле ответа.</typeparam>
     /// <returns>Объект <see cref="Task{IActionResult}"/>, представляющий асинхронную операцию. Результат содержит статус код и данные ответа, упакованные в соответствующий формат HTTP-ответа.</returns>
-    protected Task<IActionResult> Process<TResponse, TPayload>(
+    protected Task<IActionResult> Process<TResponse>(
         Task<TResponse> processTask,
         CancellationToken cancellationToken = default,
         [CallerMemberName] string? methodName = null)
-        where TResponse : Response<TPayload>
+        where TResponse : Response
     {
         return logger.LogTaskAsync(
             async () =>

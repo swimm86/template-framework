@@ -1,23 +1,43 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="CreateResponse.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="CreateResponse.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
+
+using Microsoft.AspNetCore.Http;
+using Shared.Application.Core.Dto.Responses;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
 
 /// <summary>
 /// Ответ создания.
 /// </summary>
-/// <typeparam name="TDto">Тип Dto.</typeparam>
-public class CreateResponse<TDto>
+/// <typeparam name="TDto">Тип данных для ответа.</typeparam>
+public record CreateResponse<TDto> : Response<TDto>
 {
     /// <summary>
-    /// Идентификатор.
+    /// Конструктор для класса <see cref="CreateResponse{TDto}"/>.
     /// </summary>
-    public object Id { get; set; }
+    public CreateResponse()
+    {
+    }
 
-    /// Ответ.
+    /// <summary>
+    /// Конструктор для класса <see cref="CreateResponse{TDto}"/>.
     /// </summary>
-    public TDto Result { get; init; }
+    /// <typeparam name="TDto">Тип данных для ответа.</typeparam>
+    /// <param name="Id">Идентификатор созданной сущности.</param>
+    /// <param name="Payload">Тело ответа.</param>
+    /// <param name="StatusCode">Статус ответа.</param>
+    public CreateResponse(
+        object Id,
+        TDto Payload,
+        int StatusCode = StatusCodes.Status201Created)
+        : base(Payload, StatusCode)
+    {
+        this.Id = Id;
+    }
+
+    /// <summary>Идентификатор созданной сущности.</summary>
+    public object Id { get; init; }
 }
