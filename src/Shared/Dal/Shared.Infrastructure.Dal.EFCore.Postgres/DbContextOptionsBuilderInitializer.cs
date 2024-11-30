@@ -29,7 +29,10 @@ public class DbContextOptionsBuilderInitializer(
         where TSettings : DbSettingsBase
     {
         var settings = configuration.GetOptions<TSettings>();
-        var sourceBuilder = new NpgsqlDataSourceBuilder(settings?.ConnectionString ?? DefaultConnectionString);
+        var connectionString = string.IsNullOrWhiteSpace(settings?.ConnectionString)
+            ? DefaultConnectionString
+            : settings.ConnectionString;
+        var sourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         options.UseNpgsql(sourceBuilder.Build(), builder => builder.MigrationsAssembly(migrationAssemblyName));
         options.EnableSensitiveDataLogging();
     }

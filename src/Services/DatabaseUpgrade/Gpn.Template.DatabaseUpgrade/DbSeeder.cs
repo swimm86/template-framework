@@ -6,41 +6,16 @@
 
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Core.Dal.DbSeeder.Interfaces;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Infrastructure.Dal.EFCore;
 
-namespace Gpn.Contour.PpsContract.DatabaseUpgrade;
+namespace Gpn.Template.DatabaseUpgrade;
 
 /// <summary>
 /// Реализация <see cref="IDbSeeder"/>.
 /// </summary>
 /// <param name="dbContextFactory">Фабрика DbContext-ов.</param>
-public class DbSeeder(IDbContextFactory<DbContext> dbContextFactory)
-    : IDbSeeder, IDisposable, IAsyncDisposable
-{
-    private readonly DbContext _dbContext = dbContextFactory.CreateDbContext();
-
-    /// <inheritdoc />
-    public void Migrate()
-    {
-        if (_dbContext.Database.GetPendingMigrations().Any())
-        {
-            _dbContext.Database.Migrate();
-        }
-    }
-
-    /// <inheritdoc />
-    public void Initialize()
-    {
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _dbContext.Dispose();
-    }
-
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
-    {
-        return _dbContext.DisposeAsync();
-    }
-}
+public class DbSeeder(
+    IDbContextFactory<DbContext> dbContextFactory,
+    IUnitOfWork unitOfWork)
+    : DbSeederBase<DbContext>(dbContextFactory, unitOfWork);

@@ -25,4 +25,10 @@ public class DbContext(
         base.ConfigureConventions(configurationBuilder);
         configurationBuilder.Conventions.Add(_ => new ColumnsNamesConvention());
     }
+
+    /// <inheritdoc/>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+    }
 }
