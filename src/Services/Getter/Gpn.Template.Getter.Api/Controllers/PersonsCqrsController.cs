@@ -6,7 +6,6 @@
 
 using Gpn.Template.Getter.Api.Controllers.Base;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
-using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries;
 using MediatR;
 
@@ -31,7 +30,7 @@ public sealed class PersonsCqrsController(
         [FromBody] PersonListRequest request,
         CancellationToken cancellationToken = default)
     {
-        return Process<PersonListResponse, ICollection<PersonListPayload>>(
+        return Process(
             sender.Send(new PersonReadListQuery(request), cancellationToken),
             cancellationToken);
     }

@@ -5,8 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Domain.Entities;
-using Shared.Application.Core.Dal.Repository.Models;
-using Shared.Application.Core.Dal.Specification.Models;
+using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Dal.Specification.Models;
 
 namespace Gpn.Template.Getter.Application.Specifications;
 

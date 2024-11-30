@@ -6,16 +6,15 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shared.Application.Core.Configuration.Attributes;
 using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 using Shared.Infrastructure.Core;
+using Shared.Infrastructure.Dal.EFCore.Attributes;
 
-[assembly: EnvPath("./.env")]
+[assembly: MigrationAssembly]
 var builder = CreateHostBuilder(args);
 using var host = builder.Build();
 var dbSeeder = host.Services.GetRequiredService<IDbSeeder>();
-dbSeeder.CreateDbIfNotExists();
 dbSeeder.Migrate();
 dbSeeder.Initialize();
 return;

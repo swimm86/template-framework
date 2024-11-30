@@ -6,7 +6,6 @@
 
 using Gpn.Template.Getter.Api.Controllers.Base;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
-using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Gpn.Template.Getter.Application.Interfaces;
 
 namespace Gpn.Template.Getter.Api.Controllers;
@@ -29,7 +28,5 @@ public sealed class PersonsController(
     public Task<IActionResult> GetPersonsAsync(
         [FromBody] PersonListRequest dto,
         CancellationToken cancellationToken = default) =>
-        Process<PersonListResponse, ICollection<PersonListPayload>>(
-            personsService.GetPersonsAsync(dto),
-            cancellationToken);
+        Process(personsService.GetPersonsAsync(dto), cancellationToken);
 }

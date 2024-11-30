@@ -7,6 +7,7 @@
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
+using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient;
 
 namespace Gpn.Template.Bff.Application.HttpClients;
@@ -16,8 +17,9 @@ namespace Gpn.Template.Bff.Application.HttpClients;
 /// </summary>
 /// <param name="httpClientFactory">Фабрика HTTP-клиентов.</param>
 public sealed class GetterClient(
-    IHttpClientFactory httpClientFactory)
-    : ApiClient(httpClientFactory), IGetterClient
+    IHttpClientFactory httpClientFactory,
+    ILogger<GetterClient> logger)
+    : ApiClient(httpClientFactory, logger), IGetterClient
 {
     /// <inheritdoc />
     public Task<PersonListResponse> GetPersonsAsync(

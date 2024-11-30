@@ -11,9 +11,9 @@ using Gpn.Template.Getter.Application.Abstractions.Enums;
 using Gpn.Template.Getter.Application.Interfaces;
 using Gpn.Template.Getter.Application.Specifications;
 using Microsoft.AspNetCore.Http;
-using Shared.Application.Core.Dal.Repository.Interfaces;
-using Shared.Application.Core.Dal.Repository.Models;
-using Shared.Application.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 
 namespace Gpn.Template.Getter.Application.Services;
 
@@ -39,7 +39,13 @@ public class PersonsService(
         var result = await personsTask.ConfigureAwait(false);
         var totalPages = request.PageSize == 0 ? 0 : result.totalCount / request.PageSize;
         var status = result.totalCount > 0 ? StatusCodes.Status200OK : StatusCodes.Status204NoContent;
-        return new PersonListResponse(totalPages, result.collection, status);
+        return new PersonListResponse
+        {
+            PageNumber = request.PageNumber,
+            Payload = result.collection,
+            StatusCode = status,
+            TotalPages = totalPages,
+        };
     }
 
     /// <summary>
@@ -48,18 +54,14 @@ public class PersonsService(
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    public Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsUnitOfWorkAsync(int skip, int take)
+    public async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsUnitOfWorkAsync(
+        int skip,
+        int take)
     {
-        return unitOfWork
-            .ExecuteAsync<Person, (ICollection<PersonListPayload> collection, int totalCount)>(
-                async repo =>
-                {
-                    var options = new QueryOptions<Person>();
-                    var collection = await repo.GetRangeAsync<PersonListPayload>(options, skip, take).ConfigureAwait(false);
-                    var totalCount = await repo.CountAsync(options).ConfigureAwait(false);
-                    return (collection, totalCount);
-                },
-                CancellationToken.None);
+        var repo = unitOfWork.GetRepository<Person>();
+        var collection = await repo.GetRangeAsync<PersonListPayload>(skip: skip, take: take);
+        var totalCount = await repo.CountAsync();
+        return (collection, totalCount);
     }
 
     /// <summary>
@@ -90,11 +92,9 @@ public class PersonsService(
     {
         var specification = new PersonSpecification();
         var collection = await personRepository
-            .GetRangeAsync<PersonListPayload>(specification, skip, take)
-            .ConfigureAwait(false);
+            .GetRangeAsync<PersonListPayload>(specification, skip, take);
         var totalCount = await personRepository
-            .CountAsync(specification)
-            .ConfigureAwait(false);
+            .CountAsync(specification);
         return (collection, totalCount);
     }
 }

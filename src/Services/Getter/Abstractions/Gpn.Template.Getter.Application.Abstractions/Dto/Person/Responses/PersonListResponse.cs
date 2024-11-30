@@ -11,11 +11,8 @@ namespace Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 /// <summary>
 /// Ответ на запрос с информацией об 'Person-ах'.
 /// </summary>
-/// <param name="TotalPages">Количество страниц.</param>
-/// <param name="Payload">Информация об 'Person-ах'.</param>
-/// <param name="StatusCode">Статус ответа.</param>
-public record PersonListResponse(int TotalPages, ICollection<PersonListPayload> Payload, int StatusCode)
-    : PageableResponse<ICollection<PersonListPayload>>(TotalPages, Payload, StatusCode);
+public record PersonListResponse
+    : PageableResponse<ICollection<PersonListPayload>>;
 
 /// <summary>
 /// Payload-Dto с информацией об конкретном 'Person-е'.

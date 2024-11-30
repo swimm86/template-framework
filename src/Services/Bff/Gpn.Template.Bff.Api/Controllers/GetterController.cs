@@ -8,7 +8,6 @@ using Gpn.Template.Bff.Api.Controllers.Base;
 using Gpn.Template.Bff.Api.Interfaces;
 using Gpn.Template.Bff.Application.Dto.Requests;
 using Gpn.Template.Bff.Application.Features.Person.Cqrs.Queries.List;
-using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,10 +34,8 @@ public class GetterController(
         PersonListRequest request,
         CancellationToken cancellationToken = default)
     {
-        return Process<PersonListResponse, ICollection<PersonListPayload>>(
-            () => sender.Send(
-                new PersonListQuery(request),
-                cancellationToken),
+        return Process(
+            sender.Send(new PersonListQuery(request), cancellationToken),
             cancellationToken);
     }
 }
