@@ -39,10 +39,10 @@ public static class EntityExtensions
         ICollection<TSource> ItemsToAdd,
         ICollection<TDestination> ItemsToRemove,
         IEnumerable<(TSource src, TDestination dest)> ItemsToUpdate)
-        GetChangesForMerge<TSource, TDestination>(this IEnumerable<TSource> src, IEnumerable<TDestination> dest)
+        GetDifferenceForMerge<TSource, TDestination>(this IEnumerable<TSource> src, IEnumerable<TDestination> dest)
         where TSource : IEntity
         where TDestination : IEntity
-        => GetChangesForMerge(src, dest, source => source.Id, destination => destination.Id);
+        => GetDifferenceForMerge(src, dest, source => source.Id, destination => destination.Id);
 
     /// <summary>
     /// Определяет разницу между коллекциями источников и назначения по указанным селекторам.
@@ -72,7 +72,7 @@ public static class EntityExtensions
         ICollection<TSource> ItemsToAdd,
         ICollection<TDestination> ItemsToRemove,
         IEnumerable<(TSource src, TDestination dest)> ItemsToUpdate)
-        GetChangesForMerge<TSource, TDestination>(
+        GetDifferenceForMerge<TSource, TDestination>(
             this IEnumerable<TSource> srcItems,
             IEnumerable<TDestination> destItems,
             Func<TSource, object> sourceSelector,
@@ -137,7 +137,7 @@ public static class EntityExtensions
         where TSource : class
         where TDestination : class
     {
-        var (itemsToAdd, itemsToRemove, itemsToUpdate) = GetChangesForMerge(srcItems, destItems, srcKeySelector, destKeySelector);
+        var (itemsToAdd, itemsToRemove, itemsToUpdate) = GetDifferenceForMerge(srcItems, destItems, srcKeySelector, destKeySelector);
 
         if (addItem != null)
         {

@@ -20,14 +20,16 @@ public class DbContextOptionsBuilderInitializer(
     IConfiguration configuration)
     : IDbContextOptionsBuilderInitializer
 {
+    private const string DefaultConnectionString = "Host=localhost:5432;";
+
     /// <inheritdoc />
     public void Initialize<TSettings>(
         DbContextOptionsBuilder options,
         string migrationAssemblyName)
         where TSettings : DbSettingsBase
     {
-        var settings = configuration.GetOptions<TSettings>()!;
-        var sourceBuilder = new NpgsqlDataSourceBuilder(settings.ConnectionString);
+        var settings = configuration.GetOptions<TSettings>();
+        var sourceBuilder = new NpgsqlDataSourceBuilder(settings?.ConnectionString ?? DefaultConnectionString);
         options.UseNpgsql(sourceBuilder.Build(), builder => builder.MigrationsAssembly(migrationAssemblyName));
         options.EnableSensitiveDataLogging();
     }

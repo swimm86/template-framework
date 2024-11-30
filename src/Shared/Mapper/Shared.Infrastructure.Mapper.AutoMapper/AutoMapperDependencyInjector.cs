@@ -8,7 +8,7 @@ using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.DependencyInjection;
-using IMapper = Shared.Application.Core.Mapping.Interfaces.IMapper;
+using IMapper = Shared.Domain.Core.Mapping.Interfaces.IMapper;
 
 namespace Shared.Infrastructure.Mapper.AutoMapper;
 
@@ -26,7 +26,6 @@ public class AutoMapperDependencyInjector(
     /// <returns><see cref="IServiceCollection"/>.</returns>
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        // TODO: проверить
         var profileType = typeof(Profile);
         var mapperProfilesTypes = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())

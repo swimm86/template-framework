@@ -26,6 +26,11 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     private readonly IQueryEvaluator _evaluator;
 
     /// <summary>
+    /// Признак того, что необходимо использовать транзакцию.
+    /// </summary>
+    private bool _useTransaction = true;
+
+    /// <summary>
     /// Конструктор по умолчанию.
     /// </summary>
     /// <param name="dbContextFactory"><see cref="IDbContextFactory{TDbContext}"/>.</param>
@@ -36,53 +41,138 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     {
         DbContext = dbContextFactory.CreateDbContext();
         _evaluator = evaluator;
+
+        EnableTransaction();
     }
 
     /// <inheritdoc />
-    public TResult Execute<TEntity, TResult>(
-        Func<IRepository<TEntity>, TResult> process,
-        bool useTransaction = false)
-        where TEntity : class, IEntity
+    public int SaveChanges(bool commitTransaction = true)
     {
-        var repository = GetRepository<TEntity>();
-        return repository.Execute(() => process(repository), useTransaction);
+        try
+        {
+            var result = DbContext.SaveChanges();
+            CommitTransaction(commitTransaction);
+            return result;
+        }
+        catch
+        {
+            RollbackTransaction();
+            throw;
+        }
+        finally
+        {
+            ResetTransaction();
+        }
     }
 
     /// <inheritdoc />
-    public Task<TResult> ExecuteAsync<TEntity, TResult>(
-        Func<IRepository<TEntity>, Task<TResult>> process,
-        CancellationToken token,
-        bool useTransaction = false)
-        where TEntity : class, IEntity
+    public async Task<int> SaveChangesAsync(
+        bool commitTransaction = true,
+        CancellationToken token = default)
     {
-        var repository = GetRepository<TEntity>();
-        return repository.ExecuteAsync(() => process(repository), token, useTransaction);
+        try
+        {
+            var result = await DbContext.SaveChangesAsync(token);
+            await CommitTransactionAsync(commitTransaction, token);
+            return result;
+        }
+        catch
+        {
+            await RollbackTransactionAsync(token);
+            throw;
+        }
+        finally
+        {
+            await ResetTransactionAsync(token);
+        }
     }
 
     /// <inheritdoc />
-    public int SaveChanges()
-    {
-        return DbContext.SaveChanges();
-    }
-
-    /// <inheritdoc />
-    public Task<int> SaveChangesAsync(CancellationToken token = default)
-    {
-        return DbContext.SaveChangesAsync(token);
-    }
-
-    /// <summary>
-    /// Возвращает репозиторий с сущностями типа <typeparamref name="TEntity"/>.
-    /// </summary>
-    /// <typeparam name="TEntity">Тип сущности, для которого создается репозиторий.</typeparam>
-    /// <returns>Репозиторий с сущностями типа <typeparamref name="TEntity"/>.</returns>
     public IRepository<TEntity> GetRepository<TEntity>()
         where TEntity : class, IEntity =>
         new EfRepository<TEntity>(DbContext, _evaluator);
 
     /// <inheritdoc />
+    public void EnableTransaction()
+    {
+        _useTransaction = true;
+        if (DbContext.Database.CurrentTransaction == null)
+        {
+            DbContext.Database.BeginTransaction();
+        }
+    }
+
+    /// <inheritdoc />
+    public void DisableTransaction()
+    {
+        _useTransaction = false;
+        DbContext.Database.CurrentTransaction?.Dispose();
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
-        DbContext.Dispose();
+        try
+        {
+            DbContext.Database.CurrentTransaction?.Dispose();
+        }
+        finally
+        {
+            DbContext.Dispose();
+        }
+    }
+
+    private void CommitTransaction(bool commit)
+    {
+        if (_useTransaction && commit)
+        {
+            DbContext.Database.CurrentTransaction?.Commit();
+        }
+    }
+
+    private void RollbackTransaction()
+    {
+        if (_useTransaction)
+        {
+            DbContext.Database.CurrentTransaction?.Rollback();
+        }
+    }
+
+    private void ResetTransaction()
+    {
+        if (!_useTransaction)
+        {
+            return;
+        }
+
+        DbContext.Database.CurrentTransaction?.Dispose();
+        DbContext.Database.BeginTransaction();
+    }
+
+    private Task CommitTransactionAsync(bool commit, CancellationToken token)
+    {
+        return _useTransaction && commit && DbContext.Database.CurrentTransaction != null
+            ? DbContext.Database.CurrentTransaction.CommitAsync(token)
+            : Task.CompletedTask;
+    }
+
+    private Task RollbackTransactionAsync(CancellationToken token)
+    {
+        return _useTransaction && DbContext.Database.CurrentTransaction != null
+            ? DbContext.Database.CurrentTransaction.RollbackAsync(token)
+            : Task.CompletedTask;
+    }
+
+    private async Task ResetTransactionAsync(CancellationToken token)
+    {
+        if (_useTransaction)
+        {
+            if (DbContext.Database.CurrentTransaction != null)
+            {
+                await DbContext.Database.CurrentTransaction.DisposeAsync();
+            }
+
+            await DbContext.Database.BeginTransactionAsync(token);
+        }
     }
 }

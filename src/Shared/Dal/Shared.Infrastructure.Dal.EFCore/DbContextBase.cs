@@ -4,9 +4,10 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Reflection;
+using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Shared.Common.Extensions;
+using Shared.Infrastructure.Dal.EFCore.Conventions;
 
 namespace Shared.Infrastructure.Dal.EFCore;
 
@@ -26,6 +27,13 @@ public abstract class DbContextBase(
     }
 
     /// <inheritdoc />
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.Conventions.Add(_ => new ColumnsNamesConvention());
+    }
+
+    /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (environment.IsDevelopment())
@@ -33,6 +41,18 @@ public abstract class DbContextBase(
             optionsBuilder.EnableSensitiveDataLogging();
         }
 
+        ConfigureDateCulture();
         base.OnConfiguring(optionsBuilder);
+    }
+
+    private void ConfigureDateCulture()
+    {
+        var cultureInfo = new CultureInfo("en-US")
+        {
+            DateTimeFormat = { ShortDatePattern = "dd/MM/yyyy" }
+        };
+
+        CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
     }
 }

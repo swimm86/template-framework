@@ -72,7 +72,7 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
         await ProcessEntityAsync(clone, command);
         await ValidateAsync(clone, validators, cancellationToken);
         await Repository.AddAsync(clone, userProvider.GetUserId());
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await unitOfWork.SaveChangesAsync(token: cancellationToken);
         return CreateResponseDto(clone);
     }
 

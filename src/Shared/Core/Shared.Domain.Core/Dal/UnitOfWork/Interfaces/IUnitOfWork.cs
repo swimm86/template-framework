@@ -17,15 +17,19 @@ public interface IUnitOfWork : IDisposable
     /// <summary>
     /// Сохраняет изменения
     /// </summary>
+    /// <param name="commitTransaction">Признак того, что необходимо закоммитить транзакцию.</param>
     /// <returns>Код результата.</returns>
-    int SaveChanges();
+    int SaveChanges(bool commitTransaction = true);
 
     /// <summary>
     /// Асинхронно сохраняет изменения
     /// </summary>
+    /// <param name="commitTransaction">Признак того, что необходимо закоммитить транзакцию.</param>
     /// <param name="token">Токен отмены операции.</param>
     /// <returns>Код результата.</returns>
-    Task<int> SaveChangesAsync(CancellationToken token = default);
+    Task<int> SaveChangesAsync(
+        bool commitTransaction = true,
+        CancellationToken token = default);
 
     /// <summary>
     /// Возвращает репозиторий с сущностями типа <typeparamref name="TEntity"/>.
@@ -34,4 +38,14 @@ public interface IUnitOfWork : IDisposable
     /// <returns>Репозиторий с сущностями типа <typeparamref name="TEntity"/>.</returns>
     IRepository<TEntity> GetRepository<TEntity>()
         where TEntity : class, IEntity;
+
+    /// <summary>
+    /// Включает использование транзакций (если еще не включено).
+    /// </summary>
+    void EnableTransaction();
+
+    /// <summary>
+    /// Отменяет использование транзакций (если они используются).
+    /// </summary>
+    void DisableTransaction();
 }

@@ -9,6 +9,7 @@ using Shared.Application.Core.DependencyInjection.Attributes;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Infrastructure.Dal.EFCore.Attributes;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Settings;
 
@@ -52,6 +53,10 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDbContexts(
         this IServiceCollection serviceCollection)
     {
+        var migrationAssembly = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .FirstOrDefault(assembly =>
+                assembly.GetCustomAttributes(typeof(MigrationAssemblyAttribute), false).Any());
         AssemblyHelper.GetDerivedTypesFromAssemblies<DbContextBase>(
                 excludedAttributesTypes: [typeof(ManualConfigurationAttribute)])
             .ForEach(type =>
@@ -66,11 +71,12 @@ public static class ServiceCollectionExtensions
                     throw new InvalidOperationException($"Не удалось найти настройки для типа {type.FullName}");
                 }
 
+                var migrationAssemblyName = (migrationAssembly ?? type.Assembly).FullName;
                 typeof(ServiceCollectionExtensions)
                     .GetMethods()
                     .First(m => m is { Name: nameof(AddDbContext), IsGenericMethod: true })
                     .MakeGenericMethod(settings, type)
-                    .Invoke(null, [serviceCollection, type.Assembly.FullName]);
+                    .Invoke(null, [serviceCollection, migrationAssemblyName]);
             });
 
         return serviceCollection;

@@ -6,7 +6,7 @@
 
 using System.Linq.Expressions;
 using AutoMapper.QueryableExtensions;
-using Shared.Application.Core.Mapping.Interfaces;
+using Shared.Domain.Core.Mapping.Interfaces;
 
 namespace Shared.Infrastructure.Mapper.AutoMapper;
 

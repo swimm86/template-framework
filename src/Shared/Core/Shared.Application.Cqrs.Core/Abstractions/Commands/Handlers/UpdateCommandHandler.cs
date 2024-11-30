@@ -93,7 +93,7 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
             entityWithUpdated.SetUpdatedByUserId(userProvider.GetUserId());
         }
 
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await unitOfWork.SaveChangesAsync(token: cancellationToken);
         return new TResponse
         {
             Key = command.Key,

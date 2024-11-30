@@ -4,11 +4,11 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Mapping.Interfaces;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Interfaces;
+using Shared.Domain.Core.Mapping.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
 
@@ -73,6 +73,12 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
         bool asSplitQuery = false)
         where TEntity : class, IEntity
     {
-        return mapper.ProjectTo<TOut>(Build(queryable, options, asSplitQuery));
+        var result = Build(queryable, options, asSplitQuery);
+        if (result is IQueryable<TOut> tOutQuery)
+        {
+            return tOutQuery;
+        }
+
+        return mapper.ProjectTo<TOut>(result);
     }
 }
