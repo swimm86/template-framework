@@ -268,6 +268,61 @@ public interface IRepository<TEntity>
 
     #endregion
 
+    #region Update methods
+
+    /// <summary>
+    /// Массово обновляет сущности по заданному условию.
+    /// </summary>
+    /// <param name="condition">Условие для обновления.</param>
+    /// <param name="updateData">Массив кортежей, содержащий выражения для обновляемых свойств и их значений.</param>
+    /// <returns><see cref="Task"/>.</returns>
+    Task UpdateRangeAsync(
+        Expression<Func<TEntity, bool>>? condition = default,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData);
+
+    /// <summary>
+    /// Массово обновляет сущности по заданным настройкам.
+    /// </summary>
+    /// <param name="options">Настройки запроса. Если null, запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="updateData">Массив кортежей, содержащий выражения для обновляемых свойств и их значений.</param>
+    /// <returns><see cref="Task"/>.</returns>
+    Task UpdateRangeAsync(
+        QueryOptions<TEntity> options,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData);
+
+    /// <summary>
+    /// Массово обновляет сущности по заданной спецификации.
+    /// </summary>
+    /// <param name="specification">Спецификация. Если null, запрос будет выполнен без дополнительных настроек.</param>
+    /// <param name="updateData">Массив кортежей, содержащий выражения для обновляемых свойств и их значений.</param>
+    /// <returns><see cref="Task"/>.</returns>
+    Task UpdateRangeAsync(
+        ISpecification<TEntity> specification,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData);
+
+    /// <summary>
+    /// Предоставляет функции для обновления сущностей без извлечения их из БД.
+    /// </summary>
+    /// <typeparam name="TProp">Тип свойства.</typeparam>
+    /// <param name="propertyExpression">Выражение для свойства.</param>
+    /// <param name="valueExpression">Выражение для значения.</param>
+    /// <returns>Кортеж из выражений для обновления.</returns>
+    /// <remarks>Пример использования:
+    /// IRepository{TEntity}
+    ///  .UpdateRangeAsync(
+    ///    x => x.Id == Guid.Parse("4c2ca6bf-8c8f-4cbf-9097-d40615241a2c"),
+    /// repo.GetUpdateRangeAsyncLambdaFunc(x => x.Name, x => "name2"),
+    /// repo.GetUpdateRangeAsyncLambdaFunc(x => x.PpsVersionName, x => "ppsVersionName 2"));
+    /// </remarks>
+    public static (LambdaExpression, LambdaExpression) GetUpdateRangeAsyncLambdaFunc<TProp>(
+        Expression<Func<TEntity, TProp>> propertyExpression,
+        Expression<Func<TEntity, TProp>> valueExpression)
+    {
+        return (propertyExpression, valueExpression);
+    }
+
+    #endregion
+
     #region Remove methods
 
     /// <summary>

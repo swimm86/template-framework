@@ -5,9 +5,11 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore.Query;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Dal.Specification.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
@@ -125,6 +127,56 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
+    public Task UpdateRangeAsync(
+        Expression<Func<TEntity, bool>>? condition = default,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
+    {
+        var options = new QueryOptions<TEntity>();
+        if (condition != default)
+        {
+            options.AddFilter(condition);
+        }
+
+        return UpdateRangeAsync(options, updateData);
+    }
+
+    /// <inheritdoc/>
+    public Task UpdateRangeAsync(
+        QueryOptions<TEntity> options,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
+    {
+        var query = evaluator.Build(DbSet, options);
+        var parameter = Expression.Parameter(typeof(SetPropertyCalls<TEntity>), "x");
+        Expression setPropertyCalls = parameter;
+
+        foreach (var (propertyExpr, valueExpr) in updateData)
+        {
+            var propertyType = propertyExpr.ReturnType;
+            var setPropertyMethod = typeof(SetPropertyCalls<TEntity>).GetMethods()
+                .FirstOrDefault(m => m is { Name: nameof(SetPropertyCalls<TEntity>.SetProperty), IsGenericMethod: true })
+                ?.MakeGenericMethod(propertyType);
+
+            setPropertyCalls = Expression.Call(
+                setPropertyCalls,
+                setPropertyMethod,
+                propertyExpr,
+                valueExpr);
+        }
+
+        var updateExpression = Expression.Lambda<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>>(setPropertyCalls, parameter);
+
+        return query.ExecuteUpdateAsync(updateExpression);
+    }
+
+    /// <inheritdoc/>
+    public Task UpdateRangeAsync(
+        ISpecification<TEntity> specification,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
+    {
+        return UpdateRangeAsync(specification.BuildOptions(), updateData);
+    }
+
+    /// <inheritdoc/>
     public Task RemoveAsync(TEntity entity, Guid? userId, bool hard = false)
     {
         if (!hard && entity is IDeletable deletable)
@@ -164,15 +216,22 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public async Task RemoveRangeAsync(QueryOptions<TEntity> options, bool hard = false)
     {
-        var entities = await GetRangeAsync(options);
-        await RemoveRangeAsync(entities, hard);
+        if (!hard && typeof(TEntity).IsAssignableTo(typeof(IDeletable)))
+        {
+            var entities = await GetRangeAsync(options);
+            await RemoveRangeAsync(entities, hard);
+        }
+
+        var query = evaluator.Build(DbSet, options);
+        await query.ExecuteDeleteAsync();
     }
 
     /// <inheritdoc/>
-    public async Task RemoveRangeAsync(Expression<Func<TEntity, bool>> conditions, bool hard = false)
+    public Task RemoveRangeAsync(Expression<Func<TEntity, bool>> conditions, bool hard = false)
     {
-        var entities = await DbSet.Where(conditions).ToListAsync();
-        await RemoveRangeAsync(entities, hard);
+        var options = new QueryOptions<TEntity>(true);
+        options.AddFilter(conditions);
+        return RemoveRangeAsync(options, hard);
     }
 
     /// <inheritdoc/>

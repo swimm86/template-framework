@@ -89,7 +89,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared.Utils.DatabaseUpgrad
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Application", "Services\Common\Gpn.Template.Application\Gpn.Template.Application.csproj", "{6BE59E4C-DB23-413F-B4AA-89B105FDF89B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gpn.Template.Infrastructure.Mapping", "Services\Common\Gpn.Template.Infrastructure.Mapping\Gpn.Template.Infrastructure.Mapping.csproj", "{D38BE378-945E-4E81-845A-724CEA9ADF47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Infrastructure.Mapping", "Services\Common\Gpn.Template.Infrastructure.Mapping\Gpn.Template.Infrastructure.Mapping.csproj", "{D38BE378-945E-4E81-845A-724CEA9ADF47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
