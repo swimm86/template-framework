@@ -19,13 +19,11 @@ public interface IQueryEvaluator
     /// </summary>
     /// <param name="queryable">Запрос <see cref="IQueryable"/> для типа сущности <typeparamref name="TEntity"/>.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="asSplitQuery">>Выполнить ли разделенным запросом.</param>
     /// <typeparam name="TEntity">Тип сущности, для которой будет реализован запрос.</typeparam>
     /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки.</returns>
     IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null,
-        bool asSplitQuery = false)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity;
 
     /// <summary>
@@ -35,11 +33,9 @@ public interface IQueryEvaluator
     /// <typeparam name="TOut">Тип результата, к которому будут преобразованы элементы запроса.</typeparam>
     /// <param name="queryable">Запрос <see cref="IQueryable"/> для типа сущности <typeparamref name="TEntity"/>.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="asSplitQuery">Выполнить ли разделенным запросом.</param>
     /// <returns>Запрос <see cref="IQueryable"/> с примененными критериями выборки и преобразованными элементами типа <typeparamref name="TOut"/>.</returns>
     IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null,
-        bool asSplitQuery = false)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity;
 }

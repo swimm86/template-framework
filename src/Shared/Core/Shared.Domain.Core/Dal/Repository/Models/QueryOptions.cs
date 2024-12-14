@@ -16,7 +16,9 @@ namespace Shared.Domain.Core.Dal.Repository.Models;
 /// Настройки запроса для операций с сущностями.
 /// </summary>
 /// <typeparam name="TEntity">Тип сущности, для которой реализована спецификация.</typeparam>
-public class QueryOptions<TEntity>(bool withTracking = false)
+public class QueryOptions<TEntity>(
+    bool withTracking = false,
+    bool asSplitQuery = false)
     where TEntity : IEntity
 {
     /// <summary>
@@ -38,6 +40,11 @@ public class QueryOptions<TEntity>(bool withTracking = false)
     /// Признак необходимости отслеживания изменений сущностей.
     /// </summary>
     public bool WithTracking { get; set; } = withTracking;
+
+    /// <summary>
+    /// Признак необходимости отслеживания изменений сущностей.
+    /// </summary>
+    public bool AsSplitQuery { get; set; } = asSplitQuery;
 
     /// <summary>
     /// Include если возвращается коллекция.

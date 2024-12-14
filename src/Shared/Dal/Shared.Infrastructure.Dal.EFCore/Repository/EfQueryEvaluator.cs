@@ -20,8 +20,7 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TEntity> Build<TEntity>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null,
-        bool asSplitQuery = false)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity
     {
         if (options is null)
@@ -58,7 +57,7 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
             queryable = queryable.AsNoTracking();
         }
 
-        if (asSplitQuery)
+        if (options.AsSplitQuery)
         {
             queryable = queryable.AsSplitQuery();
         }
@@ -69,11 +68,10 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
     /// <inheritdoc />>
     public IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
-        QueryOptions<TEntity>? options = null,
-        bool asSplitQuery = false)
+        QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity
     {
-        var result = Build(queryable, options, asSplitQuery);
+        var result = Build(queryable, options);
         if (result is IQueryable<TOut> tOutQuery)
         {
             return tOutQuery;
