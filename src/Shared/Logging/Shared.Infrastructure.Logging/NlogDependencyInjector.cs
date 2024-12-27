@@ -27,7 +27,7 @@ public class NlogDependencyInjector(
     /// <returns><see cref="IServiceCollection"/>.</returns>
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        return serviceCollection;
-        // .AddNlog(configuration);
+        return serviceCollection
+            .AddNlog(configuration);
     }
 }

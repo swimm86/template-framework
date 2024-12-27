@@ -37,27 +37,10 @@ public abstract class ControllerBase(ILogger logger)
         [CallerMemberName] string? methodName = null)
         where TResponse : Response
     {
-        return Process(processFunc(), cancellationToken, methodName);
-    }
-
-    /// <summary>
-    /// Асинхронно обрабатывает запрос, используя предоставленную функцию обработки.
-    /// </summary>
-    /// <param name="processTask"><see cref="Task{TResponse}"/> обработки запроса, где TResponse является ответом с типизированным содержимым.</param>
-    /// <param name="cancellationToken">Токен отмены операции, позволяющий отменить асинхронную операцию.</param>
-    /// <param name="methodName">Наименование метода, вызвавшего асинхронную операцию.</param>
-    /// <typeparam name="TResponse">Тип ответа, который должен наследоваться от <see cref="Response{TPayload}"/>, где TPayload - тип данных в теле ответа.</typeparam>
-    /// <returns>Объект <see cref="Task{IActionResult}"/>, представляющий асинхронную операцию. Результат содержит статус код и данные ответа, упакованные в соответствующий формат HTTP-ответа.</returns>
-    protected Task<IActionResult> Process<TResponse>(
-        Task<TResponse> processTask,
-        CancellationToken cancellationToken = default,
-        [CallerMemberName] string? methodName = null)
-        where TResponse : Response
-    {
         return logger.LogTaskAsync(
             async () =>
             {
-                var result = await processTask
+                var result = await processFunc()
                     .ConfigureAwait(false);
                 return StatusCode(result.StatusCode, result) as IActionResult;
             },

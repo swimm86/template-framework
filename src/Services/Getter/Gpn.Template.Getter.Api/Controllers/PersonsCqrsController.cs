@@ -31,7 +31,7 @@ public sealed class PersonsCqrsController(
         CancellationToken cancellationToken = default)
     {
         return Process(
-            sender.Send(new PersonReadListQuery(request), cancellationToken),
+            () => sender.Send(new PersonReadListQuery(request), cancellationToken),
             cancellationToken);
     }
 }

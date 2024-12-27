@@ -9,7 +9,8 @@ using Shared.Domain.Core.Dal.Specification.Interfaces;
 namespace Shared.Domain.Core.Dal.Specification.Models;
 
 /// <inheritdoc />
-public class Includable<TProperty>(List<string> includes) : IIncludable<TProperty>
+public class Includable<TProperty>(List<string> includes)
+    : IIncludable<TProperty>
 {
     /// <inheritdoc />
     public List<string> Includes { get; private set; } = includes;
