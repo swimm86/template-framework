@@ -1,0 +1,23 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="IUserProvider.cs" company="АО ИНЛАЙН ГРУП">
+// Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+namespace Shared.Application.Core.Auth;
+
+/// <summary>
+/// Интерфейс провайдера пользователя.
+/// </summary>
+public interface IUserProvider
+{
+    /// <summary>
+    /// Возвращает идентификатор пользователя.
+    /// </summary>
+    Guid UserId { get; }
+
+    /// <summary>
+    /// Возвращает полное имя пользователя.
+    /// </summary>
+    string UserFullName { get; }
+}

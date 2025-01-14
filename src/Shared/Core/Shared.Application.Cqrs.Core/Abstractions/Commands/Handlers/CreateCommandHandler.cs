@@ -5,9 +5,9 @@
 // ----------------------------------------------------------------------------------------------
 
 using FluentValidation;
-using Gpn.Contour.Admin.Auth.Sdk.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Auth;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
@@ -66,7 +66,7 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
         var entity = mapper.Map<TRequest, TEntity>(command.Request);
         await ProcessEntityAsync(entity, command);
         await ValidateAsync(entity, validators, cancellationToken);
-        var newEntity = await Repository.AddAsync(entity, userProvider.GetUserId());
+        var newEntity = await Repository.AddAsync(entity, userProvider.UserId);
         await unitOfWork.SaveChangesAsync(token: cancellationToken);
         return CreateResponseDto(newEntity);
     }

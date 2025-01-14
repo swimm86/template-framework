@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Contour.Admin.Auth.Sdk.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,8 +36,6 @@ public static class WebApplicationBuilderExtensions
                 options.Conventions.Add(new ControllerNameConvention());
             }).Services
             .AddEndpointsApiExplorer()
-            .AddAuthServices(builder.Configuration)
-            .ConfigureSwaggerAuth()
             .AddSwagger()
             .ImplementReferencedInfrastructures()
             .AddFluentValidation()

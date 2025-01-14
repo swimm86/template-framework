@@ -4,8 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Contour.Admin.Auth.Sdk.Context;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Auth;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;

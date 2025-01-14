@@ -7,6 +7,8 @@
 using System.Globalization;
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
+using Shared.Common.Extensions;
+using Shared.Domain.Core.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Conventions;
 
 namespace Shared.Infrastructure.Dal.EFCore;
@@ -19,6 +21,37 @@ public abstract class DbContextBase(
     IHostEnvironment environment
 ) : DbContext(options)
 {
+    /// <inheritdoc/>
+    public sealed override int SaveChanges()
+    {
+        ChangeTracker.Entries<IWithOnSavingAction>()
+            .ForeachAsync(x => x.Entity.OnSavingAsync())
+            .GetAwaiter()
+            .GetResult();
+        BeforeSaveActionAsync().GetAwaiter().GetResult();
+        return base.SaveChanges();
+    }
+
+    /// <inheritdoc/>
+    public sealed override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await ChangeTracker
+            .Entries<IWithOnSavingAction>()
+            .ForeachAsync(x => x.Entity.OnSavingAsync());
+        await BeforeSaveActionAsync(cancellationToken);
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Действия перед сохранением.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    protected virtual Task BeforeSaveActionAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

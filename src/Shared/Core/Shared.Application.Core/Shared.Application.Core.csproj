@@ -15,7 +15,6 @@
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
-    <PackageReference Include="Gpn.Contour.Admin.Auth.Sdk" Version="1.0.27" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="9.0.0" />
   </ItemGroup>
 

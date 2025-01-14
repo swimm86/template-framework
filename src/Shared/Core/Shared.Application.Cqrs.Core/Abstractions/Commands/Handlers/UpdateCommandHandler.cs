@@ -5,9 +5,9 @@
 // ----------------------------------------------------------------------------------------------
 
 using FluentValidation;
-using Gpn.Contour.Admin.Auth.Sdk.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Auth;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
@@ -90,7 +90,7 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
 
         if (entity is IWithUpdated entityWithUpdated)
         {
-            entityWithUpdated.SetUpdatedByUserId(userProvider.GetUserId());
+            entityWithUpdated.SetUpdatedByUserId(userProvider.UserId);
         }
 
         await unitOfWork.SaveChangesAsync(token: cancellationToken);

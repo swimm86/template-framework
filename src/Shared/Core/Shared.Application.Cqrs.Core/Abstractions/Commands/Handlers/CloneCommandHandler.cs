@@ -5,9 +5,9 @@
 // ----------------------------------------------------------------------------------------------
 
 using FluentValidation;
-using Gpn.Contour.Admin.Auth.Sdk.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Auth;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
@@ -71,7 +71,7 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
         var clone = mapper.Map<TEntity, TEntity>(entityToClone!);
         await ProcessEntityAsync(clone, command);
         await ValidateAsync(clone, validators, cancellationToken);
-        await Repository.AddAsync(clone, userProvider.GetUserId());
+        await Repository.AddAsync(clone, userProvider.UserId);
         await unitOfWork.SaveChangesAsync(token: cancellationToken);
         return CreateResponseDto(clone);
     }

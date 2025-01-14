@@ -4,9 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Contour.Admin.Auth.Sdk.Context;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Auth;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Domain.Core.Dal.Repository.Extensions;
@@ -60,7 +60,7 @@ public abstract class DeleteCommandHandler<TCommand, TEntity>(
     /// <returns>Ответ</returns>
     protected virtual async Task<Response> DeleteAsync(TEntity entity, TCommand command)
     {
-        await Repository.RemoveAsync(entity, userId: userProvider.GetUserId());
+        await Repository.RemoveAsync(entity, userId: userProvider.UserId);
         await unitOfWork.SaveChangesAsync();
         return new Response { StatusCode = StatusCodes.Status200OK };
     }
