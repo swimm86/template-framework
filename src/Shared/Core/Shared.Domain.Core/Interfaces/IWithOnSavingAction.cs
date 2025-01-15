@@ -12,8 +12,30 @@ namespace Shared.Domain.Core.Interfaces;
 public interface IWithOnSavingAction
 {
     /// <summary>
-    /// Действие перед сохранением.
+    /// Признак того, что действия перед сохранением выполнены.
     /// </summary>
+    bool IsOnSavingConfirmed { get; set; }
+
+    /// <summary>
+    /// Выполняет операции, которые необходимы при сохранением.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Результат асинхронной операции.</returns>
-    Task OnSavingAsync();
+    public async Task OnSavingAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsOnSavingConfirmed)
+        {
+            return;
+        }
+
+        await OnSavingProcessAsync(cancellationToken);
+        IsOnSavingConfirmed = true;
+    }
+
+    /// <summary>
+    /// Реализация операций, которые необходимо выполнить перед сохранением.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Результат асинхронной операции.</returns>
+    protected Task OnSavingProcessAsync(CancellationToken cancellationToken);
 }

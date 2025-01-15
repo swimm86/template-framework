@@ -18,16 +18,13 @@ namespace Shared.Infrastructure.Dal.EFCore;
 /// </summary>
 public abstract class DbContextBase(
     DbContextOptions options,
-    IHostEnvironment environment
-) : DbContext(options)
+    IHostEnvironment environment)
+    : DbContext(options)
 {
     /// <inheritdoc/>
     public sealed override int SaveChanges()
     {
-        ChangeTracker.Entries<IWithOnSavingAction>()
-            .ForeachAsync(x => x.Entity.OnSavingAsync())
-            .GetAwaiter()
-            .GetResult();
+        ProcessWithOnSavingEntitiesAsync().GetAwaiter().GetResult();
         BeforeSaveActionAsync().GetAwaiter().GetResult();
         return base.SaveChanges();
     }
@@ -35,9 +32,7 @@ public abstract class DbContextBase(
     /// <inheritdoc/>
     public sealed override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await ChangeTracker
-            .Entries<IWithOnSavingAction>()
-            .ForeachAsync(x => x.Entity.OnSavingAsync());
+        await ProcessWithOnSavingEntitiesAsync(cancellationToken);
         await BeforeSaveActionAsync(cancellationToken);
         return await base.SaveChangesAsync(cancellationToken);
     }
@@ -80,12 +75,19 @@ public abstract class DbContextBase(
 
     private void ConfigureDateCulture()
     {
-        var cultureInfo = new CultureInfo("en-US")
-        {
-            DateTimeFormat = { ShortDatePattern = "dd/MM/yyyy" }
-        };
+        var cultureInfo = new CultureInfo("en-US") { DateTimeFormat = { ShortDatePattern = "dd/MM/yyyy" } };
 
         CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+    }
+
+    private Task ProcessWithOnSavingEntitiesAsync(CancellationToken cancellationToken = default)
+    {
+        return ChangeTracker.Entries<IWithOnSavingAction>()
+            .ForeachAsync(async x =>
+            {
+                await x.Entity.OnSavingAsync(cancellationToken);
+                x.Entity.IsOnSavingConfirmed = false;
+            });
     }
 }
