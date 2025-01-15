@@ -6,7 +6,7 @@
 
 using Gpn.Template.Infrastructure.Dal.Conventions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shared.Application.Core.Auth;
 using Shared.Common.Extensions;
@@ -20,6 +20,7 @@ namespace Gpn.Template.Infrastructure.Dal;
 /// </summary>
 public class DbContext(
     DbContextOptions<DbContext> options,
+    IServiceProvider serviceProvider,
     IHostEnvironment environment)
     : DbContextBase(options, environment)
 {
@@ -36,10 +37,11 @@ public class DbContext(
         base.OnModelCreating(modelBuilder);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected override Task BeforeSaveActionAsync(CancellationToken cancellationToken = default)
     {
-        var userProvider = this.GetService<IUserProvider>();
+        using var scope = serviceProvider.CreateScope();
+        var userProvider = scope.ServiceProvider.GetService<IUserProvider>();
         var userId = userProvider.UserId;
         ChangeTracker
             .Entries()
