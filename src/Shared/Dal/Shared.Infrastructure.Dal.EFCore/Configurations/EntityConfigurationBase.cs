@@ -70,6 +70,11 @@ public abstract class EntityConfigurationBase<TEntity>
                 .HasColumnName("deleted_by");
         }
 
+        if (typeof(IWithOnSavingAction).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder.Ignore(nameof(IWithOnSavingAction.IsOnSavingConfirmed));
+        }
+
         ConfigureProcess(builder);
     }
 
