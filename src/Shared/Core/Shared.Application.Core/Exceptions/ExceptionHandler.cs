@@ -12,7 +12,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dto.Responses;
+using Shared.Application.Core.Exceptions.Settings;
 using Shared.Domain.Core.Exceptions.Models;
 using Shared.Domain.Core.Exceptions.Models.Base;
 
@@ -28,7 +30,7 @@ internal sealed class ExceptionHandler(
     IConfiguration configuration)
     : IExceptionHandler
 {
-    private readonly bool _isDebug = configuration.GetValue<bool>("DebugTrace");
+    private readonly bool _isDebug = configuration.GetOptions<RichDebugSettings>()?.IsEnabled ?? false;
 
     /// <summary>
     /// Обработка ошибки.
