@@ -14,8 +14,8 @@ namespace Shared.Infrastructure.Mapper.AutoMapper;
 /// Маппер.
 /// </summary>
 public class Mapper(
-    global::AutoMapper.IMapper mapper
-) : IMapper
+    global::AutoMapper.IMapper mapper)
+    : IMapper
 {
     /// <inheritdoc />
     public TDestination Map<TSource, TDestination>(TSource source)

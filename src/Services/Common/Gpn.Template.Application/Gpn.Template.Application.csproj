@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Application.Cqrs.Core\Shared.Application.Cqrs.Core.csproj" />
+    <ProjectReference Include="..\Gpn.Template.Domain\Gpn.Template.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

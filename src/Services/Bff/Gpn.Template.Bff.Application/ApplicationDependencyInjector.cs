@@ -4,9 +4,14 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Contour.Admin.Auth.Sdk.Helpers;
+using Gpn.Template.Bff.Application.HttpClients.Settings;
+using Gpn.Template.Bff.Application.HttpClients;
+using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.ApiClient;
 using Shared.Application.Core.DependencyInjection;
 
 namespace Gpn.Template.Bff.Application;
@@ -24,6 +29,12 @@ public class ApplicationDependencyInjector(
     /// <inheritdoc />
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        return serviceCollection;
+        return serviceCollection
+            .AddClient<GetterApiClientSettings, IGetterClient, GetterClient>(
+                configuration,
+                builder => builder.AddHttpMessageHandler<AuthHttpClientHandler>())
+            .AddClient<SetterApiClientSettings, ISetterClient, SetterClient>(
+                configuration,
+                builder => builder.AddHttpMessageHandler<AuthHttpClientHandler>());
     }
 }

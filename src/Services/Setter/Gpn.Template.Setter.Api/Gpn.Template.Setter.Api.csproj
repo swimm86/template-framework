@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Presentation.Core\Shared.Presentation.Core.csproj" />
     <ProjectReference Include="..\..\Common\Gpn.Template.Infrastructure.Dal\Gpn.Template.Infrastructure.Dal.csproj" />
+    <ProjectReference Include="..\Gpn.Template.Setter.Infrastructure\Gpn.Template.Setter.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

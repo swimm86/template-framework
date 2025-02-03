@@ -16,8 +16,8 @@ namespace Shared.Infrastructure.Mapper.AutoMapper;
 /// Класс, предназначенный для интеграции Automapper в DI через <see cref="IServiceCollection"/>.
 /// </summary>
 public class AutoMapperDependencyInjector(
-    ILogger<AutoMapperDependencyInjector> logger
-) : DependencyInjectorBase(logger)
+    ILogger<AutoMapperDependencyInjector> logger)
+    : DependencyInjectorBase(logger)
 {
     /// <summary>
     /// Инициализирует зависимости для маппера (вызывается неявно).

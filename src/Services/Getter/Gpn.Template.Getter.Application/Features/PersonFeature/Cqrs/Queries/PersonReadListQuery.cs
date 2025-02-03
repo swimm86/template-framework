@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Domain.Entities;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Filters;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
