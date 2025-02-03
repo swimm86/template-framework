@@ -17,8 +17,8 @@ public class UserProvider(
     : IUserProvider
 {
     /// <inheritdoc />
-    public Guid UserId => userProvider.GetUserId() ?? Guid.Empty;
+    public Guid UserId => userProvider?.GetUserId() ?? Guid.Empty;
 
     /// <inheritdoc />
-    public string UserFullName => userProvider.GetUserFullName() ?? "Иван Иванович";
+    public string UserFullName => userProvider?.GetUserFullName() ?? "Иван Иванович";
 }

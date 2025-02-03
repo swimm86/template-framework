@@ -42,7 +42,7 @@ public class DbContext(
     {
         using var scope = serviceProvider.CreateScope();
         var userProvider = scope.ServiceProvider.GetService<IUserProvider>();
-        var userId = userProvider.UserId;
+        var userId = userProvider?.UserId;
         ChangeTracker
             .Entries()
             .ForEach(e =>

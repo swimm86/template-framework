@@ -42,7 +42,10 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         DbContext = dbContextFactory.CreateDbContext();
         _evaluator = evaluator;
 
-        EnableTransaction();
+        if (DbContext.Database.CanConnect())
+        {
+            EnableTransaction();
+        }
     }
 
     /// <inheritdoc />
