@@ -32,9 +32,32 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
         queryable = options.Filters
             .Aggregate(queryable, (acc, x) => acc.Where(x));
 
-        // Применяем Includes-ы
+        // Применяем Includes
         queryable = options.Includes
-            .Aggregate(queryable, (acc, x) => acc.Include(x));
+            .Aggregate(queryable, (current, includeNode) =>
+            {
+                var methodName = "Include";
+                var methodParams = new List<Type>
+                {
+                    includeNode.SourceType,
+                    includeNode.DestinationType,
+                };
+
+                if (includeNode.PreviousType is not null)
+                {
+                    methodName = "ThenInclude";
+                    methodParams.Insert(0, includeNode.PreviousType);
+                }
+
+                var method = typeof(EntityFrameworkQueryableExtensions)
+                        .GetMethods()
+                        .First(m => m.Name == methodName && m.GetParameters().Length == 2)
+                        .MakeGenericMethod([.. methodParams]);
+
+                var query = method.Invoke(null, [current, includeNode.Expression]) as IQueryable<TEntity>;
+
+                return query!;
+            });
 
         // Применяем порядок сортировки
         if (options.OrderBy.Count != 0)

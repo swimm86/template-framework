@@ -5,8 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Contour.Admin.Auth.Sdk.Helpers;
-using Gpn.Template.Bff.Application.HttpClients.Settings;
 using Gpn.Template.Bff.Application.HttpClients;
+using Gpn.Template.Bff.Application.HttpClients.Settings;
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -3,6 +3,7 @@ using System;
 using Gpn.Template.Infrastructure.Dal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Gpn.Template.DatabaseUpgrade.Migrations
 {
     [DbContext(typeof(DbContext))]
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20250204085838_AddWorkEntity")]
+    partial class AddWorkEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,55 +24,6 @@ namespace Gpn.Template.DatabaseUpgrade.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Gpn.Template.Domain.Entities.OneToMany", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<Guid>("OneToOneId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("one_to_one_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OneToOneId");
-
-                    b.ToTable("OneToMany");
-
-                    b.UseTptMappingStrategy();
-                });
-
-            modelBuilder.Entity("Gpn.Template.Domain.Entities.OneToOne", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<Guid>("PersonId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("person_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PersonId")
-                        .IsUnique();
-
-                    b.ToTable("OneToOne");
-
-                    b.UseTptMappingStrategy();
-                });
 
             modelBuilder.Entity("Gpn.Template.Domain.Entities.Person", b =>
                 {
@@ -148,28 +102,6 @@ namespace Gpn.Template.DatabaseUpgrade.Migrations
                     b.ToTable("seed", (string)null);
                 });
 
-            modelBuilder.Entity("Gpn.Template.Domain.Entities.OneToMany", b =>
-                {
-                    b.HasOne("Gpn.Template.Domain.Entities.OneToOne", "OneToOne")
-                        .WithMany("OneToManies")
-                        .HasForeignKey("OneToOneId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("OneToOne");
-                });
-
-            modelBuilder.Entity("Gpn.Template.Domain.Entities.OneToOne", b =>
-                {
-                    b.HasOne("Gpn.Template.Domain.Entities.Person", "Person")
-                        .WithOne("OneToOne")
-                        .HasForeignKey("Gpn.Template.Domain.Entities.OneToOne", "PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Person");
-                });
-
             modelBuilder.Entity("Gpn.Template.Domain.Entities.PersonWork", b =>
                 {
                     b.HasOne("Gpn.Template.Domain.Entities.Person", "Person")
@@ -189,16 +121,8 @@ namespace Gpn.Template.DatabaseUpgrade.Migrations
                     b.Navigation("Work");
                 });
 
-            modelBuilder.Entity("Gpn.Template.Domain.Entities.OneToOne", b =>
-                {
-                    b.Navigation("OneToManies");
-                });
-
             modelBuilder.Entity("Gpn.Template.Domain.Entities.Person", b =>
                 {
-                    b.Navigation("OneToOne")
-                        .IsRequired();
-
                     b.Navigation("PersonWorks");
                 });
 

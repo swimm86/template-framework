@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Specification.Interfaces;
 using Shared.Domain.Core.Dal.Specification.Models;
 using Shared.Domain.Core.Interfaces;
@@ -34,7 +33,7 @@ public class QueryOptions<TEntity>(
     /// <summary>
     /// Включаемые связанные сущности.
     /// </summary>
-    public List<string> Includes { get; private set; } = [];
+    public List<IncludeNode> Includes { get; private set; } = [];
 
     /// <summary>
     /// Признак необходимости отслеживания изменений сущностей.
@@ -47,31 +46,55 @@ public class QueryOptions<TEntity>(
     public bool AsSplitQuery { get; set; } = asSplitQuery;
 
     /// <summary>
+    /// Include если возвращается ICollection.
+    /// </summary>
+    /// <param name="expression">Include.</param>
+    /// /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
+    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
+    public IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, ICollection<TProperty>>> expression)
+    {
+        Includes.Add(new IncludeNode(expression, typeof(TEntity), typeof(ICollection<TProperty>)));
+        return new Includable<TEntity, TEntity, TProperty>(Includes);
+    }
+
+    /// <summary>
+    /// Include если возвращается IEnumerable.
+    /// </summary>
+    /// <param name="expression">Include.</param>
+    /// /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
+    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
+    public IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, IEnumerable<TProperty>>> expression)
+    {
+        Includes.Add(new IncludeNode(expression, typeof(TEntity), typeof(IEnumerable<TProperty>)));
+        return new Includable<TEntity, TEntity, TProperty>(Includes);
+    }
+
+    /// <summary>
+    /// Include если возвращается IList.
+    /// </summary>
+    /// <param name="expression">Include.</param>
+    /// /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
+    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
+    public IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, List<TProperty>>> expression)
+    {
+        Includes.Add(new IncludeNode(expression, typeof(TEntity), typeof(List<TProperty>)));
+        return new Includable<TEntity, TEntity, TProperty>(Includes);
+    }
+
+    /// <summary>
     /// Include если возвращается коллекция.
     /// </summary>
     /// <param name="expression">Include.</param>
     /// /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
     /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public IIncludable<TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, ICollection<TProperty>>> expression)
+    public IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, TProperty>> expression)
     {
-        var includable = new Includable<TProperty>(Includes);
-        includable.AddInclude(expression.GetPropertyName());
-        return includable;
-    }
-
-    /// <summary>
-    /// Include.
-    /// </summary>
-    /// <param name="include">Include.</param>
-    /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
-    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public IIncludable<TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, TProperty>> include)
-    {
-        var includable = new Includable<TProperty>(Includes);
-        includable.AddInclude(include.GetPropertyName());
-        return includable;
+        Includes.Add(new IncludeNode(expression, typeof(TEntity), typeof(TProperty)));
+        return new Includable<TEntity, TEntity, TProperty>(Includes);
     }
 
     /// <summary>

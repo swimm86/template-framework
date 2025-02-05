@@ -58,9 +58,22 @@ public class PersonsService(
         int skip,
         int take)
     {
+        var options = new QueryOptions<Person>();
+
+        options.AddFilter(person => person.Name == "Niki" || person.Name == "Nikita");
+
+        options
+            .AddInclude(person => person.PersonWorks.Where(personWork => personWork.Work.Name == "Work"))
+            .ThenInclude(personWork => personWork.Work)
+            .AddInclude(person => person.OneToOne);
+
         var repo = unitOfWork.GetRepository<Person>();
-        var collection = await repo.GetRangeAsync<PersonListPayload>(skip: skip, take: take);
+
+        var c = await repo.GetRangeAsync(options: options, skip: skip, take: 200);
+
+        var collection = await repo.GetRangeAsync<PersonListPayload>(options: options, skip: skip, take: take);
         var totalCount = await repo.CountAsync();
+
         return (collection, totalCount);
     }
 

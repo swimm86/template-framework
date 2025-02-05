@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="Person.cs" company="АО ИНЛАЙН ГРУП">
+// <copyright file="OneToOne.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -9,9 +9,9 @@ using Shared.Domain.Core.Interfaces;
 namespace Gpn.Template.Domain.Entities;
 
 /// <summary>
-/// Сущность "Person".
+/// Сущность "OneToOne".
 /// </summary>
-public class Person : IEntity<Guid>
+public class OneToOne : IEntity<Guid>
 {
     /// <inheritdoc cref="IEntity.Id"/>
     public Guid Id { get; private set; }
@@ -22,33 +22,33 @@ public class Person : IEntity<Guid>
     public string Name { get; private set; }
 
     /// <summary>
-    /// Адрес электронной почты.
+    /// Person Id
     /// </summary>
-    public string Email { get; private set; }
+    public Guid PersonId { get; set; }
 
     /// <summary>
-    /// Ссылка на OneToOne
+    /// Ссылка на Person
     /// </summary>
-    public OneToOne OneToOne { get; set; }
+    public Person Person { get; private set; }
 
     /// <summary>
-    /// Ссылки на PersonWorks
+    /// Ссылки на OneToOne
     /// </summary>
-    public List<PersonWork> PersonWorks { get; private set; } = [];
+    public List<OneToMany> OneToManies { get; private set; }
 
     /// <summary>
-    /// Создание сущности "Person".
+    /// Создание сущности OneToOne
     /// </summary>
-    /// <param name="name">Имя.</param>
-    /// <param name="email">Адрес электронной почты.</param>
-    /// <returns>Экземпляр сущности "Person".</returns>
-    public static Person Create(string name, string email)
+    /// <param name="name">Имя</param>
+    /// <param name="oneToManies">.</param>
+    /// <returns>Экземпляр сущности OneToOne</returns>
+    public static OneToOne Create(string name, List<OneToMany> oneToManies)
     {
-        return new Person
+        return new OneToOne
         {
             Id = Guid.NewGuid(),
             Name = name,
-            Email = email,
+            OneToManies = oneToManies,
         };
     }
 }
