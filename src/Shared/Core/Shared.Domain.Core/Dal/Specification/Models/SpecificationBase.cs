@@ -33,7 +33,7 @@ public abstract record SpecificationBase<TEntity> : ISpecification<TEntity>
     /// <param name="expression">Выражение для доступа к свойству навигации.</param>
     /// <returns>Объект, позволяющий добавить дополнительные включения.</returns>
     protected IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, ICollection<TProperty>>> expression) =>
+        Expression<Func<TEntity, IEnumerable<TProperty>>> expression) =>
         Options.AddInclude(expression);
 
     /// <summary>

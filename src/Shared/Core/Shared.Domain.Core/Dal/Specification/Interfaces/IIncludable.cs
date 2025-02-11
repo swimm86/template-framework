@@ -6,6 +6,7 @@
 
 using System.Linq.Expressions;
 using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Dal.Specification.Interfaces;
 
@@ -23,15 +24,6 @@ public interface IIncludable<TEntity, TCurrent, TNext>
     List<IncludeNode> Includes { get; }
 
     /// <summary>
-    /// Перегрузка AddInclude для ICollection.
-    /// </summary>
-    /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
-    /// <param name="expression">Навигационное свойство.</param>
-    /// <returns>Следующий экземпляр IIncludable.</returns>
-    IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, ICollection<TProperty>>> expression);
-
-    /// <summary>
     /// Перегрузка AddInclude для IEnumerable.
     /// </summary>
     /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
@@ -41,22 +33,14 @@ public interface IIncludable<TEntity, TCurrent, TNext>
         Expression<Func<TEntity, IEnumerable<TProperty>>> expression);
 
     /// <summary>
-    /// Перегрузка AddInclude для List.
-    /// </summary>
-    /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
-    /// <param name="expression">Навигационное свойство.</param>
-    /// <returns>Следующий экземпляр IIncludable.</returns>
-    IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, List<TProperty>>> expression);
-
-    /// <summary>
     /// Перегрузка AddInclude для TProperty.
     /// </summary>
     /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
     /// <param name="expression">Навигационное свойство.</param>
     /// <returns>Следующий экземпляр IIncludable.</returns>
     IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, TProperty>> expression);
+        Expression<Func<TEntity, TProperty>> expression)
+        where TProperty : IEntity;
 
     /// <summary>
     /// Перегрузка ThenInclude для IEnumerable.
@@ -68,29 +52,12 @@ public interface IIncludable<TEntity, TCurrent, TNext>
         Expression<Func<TNext, IEnumerable<TProperty>>> expression);
 
     /// <summary>
-    /// Перегрузка ThenInclude для ICollection.
-    /// </summary>
-    /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
-    /// <param name="expression">Навигационное свойство.</param>
-    /// <returns>Следующий экземпляр IIncludable.</returns>
-    IIncludable<TEntity, TNext, TProperty> ThenInclude<TProperty>(
-        Expression<Func<TNext, ICollection<TProperty>>> expression);
-
-    /// <summary>
-    /// Перегрузка ThenInclude для List.
-    /// </summary>
-    /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
-    /// <param name="expression">Навигационное свойство.</param>
-    /// <returns>Следующий экземпляр IIncludable.</returns>
-    IIncludable<TEntity, TNext, TProperty> ThenInclude<TProperty>(
-        Expression<Func<TNext, List<TProperty>>> expression);
-
-    /// <summary>
     /// Перегрузка ThenInclude для сущности.
     /// </summary>
     /// <typeparam name="TProperty">Параметр навигационного свойства.</typeparam>
     /// <param name="expression">Навигационное свойство.</param>
     /// <returns>Следующий экземпляр IIncludable.</returns>
     IIncludable<TEntity, TNext, TProperty> ThenInclude<TProperty>(
-        Expression<Func<TNext, TProperty>> expression);
+        Expression<Func<TNext, TProperty>> expression)
+        where TProperty : IEntity;
 }

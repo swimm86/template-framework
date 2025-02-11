@@ -13,6 +13,7 @@ using Gpn.Template.Getter.Application.Specifications;
 using Microsoft.AspNetCore.Http;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Dal.Specification.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 
 namespace Gpn.Template.Getter.Application.Services;
@@ -60,16 +61,36 @@ public class PersonsService(
     {
         var options = new QueryOptions<Person>();
 
-        options.AddFilter(person => person.Name == "Niki" || person.Name == "Nikita");
+        var optionsWithList = new QueryOptions<Person>();
 
-        options
-            .AddInclude(person => person.PersonWorks.Where(personWork => personWork.Work.Name == "Work"))
+        optionsWithList.AddFilter(person => person.Name == "Niki" || person.Name == "Nikita");
+
+        optionsWithList
+            .AddInclude(person => person.PersonWorks)
             .ThenInclude(personWork => personWork.Work)
             .AddInclude(person => person.OneToOne);
 
+        var optionsWithIOrderedEnumerable = new QueryOptions<Person>();
+
+        optionsWithIOrderedEnumerable.AddFilter(person => person.Name == "Niki" || person.Name == "Nikita");
+
+        optionsWithIOrderedEnumerable
+            .AddInclude(person => person.PersonWorks.OrderBy(personWork => personWork.Id))
+            .ThenInclude(personWork => personWork.Work);
+
+        var optionsWithIEnumerable = new QueryOptions<Person>();
+
+        optionsWithIEnumerable.AddFilter(person => person.Name == "Niki" || person.Name == "Nikita");
+
+        optionsWithIEnumerable
+            .AddInclude(person => person.PersonWorks.Where(personWork => personWork.Person.Name == "Nikita"))
+            .ThenInclude(personWork => personWork.Work);
+
         var repo = unitOfWork.GetRepository<Person>();
 
-        var c = await repo.GetRangeAsync(options: options, skip: skip, take: 200);
+        var resultWithList = await repo.GetRangeAsync(options: optionsWithList, skip: skip, take: 200);
+        var resultWithIEnumerable = await repo.GetRangeAsync(options: optionsWithIEnumerable, skip: skip, take: 200);
+        var resultWithOrderedEnumerable = await repo.GetRangeAsync(options: optionsWithIOrderedEnumerable, skip: skip, take: 200);
 
         var collection = await repo.GetRangeAsync<PersonListPayload>(options: options, skip: skip, take: take);
         var totalCount = await repo.CountAsync();
