@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Auth;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
+using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Exceptions.Models;
 using Shared.Domain.Core.Interfaces;
@@ -100,5 +101,13 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
             Payload = mapper.Map<TEntity, TPayload>(entity),
             StatusCode = StatusCodes.Status200OK,
         };
+    }
+
+    /// <inheritdoc />
+    protected override QueryOptions<TEntity> ConstructOptions(TCommand request)
+    {
+        var result = base.ConstructOptions(request);
+        result.WithTracking = true;
+        return result;
     }
 }
