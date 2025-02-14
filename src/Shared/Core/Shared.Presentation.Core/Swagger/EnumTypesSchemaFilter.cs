@@ -45,7 +45,8 @@ public class EnumTypesSchemaFilter(params string[] xmlPaths) : ISchemaFilter
                 .FirstOrDefault(m =>
                     m.Attribute("name")?.Value.Equals(fullTypeName, StringComparison.OrdinalIgnoreCase) ?? false)?
                 .Descendants("summary")
-                .FirstOrDefault()?.Value;
+                .FirstOrDefault()?.Value
+                .Trim();
 
             schema.Description +=
                 $"<li><i>{x}</i> - {valueName}" +
