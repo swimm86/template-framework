@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Linq.Expressions;
+using System.Reflection;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
@@ -30,36 +32,72 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
 
         // Применяем фильтры
         queryable = options.Filters
-            .Aggregate(queryable, (acc, x) => acc.Where(x));
+            .Aggregate(queryable, (acc, filter) => acc.Where(filter));
 
-        // Применяем Includes
-        queryable = options.Includes
-            .Aggregate(queryable, (current, includeNode) =>
+        object? currentQuery = queryable;
+
+        var includeChains = new List<List<IncludeNode>>();
+        List<IncludeNode>? currentChain = null;
+        foreach (var include in options.Includes)
+        {
+            if (include.PreviousType == null)
             {
-                var methodName = "Include";
-                var methodParams = new List<Type>
+                if (currentChain != null && currentChain.Any())
                 {
-                    includeNode.SourceType,
-                    includeNode.DestinationType,
-                };
-
-                if (includeNode.PreviousType is not null)
-                {
-                    methodName = "ThenInclude";
-                    methodParams.Insert(0, includeNode.PreviousType);
+                    includeChains.Add(currentChain);
                 }
 
-                var method = typeof(EntityFrameworkQueryableExtensions)
-                        .GetMethods()
-                        .First(m => m.Name == methodName && m.GetParameters().Length == 2)
-                        .MakeGenericMethod([.. methodParams]);
+                currentChain = new List<IncludeNode> { include };
+            }
+            else
+            {
+                if (currentChain == null)
+                {
+                    currentChain = new List<IncludeNode> { include };
+                }
+                else
+                {
+                    currentChain.Add(include);
+                }
+            }
+        }
 
-                var query = method.Invoke(null, [current, includeNode.Expression]) as IQueryable<TEntity>;
+        if (currentChain != null && currentChain.Any())
+        {
+            includeChains.Add(currentChain);
+        }
 
-                return query!;
-            });
+        var query = queryable;
+        foreach (var chain in includeChains)
+        {
+            var root = chain[0];
+            query = CallInclude(query, root.Expression, root.DestinationType);
 
-        // Применяем порядок сортировки
+            object currentIncludable = query;
+
+            for (int i = 1; i < chain.Count; i++)
+            {
+                var node = chain[i];
+                var previousNode = chain[i - 1];
+                bool isCollection = typeof(System.Collections.IEnumerable).IsAssignableFrom(previousNode.DestinationType);
+
+                if (isCollection)
+                {
+                    Type elementType = GetElementType(previousNode.DestinationType);
+                    currentIncludable = CallThenIncludeForCollection<TEntity>(
+                        currentIncludable, node.Expression, elementType, node.DestinationType);
+                }
+                else
+                {
+                    currentIncludable = CallThenIncludeForReference<TEntity>(
+                        currentIncludable, node.Expression, previousNode.DestinationType, node.DestinationType);
+                }
+            }
+
+            query = currentIncludable as IQueryable<TEntity> ?? query;
+        }
+
+        // Применяем сортировку
         if (options.OrderBy.Count != 0)
         {
             var firstOrderBy = options.OrderBy.First();
@@ -85,7 +123,7 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
             queryable = queryable.AsSplitQuery();
         }
 
-        return queryable;
+        return query;
     }
 
     /// <inheritdoc />>
@@ -101,5 +139,71 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
         }
 
         return mapper.ProjectTo<TOut>(result);
+    }
+
+    private static IQueryable<TEntity> CallInclude<TEntity>(
+        IQueryable<TEntity> source,
+        LambdaExpression navigationPropertyPath,
+        Type destinationType)
+    {
+        var includeMethod = typeof(EntityFrameworkQueryableExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .First(m => m.Name == "Include" && m.GetParameters().Length == 2);
+        var genericMethod = includeMethod.MakeGenericMethod(typeof(TEntity), destinationType);
+        var result = genericMethod.Invoke(null, new object[] { source, navigationPropertyPath });
+
+        return (IQueryable<TEntity>)result!;
+    }
+
+    private static object CallThenIncludeForReference<TEntity>(
+        object source,
+        LambdaExpression navigationPropertyPath,
+        Type previousPropertyType,
+        Type destinationType)
+    {
+        var thenIncludeMethod = typeof(EntityFrameworkQueryableExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(m => m.Name == "ThenInclude" && m.GetParameters().Length == 2)
+            .First(m =>
+            {
+                var paramType = m.GetParameters()[0].ParameterType;
+                var genericArg = paramType.GetGenericArguments()[1];
+                return !(genericArg.IsGenericType && genericArg.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            });
+        var genericMethod = thenIncludeMethod.MakeGenericMethod(typeof(TEntity), previousPropertyType, destinationType);
+
+        return genericMethod.Invoke(null, new object[] { source, navigationPropertyPath })!;
+    }
+
+    private static object CallThenIncludeForCollection<TEntity>(
+        object source,
+        LambdaExpression navigationPropertyPath,
+        Type elementType,
+        Type destinationType)
+    {
+        var thenIncludeMethod = typeof(EntityFrameworkQueryableExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(m => m.Name == "ThenInclude" && m.GetParameters().Length == 2)
+            .First(m =>
+            {
+                var paramType = m.GetParameters()[0].ParameterType;
+                var genericArg = paramType.GetGenericArguments()[1];
+
+                return genericArg.IsGenericType && genericArg.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+            });
+        var genericMethod = thenIncludeMethod.MakeGenericMethod(typeof(TEntity), elementType, destinationType);
+
+        return genericMethod.Invoke(null, new object[] { source, navigationPropertyPath })!;
+    }
+
+    private static Type GetElementType(Type type)
+    {
+        if (type.IsArray)
+            return type.GetElementType()!;
+        if (type.IsGenericType && type.GetGenericArguments().Length == 1)
+            return type.GetGenericArguments()[0];
+        var iface = type.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        return iface?.GetGenericArguments()[0] ?? type;
     }
 }
