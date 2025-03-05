@@ -21,26 +21,31 @@ public class PropertyUtil
     /// <summary>
     /// Устанавливает значения для свойств объекта.
     /// </summary>
+    /// <typeparam name="TObj">Тип объекта.</typeparam>
     /// <param name="obj">Обект, которому необходимо установить значение свойства.</param>
     /// <param name="propertyName">Название свойства, в которое необходимо установить значение.</param>
     /// <param name="value">Знаечние.</param>
-    public void SetProperty(object obj, string propertyName, object value)
+    public void SetProperty<TObj>(TObj obj, string propertyName, object value)
     {
-        var objectType = obj.GetType();
+        var objectType = typeof(TObj);
         var key = (objectType, propertyName);
         if (!_propertySetters.TryGetValue(key, out var setter))
         {
-            var propertyInfo = obj.GetType().GetProperty(propertyName);
+            var propertyInfo = objectType.GetProperty(propertyName);
             if (propertyInfo != null)
             {
                 var parameter = Expression.Parameter(typeof(object), "instance");
                 var valueParameter = Expression.Parameter(typeof(object), nameof(value));
-                var propertyExpression = Expression.Property(Expression.Convert(parameter, objectType), propertyInfo);
+                var propertyExpression = Expression.Property(
+                    Expression.Convert(parameter, objectType),
+                    propertyInfo);
                 var assignExpression = Expression.Assign(
                     propertyExpression,
                     Expression.Convert(valueParameter, propertyInfo.PropertyType));
-                var lambdaExpression =
-                    Expression.Lambda<Action<object, object>>(assignExpression, parameter, valueParameter);
+                var lambdaExpression = Expression.Lambda<Action<object, object>>(
+                    assignExpression,
+                    parameter,
+                    valueParameter);
                 setter = lambdaExpression.Compile();
                 _propertySetters.Add(key, setter);
             }
@@ -56,12 +61,13 @@ public class PropertyUtil
     /// <summary>
     /// Получает значение свойства объекта.
     /// </summary>
+    /// <typeparam name="TObj">Тип объекта.</typeparam>
     /// <param name="obj">Обект, из которого необходимо получить значение свойства.</param>
     /// <param name="propertyName">Название свойства, значение которого необходимо получить.</param>
     /// <returns>Значение свойства.</returns>
-    public object? GetProperty(object obj, string propertyName)
+    public object? GetProperty<TObj>(TObj obj, string propertyName)
     {
-        var objectType = obj.GetType();
+        var objectType = typeof(TObj);
         var key = (objectType, propertyName);
         if (_propertyGetters.TryGetValue(key, out var getter))
         {
