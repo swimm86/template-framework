@@ -365,6 +365,6 @@ public class EfRepository<TEntity>(
         dbContext.SaveChanges();
 
     /// <inheritdoc/>
-    public Task SaveChangesAsync() =>
-        dbContext.SaveChangesAsync();
+    public Task SaveChangesAsync(CancellationToken cancellationToken) =>
+        dbContext.SaveChangesAsync(cancellationToken);
 }

@@ -533,6 +533,7 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно применяет внесенные до вызова изменения.
     /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns><see cref="Task"/>.</returns>
-    Task SaveChangesAsync();
+    Task SaveChangesAsync(CancellationToken cancellationToken);
 }
