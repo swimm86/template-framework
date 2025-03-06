@@ -9,7 +9,7 @@ namespace Shared.Domain.Core.Interfaces;
 /// <summary>
 /// Интерфейс для сущности с дополнительной метадатой.
 /// </summary>
-public interface IEntityWithMetadata : IEntity, IWithCreated, IWithUpdated, IWithDeleted, IDeletable
+public interface IEntityWithMetadata : IEntity, IWithCreated, IWithUpdated, IWithDeleted
 {
 }
 

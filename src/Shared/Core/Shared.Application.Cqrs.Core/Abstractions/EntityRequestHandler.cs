@@ -54,9 +54,9 @@ public abstract class EntityRequestHandler<TRequest, TResponse, TEntity>(
     {
         var options = new QueryOptions<TEntity>();
 
-        if (!withDeletable && typeof(IDeletable).IsAssignableFrom(typeof(TEntity)))
+        if (!withDeletable && typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
         {
-            options.AddFilter(x => !((IDeletable)x).IsDeleted);
+            options.AddFilter(x => !((IWithDeleted)x).IsDeleted);
         }
 
         return options;

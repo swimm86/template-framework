@@ -22,6 +22,11 @@ public interface IWithDeleted
     DateTime? DateDeleted { get; }
 
     /// <summary>
+    /// Удален.
+    /// </summary>
+    bool IsDeleted { get; }
+
+    /// <summary>
     /// Метод установки.
     /// </summary>
     /// <param name="deletedByUserId">Идентификатор пользователя, который является инициатором удаления.</param>
@@ -38,4 +43,9 @@ public interface IWithDeleted
     /// </summary>
     /// <param name="userId">Идентификатор пользователя.</param>
     void OnDelete(Guid? userId);
+
+    /// <summary>
+    /// Установить в состояние - удален.
+    /// </summary>
+    void SetIsDeleted();
 }

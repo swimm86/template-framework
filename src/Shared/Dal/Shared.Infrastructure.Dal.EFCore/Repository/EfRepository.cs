@@ -234,13 +234,10 @@ public class EfRepository<TEntity>(
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
-        if (!hard && entity is IDeletable deletable)
+        if (!hard && entity is IWithDeleted deletable)
         {
             deletable.SetIsDeleted();
-            if (deletable is IWithDeleted withDeleted)
-            {
-                withDeleted.OnDelete(userId);
-            }
+            deletable.OnDelete(userId);
         }
         else
         {
@@ -286,7 +283,7 @@ public class EfRepository<TEntity>(
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
-        if (!hard && typeof(TEntity).IsAssignableTo(typeof(IDeletable)))
+        if (!hard && typeof(TEntity).IsAssignableTo(typeof(IWithDeleted)))
         {
             var entities = await GetRangeAsync(options, cancellationToken: cancellationToken);
             await RemoveRangeAsync(entities, hard, cancellationToken);

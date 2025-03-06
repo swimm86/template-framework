@@ -117,7 +117,7 @@ public static class UnitOfWorkExtensions
             return Task.CompletedTask;
         }
 
-        if (existed is not IDeletable { IsDeleted: true })
+        if (existed is not IWithDeleted { IsDeleted: true })
         {
             throw new BusinessLogicException($"{entityName} с {comparableParameterName} '{name}' уже существует.");
         }
