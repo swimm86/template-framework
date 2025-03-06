@@ -57,7 +57,6 @@ public static class LinqExtension
         }
     }
 
-
     /// <summary>
     /// Асинхронная версия <see cref="ForEach{T}"/> для <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>

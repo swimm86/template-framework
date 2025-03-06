@@ -22,8 +22,8 @@ namespace Shared.Infrastructure.Dal.EFCore.Repository;
 /// <typeparam name="TEntity">Тип сущности.</typeparam>
 public class EfRepository<TEntity>(
     DbContext dbContext,
-    IQueryEvaluator evaluator
-) : IRepository<TEntity>
+    IQueryEvaluator evaluator)
+    : IRepository<TEntity>
     where TEntity : class, IEntity
 {
     /// <summary>
@@ -32,82 +32,130 @@ public class EfRepository<TEntity>(
     protected DbSet<TEntity> DbSet => dbContext.Set<TEntity>();
 
     /// <inheritdoc/>
-    public Task<TEntity?> GetAsync(object id, QueryOptions<TEntity>? options = null)
+    public Task<TEntity?> GetAsync(
+        object id,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         return options == default
-            ? DbSet.FirstOrDefaultAsync(x => id.Equals(x.Id))
-            : evaluator.Build(DbSet, options).FirstOrDefaultAsync(x => id.Equals(x.Id));
+            ? DbSet.FirstOrDefaultAsync(x => id.Equals(x.Id), cancellationToken)
+            : evaluator.Build(DbSet, options).FirstOrDefaultAsync(x => id.Equals(x.Id), cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<List<TEntity>> GetRangeAsync(QueryOptions<TEntity>? options = null, int? skip = null, int? take = null) =>
-        evaluator.Build(DbSet, options).GetRange(skip, take).ToListAsync();
+    public Task<List<TEntity>> GetRangeAsync(
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        CancellationToken cancellationToken = default) =>
+        evaluator
+            .Build(DbSet, options)
+            .GetRange(skip, take)
+            .ToListAsync(cancellationToken);
 
     /// <inheritdoc/>
     public Task<List<TOut>> GetRangeAsync<TOut>(
         QueryOptions<TEntity>? options = null,
         int? skip = null,
-        int? take = null) =>
-        evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).GetRange(skip, take).ToListAsync();
+        int? take = null,
+        CancellationToken cancellationToken = default) =>
+        evaluator
+            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+            .GetRange(skip, take)
+            .ToListAsync(cancellationToken);
 
     /// <inheritdoc/>
-    public Task<TEntity?> FirstOrDefaultAsync(QueryOptions<TEntity>? options = null)
+    public Task<TEntity?> FirstOrDefaultAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.Build(DbSet, options).FirstOrDefaultAsync();
+        return evaluator
+            .Build(DbSet, options)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<TOut?> FirstOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null)
+    public Task<TOut?> FirstOrDefaultAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).FirstOrDefaultAsync();
+        return evaluator
+            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<TEntity?> SingleOrDefaultAsync(QueryOptions<TEntity>? options = null)
+    public Task<TEntity?> SingleOrDefaultAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.Build(DbSet, options).SingleOrDefaultAsync();
+        return evaluator
+            .Build(DbSet, options)
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<TOut?> SingleOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null)
+    public Task<TOut?> SingleOrDefaultAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).SingleOrDefaultAsync();
+        return evaluator
+            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<TEntity?> LastOrDefaultAsync(QueryOptions<TEntity>? options = null)
+    public Task<TEntity?> LastOrDefaultAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.Build(DbSet, options).LastOrDefaultAsync();
+        return evaluator
+            .Build(DbSet, options)
+            .LastOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<TOut?> LastOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null)
+    public Task<TOut?> LastOrDefaultAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options).LastOrDefaultAsync();
+        return evaluator
+            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+            .LastOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<int> CountAsync(QueryOptions<TEntity>? options = null)
+    public Task<int> CountAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.Build(DbSet, options).CountAsync();
+        return evaluator.Build(DbSet, options).CountAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<bool> AnyAsync(QueryOptions<TEntity>? options = null)
+    public Task<bool> AnyAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.Build(DbSet, options).AnyAsync();
+        return evaluator.Build(DbSet, options).AnyAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task<decimal> SumAsync(Expression<Func<TEntity, decimal>> selector, QueryOptions<TEntity>? options = null)
+    public Task<decimal> SumAsync(
+        Expression<Func<TEntity, decimal>> selector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
-        return evaluator.Build(DbSet, options).SumAsync(selector);
+        return evaluator.Build(DbSet, options).SumAsync(selector, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<TEntity> AddAsync(TEntity entity, Guid? userId)
+    public async Task<TEntity> AddAsync(
+        TEntity entity,
+        Guid? userId,
+        CancellationToken cancellationToken = default)
     {
-        await DbSet.AddAsync(entity);
+        await DbSet.AddAsync(entity, cancellationToken);
 
         if (entity is IWithCreated entityWithCreated)
         {
@@ -118,11 +166,14 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public async Task AddRangeAsync(IEnumerable<TEntity> entities, Guid? userId)
+    public async Task AddRangeAsync(
+        IEnumerable<TEntity> entities,
+        Guid? userId,
+        CancellationToken cancellationToken = default)
     {
         foreach (var entity in entities)
         {
-            await AddAsync(entity, userId);
+            await AddAsync(entity, userId, cancellationToken);
         }
     }
 
@@ -177,7 +228,11 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public Task RemoveAsync(TEntity entity, Guid? userId, bool hard = false)
+    public Task RemoveAsync(
+        TEntity entity,
+        Guid? userId,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         if (!hard && entity is IDeletable deletable)
         {
@@ -196,42 +251,60 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public Task RemoveAsync(TEntity entity, bool hard = false)
+    public Task RemoveAsync(
+        TEntity entity,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
-        return RemoveAsync(entity, null, hard);
+        return RemoveAsync(entity, null, hard, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task RemoveRangeAsync(IEnumerable<TEntity> entities, bool hard = false)
+    public Task RemoveRangeAsync(
+        IEnumerable<TEntity> entities,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
-        return entities.ForeachAsync(entity => RemoveAsync(entity, null, hard));
+        return entities.ForeachAsync(
+            entity => RemoveAsync(entity, null, hard, cancellationToken),
+            cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task RemovePermanentRangeAsync(IEnumerable<TEntity> entities)
+    public Task RemovePermanentRangeAsync(
+        IEnumerable<TEntity> entities,
+        CancellationToken cancellationToken = default)
     {
-        return entities.ForeachAsync(entity => RemoveAsync(entity, null, true));
+        return entities.ForeachAsync(
+            entity => RemoveAsync(entity, null, true, cancellationToken),
+            cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task RemoveRangeAsync(QueryOptions<TEntity> options, bool hard = false)
+    public async Task RemoveRangeAsync(
+        QueryOptions<TEntity> options,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         if (!hard && typeof(TEntity).IsAssignableTo(typeof(IDeletable)))
         {
-            var entities = await GetRangeAsync(options);
-            await RemoveRangeAsync(entities, hard);
+            var entities = await GetRangeAsync(options, cancellationToken: cancellationToken);
+            await RemoveRangeAsync(entities, hard, cancellationToken);
         }
 
         var query = evaluator.Build(DbSet, options);
-        await query.ExecuteDeleteAsync();
+        await query.ExecuteDeleteAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
-    public Task RemoveRangeAsync(Expression<Func<TEntity, bool>> conditions, bool hard = false)
+    public Task RemoveRangeAsync(
+        Expression<Func<TEntity, bool>> conditions,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         var options = new QueryOptions<TEntity>(true);
         options.AddFilter(conditions);
-        return RemoveRangeAsync(options, hard);
+        return RemoveRangeAsync(options, hard, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -259,12 +332,13 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public async Task<TResult> ExecuteAsync<TResult>(
         Func<Task<TResult>> process,
-        CancellationToken token,
-        bool useTransaction = false)
+        bool useTransaction = false,
+        CancellationToken cancellationToken = default)
     {
-        await using var transaction =
-            useTransaction ? await dbContext.Database.BeginTransactionAsync(token).ConfigureAwait(false) : null;
-        var result = await process().ConfigureAwait(false);
+        await using var transaction = useTransaction
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        var result = await process();
         if (transaction == null)
         {
             return result;
@@ -272,12 +346,12 @@ public class EfRepository<TEntity>(
 
         try
         {
-            await transaction.CommitAsync(token).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken);
             return result;
         }
         catch
         {
-            await transaction.RollbackAsync(token).ConfigureAwait(false);
+            await transaction.RollbackAsync(cancellationToken);
             throw;
         }
     }
