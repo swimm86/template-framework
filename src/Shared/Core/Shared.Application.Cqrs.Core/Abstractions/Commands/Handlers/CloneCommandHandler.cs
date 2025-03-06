@@ -67,11 +67,11 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
         CancellationToken cancellationToken)
     {
         var options = ConstructOptions(command);
-        var entityToClone = await Repository.GetAsync(command.Key, options);
+        var entityToClone = await Repository.GetAsync(command.Key, options, cancellationToken);
         var clone = mapper.Map<TEntity, TEntity>(entityToClone!);
         await ProcessEntityAsync(clone, command);
         await ValidateAsync(clone, validators, cancellationToken);
-        await Repository.AddAsync(clone, userProvider.UserId);
+        await Repository.AddAsync(clone, userProvider.UserId, userProvider.UserFullName, cancellationToken);
         await unitOfWork.SaveChangesAsync(token: cancellationToken);
         return CreateResponseDto(clone);
     }

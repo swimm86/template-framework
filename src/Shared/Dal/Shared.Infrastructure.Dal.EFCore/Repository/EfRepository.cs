@@ -153,13 +153,14 @@ public class EfRepository<TEntity>(
     public async Task<TEntity> AddAsync(
         TEntity entity,
         Guid? userId,
+        string? userName,
         CancellationToken cancellationToken = default)
     {
         await DbSet.AddAsync(entity, cancellationToken);
 
         if (entity is IWithCreated entityWithCreated)
         {
-            entityWithCreated.OnCreate(userId);
+            entityWithCreated.OnCreate(userId, userName);
         }
 
         return entity;
@@ -169,11 +170,12 @@ public class EfRepository<TEntity>(
     public async Task AddRangeAsync(
         IEnumerable<TEntity> entities,
         Guid? userId,
+        string? userName,
         CancellationToken cancellationToken = default)
     {
         foreach (var entity in entities)
         {
-            await AddAsync(entity, userId, cancellationToken);
+            await AddAsync(entity, userId, userName, cancellationToken);
         }
     }
 

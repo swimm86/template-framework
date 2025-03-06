@@ -17,14 +17,26 @@ public interface IWithCreated : IWithDateCreated
     Guid? CreatedByUserId { get; }
 
     /// <summary>
+    /// Имя пользователя, который создал сущность.
+    /// </summary>
+    string? CreatedByUserName { get; }
+
+    /// <summary>
     /// Метод установки.
     /// </summary>
     /// <param name="createdByUserId">Идентификатор пользователя.</param>
     void SetCreatedByUserId(Guid? createdByUserId);
 
     /// <summary>
+    /// Устанавливает имя пользователя, который создал сущность.
+    /// </summary>
+    /// <param name="userName">Имя пользователя, который создал сущность.</param>
+    void SetCreatedByUserName(string userName);
+
+    /// <summary>
     /// Делает полезные вещи при создании.
     /// </summary>
     /// <param name="userId">Идентификатор пользователя.</param>
-    void OnCreate(Guid? userId);
+    /// <param name="userName">Имя пользователя, который создал сущность.</param>
+    void OnCreate(Guid? userId, string? userName);
 }

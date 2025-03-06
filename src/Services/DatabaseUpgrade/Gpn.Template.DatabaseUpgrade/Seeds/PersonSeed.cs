@@ -22,8 +22,7 @@ public class PersonSeed : ISeed
     {
         await unitOfWork.GetRepository<Person>()
             .AddRangeAsync(
-                Enumerable.Range(0, 100).Select(i => Person.Create(i.ToString(), $"email{i}")),
-                null);
+                Enumerable.Range(0, 100).Select(i => Person.Create(i.ToString(), $"email{i}")));
         await unitOfWork.SaveChangesAsync();
     }
 }

@@ -322,11 +322,13 @@ public interface IRepository<TEntity>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
     /// <param name="entity">Экземпляр сущности.</param>
     /// <param name="userId">Id пользователя, добавившего запись.</param>
+    /// <param name="userName">Имя пользователя, добавившего запись.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Экземпляр созданной сущности.</returns>
     Task<TEntity> AddAsync(
         TEntity entity,
-        Guid? userId,
+        Guid? userId = default,
+        string? userName = default,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -335,11 +337,13 @@ public interface IRepository<TEntity>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
     /// <param name="entities">Коллекция экземпляров сущности.</param>
     /// <param name="userId">Id пользователя, добавившего запись.</param>
+    /// <param name="userName">Имя пользователя, добавившего запись.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns><see cref="Task"/>.</returns>
     Task AddRangeAsync(
         IEnumerable<TEntity> entities,
-        Guid? userId,
+        Guid? userId = default,
+        string? userName = default,
         CancellationToken cancellationToken = default);
 
     #endregion

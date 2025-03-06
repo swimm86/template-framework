@@ -6,6 +6,7 @@
 
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Exceptions.Models;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Base;
@@ -21,6 +22,9 @@ public abstract class EntityWithMetadata<TEntity, TKey>
 {
     /// <inheritdoc/>
     public Guid? CreatedByUserId { get; protected set; }
+
+    /// <inheritdoc/>
+    public string? CreatedByUserName { get; protected set; }
 
     /// <inheritdoc/>
     public DateTime DateCreated { get; protected set; }
@@ -41,15 +45,49 @@ public abstract class EntityWithMetadata<TEntity, TKey>
     public bool IsDeleted { get; protected set; }
 
     /// <inheritdoc/>
-    public virtual void SetCreatedByUserId(Guid? createdByUserId) => CreatedByUserId = createdByUserId;
+    public virtual void SetCreatedByUserId(Guid? createdByUserId)
+    {
+        if (CreatedByUserId == createdByUserId)
+        {
+            return;
+        }
+
+        if (CreatedByUserId.HasValue)
+        {
+            throw new BusinessLogicException("Запрещено изменять автора сущности.");
+        }
+
+        CreatedByUserId = createdByUserId;
+    }
+
+    /// <inheritdoc/>
+    public void SetCreatedByUserName(string userName)
+    {
+        if (CreatedByUserName == userName)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            throw new BusinessLogicException("Запрещено изменять автора сущности.");
+        }
+
+        CreatedByUserName = userName;
+    }
 
     /// <inheritdoc/>
     public virtual void SetDateCreated(DateTime dateCreated) => DateCreated = dateCreated;
 
     /// <inheritdoc/>
-    public virtual void OnCreate(Guid? userId)
+    public virtual void OnCreate(Guid? userId, string? userName)
     {
         SetCreatedByUserId(userId);
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            SetCreatedByUserName(userName);
+        }
+
         SetDateCreated(DateTimeOffset.UtcNow.DateTime);
     }
 
