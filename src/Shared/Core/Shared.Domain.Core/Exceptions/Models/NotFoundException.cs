@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Reflection;
+using Shared.Domain.Core.Attributes;
 using Shared.Domain.Core.Exceptions.Models.Base;
 
 namespace Shared.Domain.Core.Exceptions.Models;
@@ -36,7 +37,9 @@ public class NotFoundException : AppException
     /// <param name="entityType">Тип сущности, которая не была найдена.</param>
     /// <param name="key">Ключ.</param>
     public NotFoundException(MemberInfo entityType, object key)
-        : base($"Сущность \"{entityType.Name}\" не была найдена. Ключ: {key}")
+        : base($"Сущность " +
+               $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
+               $"не была найдена. Ключ: {key}")
     {
     }
 
@@ -46,7 +49,9 @@ public class NotFoundException : AppException
     /// <param name="entityType">Тип сущности, которая не была найдена.</param>
     /// <param name="keys">Ключи.</param>
     public NotFoundException(MemberInfo entityType, object[] keys)
-        : base($"Сущности \"{entityType.Name}\" не были найдены. Ключи: {string.Join(", ", keys)}")
+        : base($"Сущности " +
+               $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
+               $"не были найдены. Ключи: {string.Join(", ", keys)}")
     {
     }
 
