@@ -4,17 +4,24 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Repository;
 
 namespace Shared.Infrastructure.Dal.EFCore;
 
 /// <inheritdoc />
-public class EfUnitOfWork<TDbContext> : IUnitOfWork
+public class EfUnitOfWork<TDbContext>
+    : IUnitOfWork
     where TDbContext : DbContextBase
 {
+    private EntityEntry<IWithDomainEvents>[] EntriesWithDomainEvents =>
+        DbContext.ChangeTracker.Entries<IWithDomainEvents>().ToArray();
+
     /// <summary>
     /// DbContext.
     /// </summary>
@@ -26,6 +33,11 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     private readonly IQueryEvaluator _evaluator;
 
     /// <summary>
+    /// <inheritdoc cref="IServiceProvider"/>.
+    /// </summary>
+    private readonly IServiceProvider _serviceProvider;
+
+    /// <summary>
     /// Признак того, что необходимо использовать транзакцию.
     /// </summary>
     private bool _useTransaction = true;
@@ -35,12 +47,15 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     /// </summary>
     /// <param name="dbContextFactory"><see cref="IDbContextFactory{TDbContext}"/>.</param>
     /// <param name="evaluator"><see cref="IQueryEvaluator"/>.</param>
+    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
     public EfUnitOfWork(
         IDbContextFactory<TDbContext> dbContextFactory,
-        IQueryEvaluator evaluator)
+        IQueryEvaluator evaluator,
+        IServiceProvider serviceProvider)
     {
         DbContext = dbContextFactory.CreateDbContext();
         _evaluator = evaluator;
+        _serviceProvider = serviceProvider;
 
         if (DbContext.Database.CanConnect())
         {
@@ -51,10 +66,14 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
     /// <inheritdoc />
     public int SaveChanges(bool commitTransaction = true)
     {
+        var entries = EntriesWithDomainEvents;
+
         try
         {
+            ProcessDomainEventsAsync(entries, DomainEventType.BeforeSave).GetAwaiter().GetResult();
             var result = DbContext.SaveChanges();
             CommitTransaction(commitTransaction);
+            ProcessDomainEventsAsync(entries, DomainEventType.AfterSave).GetAwaiter().GetResult();
             return result;
         }
         catch
@@ -64,6 +83,7 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         }
         finally
         {
+            entries.ForEach(e => e.Entity.ResetEvents());
             ResetTransaction();
         }
     }
@@ -73,10 +93,14 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         bool commitTransaction = true,
         CancellationToken token = default)
     {
+        var entries = EntriesWithDomainEvents;
+
         try
         {
+            await ProcessDomainEventsAsync(entries, DomainEventType.BeforeSave, token);
             var result = await DbContext.SaveChangesAsync(token);
             await CommitTransactionAsync(commitTransaction, token);
+            await ProcessDomainEventsAsync(entries, DomainEventType.AfterSave, token);
             return result;
         }
         catch
@@ -86,6 +110,7 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         }
         finally
         {
+            entries.ForEach(e => e.Entity.ResetEvents());
             await ResetTransactionAsync(token);
         }
     }
@@ -123,6 +148,25 @@ public class EfUnitOfWork<TDbContext> : IUnitOfWork
         {
             DbContext.Dispose();
         }
+    }
+
+    private Task ProcessDomainEventsAsync(
+        EntityEntry<IWithDomainEvents>[] entries,
+        DomainEventType eventType,
+        CancellationToken cancellationToken = default)
+    {
+        return entries.ForeachAsync(
+            async x =>
+            {
+                await x.Navigations
+                    .Where(nav =>
+                        x.Entity.RequiredToSaveNavigationPropertiesNames.Contains(nav.Metadata.Name) && !nav.IsLoaded)
+                    .ForeachAsync(
+                        nav => nav.LoadAsync(cancellationToken),
+                        cancellationToken);
+                await x.Entity.ProcessDomainEventsAsync(_serviceProvider, eventType, cancellationToken);
+            },
+            cancellationToken);
     }
 
     private void CommitTransaction(bool commit)

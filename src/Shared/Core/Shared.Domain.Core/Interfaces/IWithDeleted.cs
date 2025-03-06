@@ -9,17 +9,12 @@ namespace Shared.Domain.Core.Interfaces;
 /// <summary>
 /// Интерфейс удаления.
 /// </summary>
-public interface IWithDeleted
+public interface IWithDeleted : IWithDateDeleted
 {
     /// <summary>
     /// Кем удалено.
     /// </summary>
     Guid? DeletedByUserId { get; }
-
-    /// <summary>
-    /// Дата удаления.
-    /// </summary>
-    DateTime? DateDeleted { get; }
 
     /// <summary>
     /// Удален.
@@ -31,12 +26,6 @@ public interface IWithDeleted
     /// </summary>
     /// <param name="deletedByUserId">Идентификатор пользователя, который является инициатором удаления.</param>
     void SetDeletedByUserId(Guid? deletedByUserId);
-
-    /// <summary>
-    /// Метод установки.
-    /// </summary>
-    /// <param name="dateDeleted">Дата удаления.</param>
-    void SetDateDeleted(DateTime? dateDeleted);
 
     /// <summary>
     /// Делает полезные вещи при удалении.

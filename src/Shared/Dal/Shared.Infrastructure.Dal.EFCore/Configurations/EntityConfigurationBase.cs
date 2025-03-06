@@ -32,7 +32,7 @@ public abstract class EntityConfigurationBase<TEntity>
         {
             builder
                 .Property(nameof(IWithDateCreated.DateCreated))
-                .HasColumnName("created_date");
+                .HasColumnName("created_at");
         }
 
         if (typeof(IWithCreated).IsAssignableFrom(typeof(TEntity)))
@@ -46,7 +46,7 @@ public abstract class EntityConfigurationBase<TEntity>
         {
             builder
                 .Property(nameof(IWithDateUpdated.DateUpdated))
-                .HasColumnName("updated_date");
+                .HasColumnName("updated_at");
         }
 
         if (typeof(IWithUpdated).IsAssignableFrom(typeof(TEntity)))
@@ -59,15 +59,15 @@ public abstract class EntityConfigurationBase<TEntity>
         if (typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
         {
             builder
-                .Property(nameof(IWithDeleted.DateDeleted))
-                .HasColumnName("deleted_date");
-        }
-
-        if (typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
-        {
-            builder
                 .Property(nameof(IWithDeleted.DeletedByUserId))
                 .HasColumnName("deleted_by");
+        }
+
+        if (typeof(IWithDateDeleted).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder
+                .Property(nameof(IWithDateDeleted.DateDeleted))
+                .HasColumnName("deleted_at");
         }
 
         if (typeof(IWithOnSavingAction).IsAssignableFrom(typeof(TEntity)))

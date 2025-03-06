@@ -9,22 +9,43 @@ using Shared.Domain.Core.Enums;
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Предоставляет интерфейс для чтения доменных эвентов.
+/// Предоставляет интерфейс для чтения доменных событий.
 /// </summary>
 public interface IWithDomainEvents
 {
     /// <summary>
-    /// Чтение доменных событий по типу.
+    /// Имена свойств со связанными сущностями, которые необходимы для сохранения.
     /// </summary>
-    /// <param name="domainEventType"> Тип доменного события. </param>
-    /// <returns> Коллекцию доменных событий выбранного типа. </returns>
-    public IReadOnlyCollection<IDomainEvent> GetDomainEvents(DomainEventType domainEventType);
+    string[] RequiredToSaveNavigationPropertiesNames { get; }
 
     /// <summary>
-    /// Попытка прочитать и убрать элемент с начала очереди.
+    /// Возвращает первое доменное событие в очереди.
     /// </summary>
-    /// <param name="domainEvent"> Доменное событие. </param>
-    /// <param name="domainEventType"> Тип доменного события. </param>
-    /// <returns> Признак успешного выполнения операции. </returns>
+    /// <param name="domainEvent">Доменное событие.</param>
+    /// <param name="domainEventType">Тип доменного события.</param>
+    /// <returns>Признак успешного выполнения операции.</returns>
     public bool TryDequeueEvent(out IDomainEvent? domainEvent, DomainEventType domainEventType);
+
+    /// <summary>
+    /// Инициализирует очереди событий только обязательными событиями.
+    /// </summary>
+    public void ResetEvents();
+
+    /// <summary>
+    /// Выполняет обработку доменных событий.
+    /// </summary>
+    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="eventType">Тип события.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    public async Task ProcessDomainEventsAsync(
+        IServiceProvider serviceProvider,
+        DomainEventType eventType,
+        CancellationToken cancellationToken = default)
+    {
+        while (TryDequeueEvent(out var domainEvent, eventType))
+        {
+            await domainEvent!.ProcessAsync(serviceProvider, cancellationToken);
+        }
+    }
 }
