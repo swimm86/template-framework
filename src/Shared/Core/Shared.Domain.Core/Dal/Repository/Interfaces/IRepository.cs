@@ -498,6 +498,20 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Выполняет операцию с сущностями.
     /// </summary>
+    /// <param name="process">Реализация операции.</param>
+    /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
+    void Execute(
+        Action process,
+        bool useTransaction = false) =>
+        Execute<object?>(() =>
+        {
+            process();
+            return default;
+        });
+
+    /// <summary>
+    /// Выполняет операцию с сущностями.
+    /// </summary>
     /// <typeparam name="TResult">Тип результата выполнения операции.</typeparam>
     /// <param name="process">Реализация операции.</param>
     /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
@@ -505,6 +519,26 @@ public interface IRepository<TEntity>
     TResult Execute<TResult>(
         Func<TResult> process,
         bool useTransaction = false);
+
+    /// <summary>
+    /// Выполняет операцию асинхронно
+    /// </summary>
+    /// <param name="process">Асинхрорнная реализация операции.</param>
+    /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns><see cref="Task"/>.</returns>
+    Task ExecuteAsync(
+        Func<Task> process,
+        bool useTransaction = false,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync<object?>(
+            async () =>
+            {
+                await process();
+                return default;
+            },
+            useTransaction,
+            cancellationToken);
 
     /// <summary>
     /// Выполняет операцию асинхронно
@@ -535,5 +569,5 @@ public interface IRepository<TEntity>
     /// </summary>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns><see cref="Task"/>.</returns>
-    Task SaveChangesAsync(CancellationToken cancellationToken);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
