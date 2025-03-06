@@ -8,7 +8,6 @@ using System.Reflection;
 using DotNetEnv.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Shared.Application.Core.Configuration.Attributes;
 using Shared.Common.Helpers;
 
 namespace Shared.Application.Core.Configuration.Extensions;
@@ -18,6 +17,8 @@ namespace Shared.Application.Core.Configuration.Extensions;
 /// </summary>
 public static class ConfigurationExtensions
 {
+    private const string EnvFileName = ".env";
+
     /// <summary>
     /// Получение настроек.
     /// </summary>
@@ -91,35 +92,18 @@ public static class ConfigurationExtensions
         this IConfigurationBuilder configurationBuilder,
         IHostEnvironment hostEnvironment)
     {
-        var envPath =
-            AssemblyHelper.GetAttributesFromAssemblies<EnvPathAttribute>().FirstOrDefault()?.Path;
-        var envDirectory = string.Empty;
-        if (!string.IsNullOrWhiteSpace(envPath))
+        var assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
+        Directory.SetCurrentDirectory(assemblyPath);
+
+        return IsValidName(EnvFileName, out var path) ||
+               IsValidName($"{EnvFileName}.{hostEnvironment.EnvironmentName.ToLower()}", out path)
+            ? configurationBuilder.AddDotNetEnv(path)
+            : configurationBuilder;
+
+        bool IsValidName(string envName, out string path)
         {
-            var assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
-            Directory.SetCurrentDirectory(assemblyPath);
-
-            envPath = Path.GetFullPath(envPath);
-            envDirectory = Path.GetDirectoryName(envPath);
+            path = Path.Combine(assemblyPath, envName);
+            return File.Exists(path);
         }
-
-        if (!Directory.Exists(envDirectory))
-        {
-            return configurationBuilder;
-        }
-
-        if (File.Exists(envPath))
-        {
-            configurationBuilder.AddDotNetEnv(envPath);
-        }
-
-        var currentEnv =
-            Path.Combine(envDirectory, $"{envPath}.{hostEnvironment.EnvironmentName.ToLower()}");
-        if (File.Exists(currentEnv))
-        {
-            configurationBuilder.AddDotNetEnv(currentEnv);
-        }
-
-        return configurationBuilder;
     }
 }

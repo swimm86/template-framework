@@ -4,10 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Configuration.Attributes;
 using Shared.Presentation.Core.Extensions;
 
-[assembly: EnvPath("./.env")]
 var builder = WebApplication.CreateBuilder(args);
 builder.AddSharedPresentationCore();
 
