@@ -10,13 +10,13 @@ using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
+using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Repository;
 
 namespace Shared.Infrastructure.Dal.EFCore;
 
 /// <inheritdoc />
-public class EfUnitOfWork<TDbContext>
-    : IUnitOfWork
+public class EfUnitOfWork<TDbContext> : IUnitOfWork
     where TDbContext : DbContextBase
 {
     private EntityEntry<IWithDomainEvents>[] EntriesWithDomainEvents =>
@@ -38,6 +38,11 @@ public class EfUnitOfWork<TDbContext>
     private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
+    /// <inheritdoc cref="IBeforeSaveChangesService"/>.
+    /// </summary>
+    private readonly IBeforeSaveChangesService? _beforeSaveChangesService;
+
+    /// <summary>
     /// Признак того, что необходимо использовать транзакцию.
     /// </summary>
     private bool _useTransaction = true;
@@ -48,13 +53,16 @@ public class EfUnitOfWork<TDbContext>
     /// <param name="dbContextFactory"><see cref="IDbContextFactory{TDbContext}"/>.</param>
     /// <param name="evaluator"><see cref="IQueryEvaluator"/>.</param>
     /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="beforeSaveChangesService"><see cref="IBeforeSaveChangesService"/>.</param>
     public EfUnitOfWork(
         IDbContextFactory<TDbContext> dbContextFactory,
         IQueryEvaluator evaluator,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IBeforeSaveChangesService? beforeSaveChangesService = default)
     {
         DbContext = dbContextFactory.CreateDbContext();
         _evaluator = evaluator;
+        _beforeSaveChangesService = beforeSaveChangesService;
         _serviceProvider = serviceProvider;
 
         if (DbContext.Database.CanConnect())
@@ -71,6 +79,8 @@ public class EfUnitOfWork<TDbContext>
         try
         {
             ProcessDomainEventsAsync(entries, DomainEventType.BeforeSave).GetAwaiter().GetResult();
+
+            _beforeSaveChangesService?.Process(DbContext);
             var result = DbContext.SaveChanges();
             CommitTransaction(commitTransaction);
             ProcessDomainEventsAsync(entries, DomainEventType.AfterSave).GetAwaiter().GetResult();
@@ -98,8 +108,15 @@ public class EfUnitOfWork<TDbContext>
         try
         {
             await ProcessDomainEventsAsync(entries, DomainEventType.BeforeSave, token);
+            var task = _beforeSaveChangesService?.ProcessAsync(DbContext, token);
+            if (task != null)
+            {
+                await task;
+            }
+
             var result = await DbContext.SaveChangesAsync(token);
             await CommitTransactionAsync(commitTransaction, token);
+
             await ProcessDomainEventsAsync(entries, DomainEventType.AfterSave, token);
             return result;
         }
