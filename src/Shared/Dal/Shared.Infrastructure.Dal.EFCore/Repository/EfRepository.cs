@@ -207,7 +207,7 @@ public class EfRepository<TEntity>(
             var propertyType = propertyExpr.ReturnType;
             var setPropertyMethod = typeof(SetPropertyCalls<TEntity>).GetMethods()
                 .FirstOrDefault(m => m is { Name: nameof(SetPropertyCalls<TEntity>.SetProperty), IsGenericMethod: true })
-                ?.MakeGenericMethod(propertyType);
+                ?.MakeGenericMethod(propertyType)!;
 
             setPropertyCalls = Expression.Call(
                 setPropertyCalls,
@@ -217,7 +217,6 @@ public class EfRepository<TEntity>(
         }
 
         var updateExpression = Expression.Lambda<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>>(setPropertyCalls, parameter);
-
         return query.ExecuteUpdateAsync(updateExpression);
     }
 
@@ -285,14 +284,8 @@ public class EfRepository<TEntity>(
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
-        if (!hard && typeof(TEntity).IsAssignableTo(typeof(IWithDeleted)))
-        {
-            var entities = await GetRangeAsync(options, cancellationToken: cancellationToken);
-            await RemoveRangeAsync(entities, hard, cancellationToken);
-        }
-
-        var query = evaluator.Build(DbSet, options);
-        await query.ExecuteDeleteAsync(cancellationToken);
+        var entities = await GetRangeAsync(options, cancellationToken: cancellationToken);
+        await RemoveRangeAsync(entities, hard, cancellationToken);
     }
 
     /// <inheritdoc/>
