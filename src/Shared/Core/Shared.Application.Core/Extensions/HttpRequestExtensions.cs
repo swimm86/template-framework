@@ -37,6 +37,7 @@ public static class HttpRequestExtensions
         CancellationToken cancellationToken = default)
         where TRequest : PageableRequest<TFilter>
         where TResponse : PageableResponse<TPayload>
+        where TFilter : new()
     {
         var currentPage = 1;
         return BatchHelper.ProcessBatchesAsync<TResponse, TResponse, TResponse>(
@@ -74,6 +75,7 @@ public static class HttpRequestExtensions
         CancellationToken cancellationToken = default)
         where TRequest : PageableRequest<TFilter>
         where TResponse : PageableResponse<TPayload>
+        where TFilter : new()
     {
         var currentPage = 1;
         return BatchHelper.ProcessBatchesAsync<TResponse, TResponse, TResponse>(
@@ -111,6 +113,7 @@ public static class HttpRequestExtensions
         CancellationToken cancellationToken = default)
         where TRequest : PageableRequest<TFilter>
         where TResponse : PageableResponse<TPayload>
+        where TFilter : new()
     {
         var currentPage = 1;
         return BatchHelper.ProcessBatchesAsync<TResponse, TResponse>(

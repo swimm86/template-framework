@@ -30,10 +30,12 @@ public abstract record PageableRequest
 /// <summary>
 /// Базовая модель для Request-а с пагинацией.
 /// </summary>
-public abstract record PageableRequest<TFilter> : PageableRequest
+public abstract record PageableRequest<TFilter>
+    : PageableRequest
+    where TFilter : new()
 {
     /// <summary>
     /// Фильтр.
     /// </summary>
-    public TFilter Filter { get; init; }
+    public TFilter? Filter { get; init; } = new();
 }
