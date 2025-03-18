@@ -13,27 +13,53 @@ using Shared.Common.Helpers;
 namespace Shared.Application.Core.Configuration.Extensions;
 
 /// <summary>
-/// Класс, который содержит расширения для <see cref="IConfiguration"/>
+/// Класс, содержащий расширения для работы с <see cref="IConfiguration"/>.
+/// Предоставляет методы для загрузки конфигурации из различных источников,
+/// получения настроек в зависимости от модуля приложения и инициализации конфигурации.
 /// </summary>
 public static class ConfigurationExtensions
 {
     private const string EnvFileName = ".env";
 
     /// <summary>
-    /// Получение настроек.
+    /// Получает настройки указанного типа из конфигурации.
+    /// Настройки выбираются на основе имени модуля приложения (извлечённого из сборки)
+    /// и иерархической структуры секций конфигурации.
     /// </summary>
-    /// <typeparam name="TOptions"> Тип настроек. </typeparam>
-    /// <param name="configuration"> Конфигурация. </param>
+    /// <typeparam name="TOptions">
+    /// Тип настроек, которые необходимо получить. Должен быть ссылочным типом.
+    /// </typeparam>
+    /// <param name="configuration">
+    /// Экземпляр <see cref="IConfiguration"/>, представляющий текущую конфигурацию приложения.
+    /// </param>
+    /// <returns>
+    /// Экземпляр настроек типа <typeparamref name="TOptions"/> или <see langword="null"/>,
+    /// если настройки не найдены.
+    /// </returns>
     /// <remarks>
-    /// <para>Пример.</para>
-    /// <para>Источник: App.Getter.Api</para>
+    /// <para>Логика работы:</para>
+    /// <list type="number">
+    /// <item>Определяется имя модуля приложения (например, "App.Getter.Api").</item>
+    /// <item>Имя модуля разбивается на части по точке (например, ["App", "Getter", "Api"]).</item>
+    /// <item>Для каждой части ищется соответствующая секция в конфигурации.</item>
+    /// <item>Если найдена секция, содержащая подсекцию с именем типа <typeparamref name="TOptions"/>,
+    /// её значения десериализуются в экземпляр типа <typeparamref name="TOptions"/>.</item>
+    /// <item>Возвращается последняя найденная конфигурация (по принципу наибольшей специфичности).</item>
+    /// </list>
+    /// <para>Пример:</para>
     /// <code>
-    ///   app__getter__setting__value="app.get"
-    ///   app__setting__value="app"
+    /// app__getter__setting__value="app.get"
+    /// app__setting__value="app"
     /// </code>
-    /// <para>Результат: app.get (Если бы источником был App.Setter.Api, то получили бы app)</para>
+    /// <para>Результат:</para>
+    /// <list type="bullet">
+    /// <item>Если источником является "App.Getter.Api", то результат: "app.get".</item>
+    /// <item>Если источником является любой другой сервис, то результат: "app".</item>
+    /// </list>
     /// </remarks>
-    /// <returns> Настройки. </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Выбрасывается, если <paramref name="configuration"/> равен <see langword="null"/>.
+    /// </exception>
     public static TOptions? GetOptions<TOptions>(this IConfiguration configuration)
         where TOptions : class
     {
@@ -69,10 +95,23 @@ public static class ConfigurationExtensions
     }
 
     /// <summary>
-    /// Инициализирует конфигурацию.
+    /// Инициализирует конфигурацию приложения, добавляя переменные окружения
+    /// и загружая файлы конфигурации окружения (.env).
     /// </summary>
-    /// <param name="configuration">Построитель конфигурации.</param>
-    /// <param name="hostEnvironment">Среда выполнения приложения.</param>
+    /// <param name="configuration">
+    /// Построитель конфигурации (<see cref="IConfigurationBuilder"/>), который будет настроен.
+    /// </param>
+    /// <param name="hostEnvironment">
+    /// Среда выполнения приложения (<see cref="IHostEnvironment"/>),
+    /// используемая для определения имени окружения.
+    /// </param>
+    /// <remarks>
+    /// Метод выполняет следующие действия:
+    /// <list type="number">
+    /// <item>Добавляет переменные окружения в конфигурацию.</item>
+    /// <item>Загружает файлы конфигурации окружения (.env) с учётом текущей среды выполнения.</item>
+    /// </list>
+    /// </remarks>
     public static void InitializeConfiguration(
         this IConfigurationBuilder configuration,
         IHostEnvironment hostEnvironment)
@@ -83,11 +122,30 @@ public static class ConfigurationExtensions
     }
 
     /// <summary>
-    /// Загружает файлы конфигурации окружения.
+    /// Загружает файлы конфигурации окружения (.env) в построитель конфигурации.
     /// </summary>
-    /// <param name="configurationBuilder">Построитель конфигурации.</param>
-    /// <param name="hostEnvironment">Среда выполнения приложения.</param>
-    /// <returns>Построитель конфигурации.</returns>
+    /// <param name="configurationBuilder">
+    /// Построитель конфигурации (<see cref="IConfigurationBuilder"/>), который будет настроен.
+    /// </param>
+    /// <param name="hostEnvironment">
+    /// Среда выполнения приложения (<see cref="IHostEnvironment"/>),
+    /// используемая для определения имени окружения.
+    /// </param>
+    /// <returns>
+    /// Построитель конфигурации с добавленными источниками конфигурации.
+    /// </returns>
+    /// <remarks>
+    /// Метод проверяет наличие следующих файлов в директории приложения:
+    /// <list type="bullet">
+    /// <item>.env</item>
+    /// <item>.env.{EnvironmentName}</item>
+    /// </list>
+    /// Если файл существует, он загружается в конфигурацию.
+    /// Файл с указанием окружения имеет приоритет над базовым файлом .env.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// Выбрасывается, если путь к исполняемой сборке не может быть определён.
+    /// </exception>
     public static IConfigurationBuilder LoadEnv(
         this IConfigurationBuilder configurationBuilder,
         IHostEnvironment hostEnvironment)
@@ -103,7 +161,8 @@ public static class ConfigurationExtensions
         bool IsValidName(string envName, out string path)
         {
             path = Path.Combine(assemblyPath, envName);
-            return File.Exists(path);
+            var result = File.Exists(path);
+            return result;
         }
     }
 }
