@@ -58,9 +58,9 @@ public class EfRepository<TEntity>(
         QueryOptions<TEntity>? options = null,
         int? skip = null,
         int? take = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default) =>
-        evaluator
-            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+        GetQuery(options, selector)
             .GetRange(skip, take)
             .ToListAsync(cancellationToken);
 
@@ -77,6 +77,7 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task<TOut?> FirstOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default)
     {
         return evaluator
@@ -97,10 +98,10 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task<TOut?> SingleOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default)
     {
-        return evaluator
-            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+        return GetQuery(options, selector)
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -117,10 +118,10 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task<TOut?> LastOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default)
     {
-        return evaluator
-            .BuildWithTransform<TEntity, TOut>(DbSet, options)
+        return GetQuery(options, selector)
             .LastOrDefaultAsync(cancellationToken);
     }
 
@@ -359,4 +360,11 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         dbContext.SaveChangesAsync(cancellationToken);
+
+    private IQueryable<TOut> GetQuery<TOut>(
+        QueryOptions<TEntity>? options,
+        Expression<Func<TEntity, TOut>>? selector) =>
+        selector is null
+            ? evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options)
+            : evaluator.Build(DbSet, options).Select(selector);
 }

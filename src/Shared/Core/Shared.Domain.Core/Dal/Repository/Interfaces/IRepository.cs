@@ -80,6 +80,7 @@ public interface IRepository<TEntity>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Коллекция сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.</returns>
@@ -87,6 +88,7 @@ public interface IRepository<TEntity>
         QueryOptions<TEntity>? options = null,
         int? skip = null,
         int? take = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -95,6 +97,7 @@ public interface IRepository<TEntity>
     /// <param name="specification">Спецификация.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Коллекция сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.</returns>
@@ -102,8 +105,9 @@ public interface IRepository<TEntity>
         ISpecification<TEntity> specification,
         int? skip = null,
         int? take = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default) =>
-        GetRangeAsync<TOut>(specification.BuildOptions(), skip, take, cancellationToken);
+        GetRangeAsync(specification.BuildOptions(), skip, take, selector, cancellationToken);
 
     /// <summary>
     /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке.
@@ -130,24 +134,28 @@ public interface IRepository<TEntity>
     /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
     Task<TOut?> FirstOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
     /// </summary>
     /// <param name="specification">Спецификация.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
     Task<TOut?> FirstOrDefaultAsync<TOut>(
         ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default) =>
-        FirstOrDefaultAsync<TOut>(specification.BuildOptions(), cancellationToken);
+        FirstOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
     /// <summary>
     /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке.
@@ -176,12 +184,14 @@ public interface IRepository<TEntity>
     /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
     /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
     Task<TOut?> SingleOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -189,13 +199,15 @@ public interface IRepository<TEntity>
     /// </summary>
     /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
     /// <param name="specification">Спецификация.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
     Task<TOut?> SingleOrDefaultAsync<TOut>(
         ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default) =>
-        SingleOrDefaultAsync<TOut>(specification.BuildOptions(), cancellationToken);
+        SingleOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
     /// <summary>
     /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке.
@@ -222,24 +234,28 @@ public interface IRepository<TEntity>
     /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
     Task<TOut?> LastOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
     /// </summary>
     /// <param name="specification">Спецификация.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
     Task<TOut?> LastOrDefaultAsync<TOut>(
         ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default) =>
-        LastOrDefaultAsync<TOut>(specification.BuildOptions(), cancellationToken);
+        LastOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
     #endregion
 
