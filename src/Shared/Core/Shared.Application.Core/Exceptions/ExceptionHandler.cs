@@ -76,7 +76,7 @@ internal sealed class ExceptionHandler(
         {
             BusinessLogicException businessLogicException => CreateResponseFromBusinessLogicException(businessLogicException),
             NotFoundException notFoundException => CreateResponseFromNotFoundException(notFoundException),
-            _ => throw new NotImplementedException(),
+            _ => CreateResponseFromApplicationException(appException),
         };
     }
 
@@ -87,20 +87,24 @@ internal sealed class ExceptionHandler(
     }
 
     private static ProblemDetails CreateResponseFromUnauthorizedException(UnauthorizedException unauthorizedException)
-        => CreateProblemDetails("Пользователь не аутентифицирован.", StatusCodes.Status401Unauthorized, unauthorizedException.Message);
+        => CreateProblemDetails("Пользователь не аутентифицирован", StatusCodes.Status401Unauthorized, unauthorizedException.Message);
 
     private static ProblemDetails CreateResponseFromBusinessLogicException(BusinessLogicException businessLogicException)
-        => CreateProblemDetails("Ошибка бизнес-логики.", StatusCodes.Status422UnprocessableEntity, businessLogicException.Message);
+        => CreateProblemDetails("Ошибка бизнес-логики", StatusCodes.Status422UnprocessableEntity, businessLogicException.Message);
 
     private static ProblemDetails CreateResponseFromNotFoundException(NotFoundException notFoundException)
-        => CreateProblemDetails("Ошибка - не найден.", StatusCodes.Status404NotFound, notFoundException.Message);
+        => CreateProblemDetails("Ошибка - не найден", StatusCodes.Status404NotFound, notFoundException.Message);
 
     private static ProblemDetails CreateResponseFromValidationException(ValidationException validationException)
         => CreateProblemDetails(
-            "Ошибка валидации.", ValidationErrorsToExtensions(validationException.Errors), StatusCodes.Status400BadRequest);
+            "Ошибка валидации", ValidationErrorsToExtensions(validationException.Errors), StatusCodes.Status400BadRequest);
+
+    private static ProblemDetails CreateResponseFromApplicationException(AppException validationException)
+        => CreateProblemDetails(
+            "Ошибка приложения", StatusCodes.Status500InternalServerError, validationException.Message);
 
     private static ProblemDetails CreateResponseFromDefaultException()
-        => CreateProblemDetails("Ошибка сервера.");
+        => CreateProblemDetails("Ошибка сервера");
 
     private static ProblemDetails CreateProblemDetails(
         string title, int statusCode = StatusCodes.Status500InternalServerError, string? detail = null)
@@ -132,7 +136,6 @@ internal sealed class ExceptionHandler(
         };
 
         bool enrichErrorResponse;
-
 #if DEBUG
         enrichErrorResponse = true;
 #endif

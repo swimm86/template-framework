@@ -91,6 +91,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Application", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Infrastructure.Mapping", "Services\Common\Gpn.Template.Infrastructure.Mapping\Gpn.Template.Infrastructure.Mapping.csproj", "{D38BE378-945E-4E81-845A-724CEA9ADF47}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Job", "Job", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Infrastructure.Job.Quartz", "..\..\pir-backend\src\Shared\Job\Shared.Infrastructure.Job.Quartz\Shared.Infrastructure.Job.Quartz.csproj", "{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -266,6 +270,12 @@ Global
 		{D38BE378-945E-4E81-845A-724CEA9ADF47}.Publish|Any CPU.Build.0 = Debug|Any CPU
 		{D38BE378-945E-4E81-845A-724CEA9ADF47}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D38BE378-945E-4E81-845A-724CEA9ADF47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}.Publish|Any CPU.ActiveCfg = Release|Any CPU
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}.Publish|Any CPU.Build.0 = Release|Any CPU
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -313,6 +323,8 @@ Global
 		{51965AD8-452A-4B3B-B6BA-19106ED00026} = {4E8470CE-3203-4015-9D00-F4046628D121}
 		{6BE59E4C-DB23-413F-B4AA-89B105FDF89B} = {6D40614C-8AA2-4A85-A4D7-1FB07F77F54B}
 		{D38BE378-945E-4E81-845A-724CEA9ADF47} = {6D40614C-8AA2-4A85-A4D7-1FB07F77F54B}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {30DEDAD4-3A5F-4E66-AD49-CA7F74EF9750}
+		{D3D8A431-C2F2-CECC-7B46-89524AE3CC84} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9890C3A-FAB7-4EC9-854B-41BF56852932}
