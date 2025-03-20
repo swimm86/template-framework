@@ -6,6 +6,7 @@
 
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Quartz.Impl.Triggers;
 
 namespace Shared.Infrastructure.Job.Quartz;
 
@@ -26,6 +27,32 @@ public class QuartzJobWrapper(
 
     /// <inheritdoc />
     public async Task Execute(IJobExecutionContext context)
+    {
+        try
+        {
+            await ProcessAsync(context);
+        }
+        catch (Exception ex)
+        {
+            // Запускам пвторно через 5 минут.
+            var retryTrigger = new SimpleTriggerImpl(Guid.NewGuid().ToString())
+            {
+                Description = "RetryTrigger",
+                RepeatCount = 0,
+                JobKey = context.JobDetail.Key,
+                StartTimeUtc = DateBuilder.NextGivenMinuteDate(DateTime.Now, 5),
+            };
+            await context.Scheduler.ScheduleJob(retryTrigger);
+            throw new JobExecutionException(ex, false);
+        }
+    }
+
+    /// <summary>
+    /// Обрабатывает задачу.
+    /// </summary>
+    /// <param name="context"><see cref="IJobExecutionContext"/>.</param>
+    /// <returns>Результат выполнения асинхронной опарации.</returns>
+    protected virtual async Task ProcessAsync(IJobExecutionContext context)
     {
         logger.LogInformation($"Job {context.JobDetail.Key} is executing.");
         await (context.JobDetail.JobDataMap[JobActionKey] as Func<IServiceProvider, Task>)!

@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="CacheStore.cs" company="АО ИНЛАЙН ГРУП">
+// <copyright file="CacheServiceFactory.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -14,7 +14,7 @@ namespace Shared.Application.Core.Cache;
 /// Статический класс для управления кэшем.
 /// Позволяет регистрировать и получать кэшированные данные.
 /// </summary>
-public static class CacheStore
+public static class CacheServiceFactory
 {
     /// <summary>
     /// Регистрирует новый кэш для указанного ключа.
@@ -24,11 +24,25 @@ public static class CacheStore
     /// <param name="key">Ключ для кэширования данных.</param>
     /// <param name="getOrAddFunc">Функция для получения или добавления данных в кэш.</param>
     /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
-    public static IServiceCollection RegisterCache<TData>(
+    public static IServiceCollection RegisterCacheService<TData>(
         this IServiceCollection serviceCollection,
         string key,
         Func<IServiceProvider, Task<TData>> getOrAddFunc)
     {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new ArgumentNullException(
+                nameof(key),
+                "Ключ кэша не может быть null или пустым.");
+        }
+
+        if (getOrAddFunc == null)
+        {
+            throw new ArgumentNullException(
+                nameof(getOrAddFunc),
+                "Функция, котрая возвращает даннные для кэширования не должна быть null.");
+        }
+
         return serviceCollection
             .AddMemoryCache()
             .AddKeyedSingleton<ICacheService<TData>, CacheService<TData>>(
@@ -48,7 +62,7 @@ public static class CacheStore
     /// <returns>Асинхронная задача, возвращающая кэшированные данные.</returns>
     /// <returns>Экземпляр <see cref="ICacheService{TData}"/>.</returns>
     /// <exception cref="CacheNotFoundException">Выбрасывается, если кэш с указанным ключом не найден.</exception>
-    public static ICacheService<TData> GetCacheServiceAsync<TData>(
+    public static ICacheService<TData> GetCacheService<TData>(
         this IServiceProvider serviceProvider,
         string key)
     {
@@ -70,12 +84,11 @@ public static class CacheStore
     /// <param name="key">Ключ для получения данных из кэша.</param>
     /// <returns>Асинхронная задача, возвращающая кэшированные данные.</returns>
     /// <exception cref="CacheNotFoundException">Выбрасывается, если кэш с указанным ключом не найден.</exception>
-    public static Task<TData> GetCacheAsync<TData>(
+    public static Task<TData> GetCachedDataAsync<TData>(
         this IServiceProvider serviceProvider,
         string key)
     {
-        var cacheService =
-            serviceProvider?.GetKeyedService<ICacheService<TData>>(key);
+        var cacheService = serviceProvider.GetKeyedService<ICacheService<TData>>(key);
         if (cacheService is null)
         {
             throw new CacheNotFoundException(key);

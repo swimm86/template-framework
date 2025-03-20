@@ -62,12 +62,41 @@ public static class QuartzJobRegistrar
         string cronExpression,
         Func<IServiceProvider, Task> job)
     {
-        ValidateParameters(jobKey, cronExpression, job);
+        ValidateParameters(jobKey, true, cronExpression, job);
 
         return serviceCollection
             .AddQuartz(q =>
             {
                 q.AddJob<QuartzJobWrapper>(opt => CreateJobDetail(opt, jobKey, job));
+                q.AddTrigger(opt => AddTrigger(opt, jobKey, cronExpression));
+            });
+    }
+
+    /// <summary>
+    /// Регистрирует задачу типа <see cref="TJob"/> с использованием CRON-выражения.
+    /// </summary>
+    /// <typeparam name="TJob">Тип задачи.</typeparam>
+    /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>
+    /// <param name="cronExpression">
+    /// CRON-выражение, определяющее расписание выполнения задачи.
+    /// Например, "0 0/5 * * * ?" означает выполнение каждые 5 минут.
+    /// </param>
+    /// <returns>
+    /// Задача, представляющая асинхронную операцию регистрации задачи.
+    /// </returns>
+    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
+    public static IServiceCollection RegisterJob<TJob>(
+        this IServiceCollection serviceCollection,
+        string cronExpression)
+        where TJob : IJob
+    {
+        var jobKey = typeof(TJob).FullName!;
+        ValidateParameters(jobKey, false, cronExpression);
+
+        return serviceCollection
+            .AddQuartz(q =>
+            {
+                q.AddJob<TJob>(opt => CreateJobDetail(opt, jobKey));
                 q.AddTrigger(opt => AddTrigger(opt, jobKey, cronExpression));
             });
     }
@@ -102,7 +131,7 @@ public static class QuartzJobRegistrar
         Func<IServiceProvider, Task> job,
         TimeSpan specificTime)
     {
-        ValidateParameters(jobKey, job: job);
+        ValidateParameters(jobKey, true, job: job);
 
         return serviceCollection
             .AddQuartz(q =>
@@ -115,8 +144,46 @@ public static class QuartzJobRegistrar
     }
 
     /// <summary>
+    /// Регистрирует задачу типа <see cref="TJob"/> с использованием флагов триггеров.
+    /// </summary>
+    /// <typeparam name="TJob">Тип задачи.</typeparam>
+    /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>
+    /// <param name="trigger">
+    /// Флаги триггеров, определяющие расписание выполнения задачи.
+    /// Например, <see cref="JobTriggerFlags.Daily"/> для ежедневного выполнения.
+    /// </param>
+    /// <param name="specificTime">
+    /// Время выполнения задачи. Используется для триггеров, таких как ежедневное, еженедельное или ежемесячное выполнение.
+    /// </param>
+    /// <returns>
+    /// Задача, представляющая асинхронную операцию регистрации задачи.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Выбрасывается, если указан недопустимый флаг триггера.
+    /// </exception>
+    public static IServiceCollection RegisterJob<TJob>(
+        this IServiceCollection serviceCollection,
+        JobTriggerFlags trigger,
+        TimeSpan specificTime)
+        where TJob : IJob
+    {
+        var jobKey = typeof(TJob).FullName!;
+        ValidateParameters(jobKey, false);
+
+        return serviceCollection
+            .AddQuartz(q =>
+            {
+                q.AddJob<TJob>(opt => CreateJobDetail(opt, jobKey));
+                Enum.GetValues<JobTriggerFlags>()
+                    .Where(flag => trigger.HasFlag(flag))
+                    .ForEach(flag => CreateTriggerForFlag(q, flag, jobKey, specificTime));
+            });
+    }
+
+    /// <summary>
     /// Регистрирует кэш с использованием CRON-выражения.
     /// </summary>
+    /// <typeparam name="TData">Тип кэша.</typeparam>
     /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>
     /// <param name="cacheKey">
     /// Уникальный ключ кэша. Используется для идентификации кэша, а также задачи в планировщике.
@@ -150,21 +217,21 @@ public static class QuartzJobRegistrar
     {
         const string jobPrefix = "job";
         return serviceCollection
-            .RegisterCache(cacheKey, getOrCreateCacheFunc)
+            .RegisterCacheService(cacheKey, getOrCreateCacheFunc)
             .RegisterJob(
                 $"{cacheKey}.{jobPrefix}",
                 cronExpression,
                 serviceProvider =>
                 {
-                    var cacheService = serviceProvider.GetCacheServiceAsync<TData>(cacheKey);
+                    var cacheService = serviceProvider.GetCacheService<TData>(cacheKey);
                     return cacheService.UpdateCacheAsync();
                 });
     }
 
-
     /// <summary>
     /// Регистрирует задачу с использованием флагов триггеров.
     /// </summary>
+    /// <typeparam name="TData">Тип кэша.</typeparam>
     /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>
     /// <param name="cacheKey">
     /// Уникальный ключ кэша. Используется для идентификации кэша, а также задачи в планировщике.
@@ -205,13 +272,13 @@ public static class QuartzJobRegistrar
         Func<IServiceProvider, Task<TData>> getOrCreateCacheFunc)
     {
         return serviceCollection
-            .RegisterCache(cacheKey, getOrCreateCacheFunc)
+            .RegisterCacheService(cacheKey, getOrCreateCacheFunc)
             .RegisterJob(
                 $"{cacheKey}.job",
                 trigger,
                 serviceProvider =>
                 {
-                    var cacheService = serviceProvider.GetCacheServiceAsync<TData>(cacheKey);
+                    var cacheService = serviceProvider.GetCacheService<TData>(cacheKey);
                     return cacheService.UpdateCacheAsync();
                 },
                 specificTime);
@@ -223,11 +290,15 @@ public static class QuartzJobRegistrar
     private static void CreateJobDetail(
         IJobConfigurator configurator,
         string jobKey,
-        Func<IServiceProvider, Task> job)
+        Func<IServiceProvider, Task>? job = default)
     {
         var builder = configurator
             .WithIdentity(jobKey);
-        builder.SetJobData(new JobDataMap { { QuartzJobWrapper.JobActionKey, job } });
+        if (job is not null)
+        {
+            builder.SetJobData(new JobDataMap { { QuartzJobWrapper.JobActionKey, job } });
+        }
+
         builder.Build();
     }
 
@@ -261,6 +332,7 @@ public static class QuartzJobRegistrar
             opt
                 .ForJob(jobKey)
                 .WithIdentity($"{jobKey}.{flagName}.{triggerPrefix}");
+
             if (flag != JobTriggerFlags.OnStartup)
             {
                 opt.StartAt(DateBuilder.DateOf(specificTime.Hours, specificTime.Minutes, 0));
@@ -307,6 +379,7 @@ public static class QuartzJobRegistrar
     /// </summary>
     private static void ValidateParameters(
         string jobKey,
+        bool isWrapperJob,
         string? cronExpression = null,
         Func<IServiceProvider, Task>? job = null)
     {
@@ -320,7 +393,7 @@ public static class QuartzJobRegistrar
             throw new ArgumentNullException(nameof(cronExpression), "CRON-выражение не может быть null или пустым.");
         }
 
-        if (job == null)
+        if (isWrapperJob && job == null)
         {
             throw new ArgumentNullException(nameof(job), "Действие задачи не может быть null.");
         }
