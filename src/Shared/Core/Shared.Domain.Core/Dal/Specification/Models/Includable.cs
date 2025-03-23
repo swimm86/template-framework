@@ -4,20 +4,56 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Linq.Expressions;
+using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.Specification.Interfaces;
+using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Dal.Specification.Models;
 
-/// <inheritdoc />
-public class Includable<TProperty>(List<string> includes)
-    : IIncludable<TProperty>
+/// <summary>
+/// Кастомная навигации
+/// </summary>
+/// <typeparam name="TEntity">Начальная сущность</typeparam>
+/// <typeparam name="TCurrent">Текущая сущность</typeparam>
+/// <typeparam name="TNext">Свойство</typeparam>
+public class Includable<TEntity, TCurrent, TNext>(List<IncludeNode> includes)
+    : IIncludable<TEntity, TCurrent, TNext>
 {
-    /// <inheritdoc />
-    public List<string> Includes { get; private set; } = includes;
+    /// <inheritdoc/>
+    public List<IncludeNode> Includes { get; private set; } = includes;
 
-    /// <inheritdoc />
-    public void AddInclude(string include)
+    /// <inheritdoc/>
+    public IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, IEnumerable<TProperty>>> expression)
     {
-        Includes.Add(include);
+        Includes.Add(new IncludeNode(expression, typeof(TEntity), typeof(IEnumerable<TProperty>)));
+        return new Includable<TEntity, TEntity, TProperty>(Includes);
+    }
+
+    /// <inheritdoc/>
+    public IIncludable<TEntity, TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, TProperty>> expression)
+        where TProperty : IEntity
+    {
+        Includes.Add(new IncludeNode(expression, typeof(TEntity), typeof(TProperty)));
+        return new Includable<TEntity, TEntity, TProperty>(Includes);
+    }
+
+    /// <inheritdoc/>
+    public IIncludable<TEntity, TNext, TProperty> ThenInclude<TProperty>(
+        Expression<Func<TNext, IEnumerable<TProperty>>> expression)
+    {
+        Includes.Add(new IncludeNode(expression, typeof(TNext), typeof(IEnumerable<TProperty>), typeof(TEntity)));
+        return new Includable<TEntity, TNext, TProperty>(Includes);
+    }
+
+    /// <inheritdoc/>
+    public IIncludable<TEntity, TNext, TProperty> ThenInclude<TProperty>(
+        Expression<Func<TNext, TProperty>> expression)
+        where TProperty : IEntity
+    {
+        Includes.Add(new IncludeNode(expression, typeof(TNext), typeof(TProperty), typeof(TEntity)));
+        return new Includable<TEntity, TNext, TProperty>(Includes);
     }
 }

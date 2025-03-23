@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Domain.Entities;
 using Shared.Application.Core.Dto.Responses;
 
 namespace Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
