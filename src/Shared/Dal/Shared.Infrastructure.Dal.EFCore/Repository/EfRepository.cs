@@ -43,6 +43,18 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
+    public Task<TOut?> GetAsync<TOut>(
+        object id,
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
+        CancellationToken cancellationToken = default)
+    {
+        options ??= new QueryOptions<TEntity>();
+        options.AddFilter(x => id.Equals(x.Id));
+        return GetQuery(options, selector).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public Task<List<TEntity>> GetRangeAsync(
         QueryOptions<TEntity>? options = null,
         int? skip = null,

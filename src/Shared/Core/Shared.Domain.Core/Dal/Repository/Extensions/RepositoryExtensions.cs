@@ -30,11 +30,13 @@ public static class RepositoryExtensions
     /// <param name="repository">Репозиторий для работы с сущностями.</param>
     /// <param name="ids">Массив идентификаторов сущностей.</param>
     /// <param name="nameFilter">Выражение для фильтрации сущностей по имени.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Список существующих сущностей, соответствующих критериям, или пустой список.</returns>
     public static async Task<ICollection<TEntity>> FindEntitiesByNamesAsync<TEntity>(
         this IRepository<TEntity> repository,
         Guid[] ids,
-        Expression<Func<TEntity, bool>> nameFilter)
+        Expression<Func<TEntity, bool>> nameFilter,
+        CancellationToken cancellationToken = default)
         where TEntity : class, IEntity<Guid>
     {
         var queryOptions = new QueryOptions<TEntity>(true);
@@ -45,7 +47,7 @@ public static class RepositoryExtensions
             queryOptions.AddFilter(entity => !ids.Contains(entity.Id));
         }
 
-        return await repository.GetRangeAsync(queryOptions);
+        return await repository.GetRangeAsync(queryOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -57,15 +59,48 @@ public static class RepositoryExtensions
     /// <param name="repository">Репозиторий для работы с сущностями.</param>
     /// <param name="id">Идентификатор искомой сущности.</param>
     /// <param name="options">Опции запроса.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Найденная сущность.</returns>
     /// <exception cref="NotFoundException">Сущность не найдена.</exception>
     public static async Task<TEntity> GetByIdOrThrowAsync<TEntity, TKey>(
         this IRepository<TEntity> repository,
         TKey id,
-        QueryOptions<TEntity>? options = null)
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
         where TEntity : class, IEntity
     {
-        var entity = await repository.GetAsync(id, options);
+        var entity = await repository.GetAsync(id, options, cancellationToken);
+        if (entity is null)
+        {
+            throw new NotFoundException(typeof(TEntity), id);
+        }
+
+        return entity;
+    }
+
+    /// <summary>
+    /// Асинхронно извлекает сущность, преобразованную в <see cref="TOut"/>, по ее идентификатору.
+    /// В случае отсутствия сущности выбрасывает исключение <see cref="NotFoundException"/>.
+    /// </summary>
+    /// <typeparam name="TEntity">Тип сущности.</typeparam>
+    /// <typeparam name="TKey">Тип идентификатора.</typeparam>
+    /// <typeparam name="TOut">Тип преобразования.</typeparam>
+    /// <param name="repository">Репозиторий для работы с сущностями.</param>
+    /// <param name="id">Идентификатор искомой сущности.</param>
+    /// <param name="options">Опции запроса.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Найденная сущность.</returns>
+    /// <exception cref="NotFoundException">Сущность не найдена.</exception>
+    public static async Task<TOut> GetByIdOrThrowAsync<TEntity, TKey, TOut>(
+        this IRepository<TEntity> repository,
+        TKey id,
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IEntity
+    {
+        var entity = await repository.GetAsync(id, options, selector, cancellationToken);
         if (entity is null)
         {
             throw new NotFoundException(typeof(TEntity), id);
@@ -83,18 +118,20 @@ public static class RepositoryExtensions
     /// <param name="repository">Репозиторий для работы с сущностями.</param>
     /// <param name="ids">Массив идентификаторов искомых сущностей.</param>
     /// <param name="options">Опции запроса.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Список найденных сущностей.</returns>
     /// <exception cref="NotFoundException">Одна или несколько сущностей не найдены.</exception>
     public static async Task<ICollection<TEntity>> GetByIdOrThrowAsync<TEntity, TKey>(
         this IRepository<TEntity> repository,
         TKey[] ids,
-        QueryOptions<TEntity> options)
+        QueryOptions<TEntity> options,
+        CancellationToken cancellationToken = default)
         where TEntity : class, IEntity<TKey>
     {
         options.AddFilter(entity => ids.Contains(entity.Id));
         var entities = ids.Length == 1
-            ? await repository.GetRangeAsync(options)
-            : [await repository.GetAsync(ids.Single(), options)];
+            ? await repository.GetRangeAsync(options, cancellationToken: cancellationToken)
+            : [await repository.GetAsync(ids.Single(), options, cancellationToken)];
 
         var notFoundEntities = entities.Where(entity => !ids.Contains(entity.Id)).ToArray();
         if (notFoundEntities.Any())
@@ -119,6 +156,7 @@ public static class RepositoryExtensions
     /// <param name="mapper">Объект для маппинга данных между типами.</param>
     /// <param name="addAction">Действие для добавления навигационной сущности к основной сущности.</param>
     /// <param name="removeAction">Действие для удаления навигационной сущности из основной сущности.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Задача, представляющая асинхронную операцию.</returns>
     public static Task UpdateNavigationPropertiesAsync<TEntity, TNavigationDto, TNavigationEntity>(
         this IRepository<TNavigationEntity> repository,
@@ -127,7 +165,8 @@ public static class RepositoryExtensions
         Func<TEntity, TNavigationEntity, bool> comparisonFunc,
         IMapper mapper,
         Action<TEntity, TNavigationEntity>? addAction = null,
-        Action<TEntity, TNavigationEntity>? removeAction = null)
+        Action<TEntity, TNavigationEntity>? removeAction = null,
+        CancellationToken cancellationToken = default)
         where TNavigationEntity : class, IEntity<Guid>
         where TNavigationDto : class, IEntity<Guid>
     {
@@ -145,7 +184,8 @@ public static class RepositoryExtensions
             entity => entity.Id,
             mapper,
             addAction,
-            removeAction);
+            removeAction,
+            cancellationToken);
     }
 
     /// <summary>
@@ -166,6 +206,7 @@ public static class RepositoryExtensions
     /// <param name="mapper">Объект для маппинга данных между типами.</param>
     /// <param name="addAction">Действие для добавления навигационной сущности.</param>
     /// <param name="removeAction">Действие для удаления навигационной сущности.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Задача, представляющая асинхронную операцию обновления навигационных свойств.</returns>
     public static async Task UpdateNavigationPropertiesAsync<TDest, TNavigationSrc, TNavigationDest>(
         this IRepository<TNavigationDest> repository,
@@ -179,14 +220,17 @@ public static class RepositoryExtensions
         Func<TNavigationDest, object> entitySelector,
         IMapper mapper,
         Action<TDest, TNavigationDest>? addAction = null,
-        Action<TDest, TNavigationDest>? removeAction = null)
+        Action<TDest, TNavigationDest>? removeAction = null,
+        CancellationToken cancellationToken = default)
         where TNavigationDest : class, IEntity
         where TNavigationSrc : class
     {
         var options = new QueryOptions<TNavigationDest>(withTracking: true)
             .AddFilter(filter);
 
-        var existingNavEntities = await repository.GetRangeAsync(options);
+        var existingNavEntities = await repository.GetRangeAsync(
+            options,
+            cancellationToken: cancellationToken);
 
         await existingNavEntities.MergeAsync(
             srcItems,
@@ -233,7 +277,7 @@ public static class RepositoryExtensions
     /// <param name="options">Опции запроса для получения сущностей.</param>
     /// <param name="batchSize">Размер батча для обработки.</param>
     /// <param name="processBatchAction">Функция для обработки батча.</param>
-    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Задача для асинхронной операции обработки батчей.</returns>
     public static Task ProcessBatchesAsync<TEntity>(
         this IRepository<TEntity> repository,
@@ -244,7 +288,7 @@ public static class RepositoryExtensions
         where TEntity : class, IEntity
     {
         return BatchHelper.ProcessBatchesAsync(
-            async (skip, take) => await repository.GetRangeAsync(options, skip, take),
+            async (skip, take) => await repository.GetRangeAsync(options, skip, take, cancellationToken),
             batchSize,
             processBatchAction,
             cancellationToken);

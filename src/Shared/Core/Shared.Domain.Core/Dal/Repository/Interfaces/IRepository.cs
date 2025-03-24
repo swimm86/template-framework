@@ -46,6 +46,35 @@ public interface IRepository<TEntity>
         GetAsync(id, specification.BuildOptions(), cancellationToken);
 
     /// <summary>
+    /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее индентификатору.
+    /// </summary>
+    /// <param name="id">Идентификатор сущности.</param>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, если найден, иначе null.</returns>
+    Task<TOut?> GetAsync<TOut>(
+        object id,
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = default,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее индентификатору.
+    /// </summary>
+    /// <param name="id">Идентификатор сущности.</param>
+    /// <param name="specification">Спецификация.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, если найден, иначе null.</returns>
+    Task<TOut?> GetAsync<TOut>(
+        object id,
+        ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = default,
+        CancellationToken cancellationToken = default) =>
+        GetAsync(id, specification.BuildOptions(), selector, cancellationToken);
+
+    /// <summary>
     /// Асинхронно возвращает коллекцию экземпляров сущности по переданной настройке.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
