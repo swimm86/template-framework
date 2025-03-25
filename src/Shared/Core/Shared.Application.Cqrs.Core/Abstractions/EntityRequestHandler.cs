@@ -28,6 +28,16 @@ public abstract class EntityRequestHandler<TRequest, TResponse, TEntity>(
     where TEntity : class, IEntity
 {
     /// <summary>
+    /// Признак необходимости отслеживания изменений сущностей.
+    /// </summary>
+    protected virtual bool WithTracking => false;
+
+    /// <summary>
+    /// Признак необходимости подгрузки связанных сущностей раздельными запросами.
+    /// </summary>
+    protected virtual bool AsSplitQuery => false;
+
+    /// <summary>
     /// Репозиторий.
     /// </summary>
     protected IRepository<TEntity> Repository => unitOfWork.GetRepository<TEntity>();
@@ -52,8 +62,7 @@ public abstract class EntityRequestHandler<TRequest, TResponse, TEntity>(
         TRequest request,
         bool withDeletable)
     {
-        var options = new QueryOptions<TEntity>();
-
+        var options = new QueryOptions<TEntity>(WithTracking, AsSplitQuery);
         if (!withDeletable && typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
         {
             options.AddFilter(x => !((IWithDeleted)x).IsDeleted);
