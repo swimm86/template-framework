@@ -48,6 +48,7 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее индентификатору.
     /// </summary>
+    /// <typeparam name="TOut">Тип, к которому будут преобразована сущность.</typeparam>
     /// <param name="id">Идентификатор сущности.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
@@ -62,6 +63,7 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее индентификатору.
     /// </summary>
+    /// <typeparam name="TOut">Тип, к которому будут преобразована сущность.</typeparam>
     /// <param name="id">Идентификатор сущности.</param>
     /// <param name="specification">Спецификация.</param>
     /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>

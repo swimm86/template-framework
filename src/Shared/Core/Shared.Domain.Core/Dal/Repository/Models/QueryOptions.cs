@@ -18,7 +18,8 @@ namespace Shared.Domain.Core.Dal.Repository.Models;
 /// <typeparam name="TEntity">Тип сущности, для которой реализована спецификация.</typeparam>
 public class QueryOptions<TEntity>(
     bool withTracking = false,
-    bool asSplitQuery = false)
+    bool asSplitQuery = false,
+    bool distinct = false)
     where TEntity : IEntity
 {
     /// <summary>
@@ -45,6 +46,16 @@ public class QueryOptions<TEntity>(
     /// Признак необходимости отслеживания изменений сущностей.
     /// </summary>
     public bool AsSplitQuery { get; set; } = asSplitQuery;
+
+    /// <summary>
+    /// Признак исключения дублей.
+    /// </summary>
+    public bool Distinct { get; set; } = distinct;
+
+    /// <summary>
+    /// Условие для исключения дублей.
+    /// </summary>
+    public Expression<Func<TEntity, bool>>? DistinctBy { get; set; }
 
     /// <summary>
     /// Include если возвращается коллекция.

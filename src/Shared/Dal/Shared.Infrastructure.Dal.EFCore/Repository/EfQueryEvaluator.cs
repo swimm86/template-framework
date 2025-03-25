@@ -62,6 +62,16 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
             queryable = queryable.AsSplitQuery();
         }
 
+        if (options.Distinct)
+        {
+            queryable = queryable.Distinct();
+        }
+
+        if (options.DistinctBy is not null)
+        {
+            queryable = queryable.DistinctBy(options.DistinctBy);
+        }
+
         return queryable;
     }
 
