@@ -78,6 +78,14 @@
           "Microsoft.Extensions.Options.ConfigurationExtensions": "8.0.0"
         }
       },
+      "Microsoft.Extensions.Caching.Abstractions": {
+        "type": "Transitive",
+        "resolved": "9.0.0",
+        "contentHash": "FPWZAa9c0H4dvOj351iR1jkUIs4u9ykL4Bm592yhjDyO5lCoWd+TMAHx2EMbarzUvCvgjWjJIoC6//Q9kH6YhA==",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "9.0.0"
+        }
+      },
       "Microsoft.Extensions.Compliance.Abstractions": {
         "type": "Transitive",
         "resolved": "9.0.0",
@@ -1361,6 +1369,7 @@
       "shared.domain.core": {
         "type": "Project",
         "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "[9.0.0, )",
           "Shared.Common": "[1.0.0, )"
         }
       },

@@ -65,7 +65,7 @@ public static class QuartzJobRegistrar
         ValidateParameters(jobKey, true, cronExpression, job);
 
         return serviceCollection
-            .AddQuartz(q =>
+            .ConfigureQuartz(q =>
             {
                 q.AddJob<QuartzJobWrapper>(opt => CreateJobDetail(opt, jobKey, job));
                 q.AddTrigger(opt => AddTrigger(opt, jobKey, cronExpression));
@@ -94,7 +94,7 @@ public static class QuartzJobRegistrar
         ValidateParameters(jobKey, false, cronExpression);
 
         return serviceCollection
-            .AddQuartz(q =>
+            .ConfigureQuartz(q =>
             {
                 q.AddJob<TJob>(opt => CreateJobDetail(opt, jobKey));
                 q.AddTrigger(opt => AddTrigger(opt, jobKey, cronExpression));
@@ -134,7 +134,7 @@ public static class QuartzJobRegistrar
         ValidateParameters(jobKey, true, job: job);
 
         return serviceCollection
-            .AddQuartz(q =>
+            .ConfigureQuartz(q =>
             {
                 q.AddJob<QuartzJobWrapper>(opt => CreateJobDetail(opt, jobKey, job));
                 Enum.GetValues<JobTriggerFlags>()
@@ -171,7 +171,7 @@ public static class QuartzJobRegistrar
         ValidateParameters(jobKey, false);
 
         return serviceCollection
-            .AddQuartz(q =>
+            .ConfigureQuartz(q =>
             {
                 q.AddJob<TJob>(opt => CreateJobDetail(opt, jobKey));
                 Enum.GetValues<JobTriggerFlags>()
@@ -397,5 +397,14 @@ public static class QuartzJobRegistrar
         {
             throw new ArgumentNullException(nameof(job), "Действие задачи не может быть null.");
         }
+    }
+
+    private static IServiceCollection ConfigureQuartz(
+        this IServiceCollection serviceCollection,
+        Action<IServiceCollectionQuartzConfigurator> configurationAction)
+    {
+        return serviceCollection
+            .AddQuartz(configurationAction)
+            .AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
     }
 }
