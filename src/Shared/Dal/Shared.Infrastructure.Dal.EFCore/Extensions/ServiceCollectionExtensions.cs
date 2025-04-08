@@ -42,7 +42,7 @@ public static class ServiceCollectionExtensions
         return serviceCollection
             .AddDbContextFactory<TContext>(opt =>
                 dbContextOptionsBuilderInitializer.Initialize<TSettings>(opt, migrationAssemblyName))
-            .AddTransient<IUnitOfWork, EfUnitOfWork<TContext>>();
+            .AddScoped<IUnitOfWork, EfUnitOfWork<TContext>>();
     }
 
     /// <summary>
