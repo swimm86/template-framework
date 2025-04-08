@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LoggingPipelineBehaviour.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
@@ -6,6 +6,7 @@
 
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Shared.Common.Extensions;
 
 namespace Shared.Application.Cqrs.Core.Behaviours;
 
@@ -21,16 +22,14 @@ internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
     where TRequest : IRequest<TResponse>
 {
     /// <inheritdoc />
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+    public Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
     {
-        var requestName = typeof(TRequest).Name;
-
-        logger.LogDebug("Start processing {RequestName} request at {DateTime}", requestName, DateTime.UtcNow);
-
-        var result = await next();
-
-        logger.LogDebug("Finished processing {RequestName} request at {DateTime}", requestName, DateTime.UtcNow);
-
-        return result;
+        return logger.LogTaskAsync(
+            () => next(),
+            cancellationToken,
+            processDescription: $"'{request.GetType().Name}' handler");
     }
 }
