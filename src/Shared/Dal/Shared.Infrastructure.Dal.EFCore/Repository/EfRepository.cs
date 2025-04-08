@@ -33,24 +33,24 @@ public class EfRepository<TEntity>(
 
     /// <inheritdoc/>
     public Task<TEntity?> GetAsync(
-        object id,
+        object? id,
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default)
     {
-        return options == default
-            ? DbSet.FirstOrDefaultAsync(x => id.Equals(x.Id), cancellationToken)
-            : evaluator.Build(DbSet, options).FirstOrDefaultAsync(x => id.Equals(x.Id), cancellationToken);
+        options = GetFirstOrDefaultOptions(id, options);
+        return evaluator
+            .Build(DbSet, options)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
     public Task<TOut?> GetAsync<TOut>(
-        object id,
+        object? id,
         QueryOptions<TEntity>? options = null,
         Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default)
     {
-        options ??= new QueryOptions<TEntity>();
-        options.AddFilter(x => id.Equals(x.Id));
+        options = GetFirstOrDefaultOptions(id, options);
         return GetQuery(options, selector).FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -379,4 +379,17 @@ public class EfRepository<TEntity>(
         selector is null
             ? evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options)
             : evaluator.Build(DbSet, options).Select(selector);
+
+    private QueryOptions<TEntity> GetFirstOrDefaultOptions(
+        object? id,
+        QueryOptions<TEntity>? options)
+    {
+        options ??= new QueryOptions<TEntity>();
+        if (id is not null)
+        {
+            options.AddFilter(x => id.Equals(x.Id));
+        }
+
+        return options;
+    }
 }

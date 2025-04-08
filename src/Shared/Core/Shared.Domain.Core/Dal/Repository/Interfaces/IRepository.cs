@@ -28,7 +28,7 @@ public interface IRepository<TEntity>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Экземпляр сущности, если найден, иначе null.</returns>
     Task<TEntity?> GetAsync(
-        object id,
+        object? id,
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
@@ -40,7 +40,7 @@ public interface IRepository<TEntity>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Экземпляр сущности, если найден, иначе null.</returns>
     Task<TEntity?> GetAsync(
-        object id,
+        object? id,
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default) =>
         GetAsync(id, specification.BuildOptions(), cancellationToken);
@@ -55,7 +55,7 @@ public interface IRepository<TEntity>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, если найден, иначе null.</returns>
     Task<TOut?> GetAsync<TOut>(
-        object id,
+        object? id,
         QueryOptions<TEntity>? options = null,
         Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default);
@@ -70,7 +70,7 @@ public interface IRepository<TEntity>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, если найден, иначе null.</returns>
     Task<TOut?> GetAsync<TOut>(
-        object id,
+        object? id,
         ISpecification<TEntity> specification,
         Expression<Func<TEntity, TOut>>? selector = default,
         CancellationToken cancellationToken = default) =>
