@@ -5,6 +5,9 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
+using Shared.Common.Extensions;
+using Shared.Domain.Core.Dal.Models;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.Specification.Interfaces;
 using Shared.Domain.Core.Interfaces;
@@ -15,7 +18,9 @@ namespace Shared.Domain.Core.Dal.Specification.Models;
 /// Базовый класс для спецификаций.
 /// </summary>
 /// <typeparam name="TEntity"></typeparam>
-public abstract record SpecificationBase<TEntity> : ISpecification<TEntity>
+public abstract record SpecificationBase<TEntity>(
+    ICollection<SortOption>? SortOptions = default)
+    : ISpecification<TEntity>
     where TEntity : class, IEntity
 {
     /// <summary>
@@ -24,7 +29,11 @@ public abstract record SpecificationBase<TEntity> : ISpecification<TEntity>
     protected readonly QueryOptions<TEntity> Options = new();
 
     /// <inheritdoc />
-    public abstract QueryOptions<TEntity> BuildOptions();
+    public virtual QueryOptions<TEntity> BuildOptions()
+    {
+        SortOptions?.ForEach(Options.AddOrderBy);
+        return Options;
+    }
 
     /// <summary>
     /// Добавляет свойство навигации для включения в запрос к коллекции.

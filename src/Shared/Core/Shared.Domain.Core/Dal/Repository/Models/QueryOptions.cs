@@ -6,8 +6,9 @@
 
 using System.Linq.Expressions;
 using Shared.Common.Extensions;
-using Shared.Domain.Core.Dal.Specification.Interfaces;
-using Shared.Domain.Core.Dal.Specification.Models;
+using Shared.Common.Helpers;
+using Shared.Domain.Core.Dal.Models;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Dal.Repository.Models;
@@ -22,6 +23,8 @@ public class QueryOptions<TEntity>(
     bool distinct = false)
     where TEntity : IEntity
 {
+    private readonly HashSet<string> _orderByFields = [];
+
     /// <summary>
     /// Фильтры.
     /// </summary>
@@ -127,6 +130,11 @@ public class QueryOptions<TEntity>(
         OrderDirectionType orderDirectionType,
         int? index = default)
     {
+        if (OrderBy.Any(e => e.Expression.Equals(expression)))
+        {
+            return this;
+        }
+
         var newOrderBy = new QueryOrderByOption<TEntity>(expression, orderDirectionType);
         if (index.HasValue)
         {
@@ -138,6 +146,23 @@ public class QueryOptions<TEntity>(
         }
 
         return this;
+    }
+
+    /// <summary>
+    /// Добавление сортировки.
+    /// </summary>
+    /// <param name="sortOption">Модель сортировки.</param>
+    public void AddOrderBy(
+        SortOption sortOption)
+    {
+        var propToSort = sortOption.Key.ToLowerFirstChar();
+        if (!_orderByFields.Add(propToSort))
+        {
+            return;
+        }
+
+        if (!ApplySorting(propToSort, sortOption.DirectionType))
+            ApplySorting(propToSort, sortOption.DirectionType);
     }
 
     /// <summary>
@@ -160,5 +185,28 @@ public class QueryOptions<TEntity>(
         }
 
         return this;
+    }
+
+    private bool ApplySorting(
+        string propToSort,
+        OrderDirectionType directionType)
+    {
+        var prop = typeof(TEntity).GetProperties()
+            .FirstOrDefault(p => p.Name.Equals(propToSort, StringComparison.OrdinalIgnoreCase));
+        if (prop is null)
+        {
+            return false;
+        }
+
+        if (prop.PropertyType == typeof(bool))
+        {
+            directionType = directionType == OrderDirectionType.Ascending
+                ? OrderDirectionType.Descending
+                : OrderDirectionType.Ascending;
+        }
+
+        var expression = ExpressionHelper.GetPropExpression<TEntity>(prop.Name);
+        AddOrderBy(expression, directionType);
+        return true;
     }
 }

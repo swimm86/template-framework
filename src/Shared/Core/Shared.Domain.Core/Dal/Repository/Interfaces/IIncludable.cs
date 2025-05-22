@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Domain.Core.Dal.Specification.Interfaces;
+namespace Shared.Domain.Core.Dal.Repository.Interfaces;
 
 /// <summary>
 /// Кастомное представлени инклюда.

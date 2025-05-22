@@ -6,10 +6,10 @@
 
 using System.Linq.Expressions;
 using Shared.Common.Extensions;
-using Shared.Domain.Core.Dal.Specification.Interfaces;
-using Shared.Domain.Core.Dal.Specification.Models;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Models;
 
-namespace Shared.Domain.Core.Dal.Specification.Extensions;
+namespace Shared.Domain.Core.Dal.Repository.Extensions;
 
 /// <summary>
 /// Расшения для <see cref="IIncludable{TProperty}"/>.

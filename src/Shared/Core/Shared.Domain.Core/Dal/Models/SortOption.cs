@@ -4,9 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Domain.Core.Dal;
-
-namespace Shared.Application.Cqrs.Core.Utils;
+namespace Shared.Domain.Core.Dal.Models;
 
 /// <summary>
 /// Модель сортировки.

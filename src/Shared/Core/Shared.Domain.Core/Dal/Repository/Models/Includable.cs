@@ -4,9 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Domain.Core.Dal.Specification.Interfaces;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
 
-namespace Shared.Domain.Core.Dal.Specification.Models;
+namespace Shared.Domain.Core.Dal.Repository.Models;
 
 /// <inheritdoc />
 public class Includable<TProperty>(List<string> includes)

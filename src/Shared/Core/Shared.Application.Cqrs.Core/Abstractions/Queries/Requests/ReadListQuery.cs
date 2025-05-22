@@ -5,9 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Application.Core.Dto.Requests;
-using Shared.Application.Cqrs.Core.Utils;
-using Shared.Common.Helpers;
-using Shared.Domain.Core.Dal;
 
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 
@@ -22,11 +19,6 @@ public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest reque
     where TRequest : PageableRequest<TFilter>
     where TFilter : new()
 {
-    /// <summary>
-    /// Разделитель значений в объекте строки.
-    /// </summary>
-    public const char ValueDelimiter = '.';
-
     /// <summary>
     /// Минимальный номер страницы.
     /// </summary>
@@ -51,32 +43,4 @@ public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest reque
     /// Фильтр.
     /// </summary>
     public TFilter Filter { get; } = request.Filter ?? new TFilter();
-
-    /// <summary>
-    /// Параметры сортировки.
-    /// </summary>
-    public List<SortOption> SortOptions { get; } = ConvertSortOptions(request.SortOptions);
-
-    private static List<SortOption> ConvertSortOptions(List<string>? sortOptions)
-    {
-        if (sortOptions is null)
-        {
-            return [];
-        }
-
-        return sortOptions
-            .Where(value => !string.IsNullOrEmpty(value))
-            .Select(value =>
-            {
-                var sortOptionValues = value.Split(ValueDelimiter);
-                return new SortOption(
-                    key: string.Join(ValueDelimiter, sortOptionValues[..^1]),
-                    directionType: GetDirectionType(
-                        sortOptionValues.ElementAtOrDefault(sortOptionValues.Length - 1)));
-            })
-            .ToList();
-    }
-
-    private static OrderDirectionType GetDirectionType(string? str) =>
-        EnumHelper.GetEnumByDescription(str?.ToLower(), OrderDirectionType.Ascending);
 }

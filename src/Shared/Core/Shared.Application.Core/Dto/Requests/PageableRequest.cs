@@ -4,6 +4,11 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Text.Json.Serialization;
+using Shared.Common.Helpers;
+using Shared.Domain.Core.Dal;
+using Shared.Domain.Core.Dal.Models;
+
 namespace Shared.Application.Core.Dto.Requests;
 
 /// <summary>
@@ -11,6 +16,11 @@ namespace Shared.Application.Core.Dto.Requests;
 /// </summary>
 public abstract record PageableRequest
 {
+    /// <summary>
+    /// Разделитель значений в объекте строки.
+    /// </summary>
+    public const char ValueDelimiter = '.';
+
     /// <summary>
     /// Номер страницы.
     /// </summary>
@@ -25,6 +35,33 @@ public abstract record PageableRequest
     /// Настройки сортировки.
     /// </summary>
     public List<string>? SortOptions { get; init; }
+
+    /// <summary>
+    /// Преобразует настройки сортировки в коллекцию экземпляров класса <see cref="SortOption"/>.
+    /// </summary>
+    /// <returns>Коллекция экземпляров класса <see cref="SortOption"/>.</returns>
+    public ICollection<SortOption> ConvertSortOptions()
+    {
+        if (!SortOptions?.Any() ?? true)
+        {
+            return [];
+        }
+
+        return SortOptions
+            .Where(value => !string.IsNullOrEmpty(value))
+            .Select(value =>
+            {
+                var sortOptionValues = value.Split(ValueDelimiter);
+                return new SortOption(
+                    key: string.Join(ValueDelimiter, sortOptionValues[..^1]),
+                    directionType: GetDirectionType(
+                        sortOptionValues.ElementAtOrDefault(sortOptionValues.Length - 1)));
+            })
+            .ToList();
+    }
+
+    private static OrderDirectionType GetDirectionType(string? str) =>
+        EnumHelper.GetEnumByDescription(str?.ToLower(), OrderDirectionType.Ascending);
 }
 
 /// <summary>

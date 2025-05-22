@@ -27,11 +27,11 @@ public class PersonReadListQueryHandler(
         unitOfWork)
 {
     /// <inheritdoc />
-    protected override QueryOptions<Person> ConstructOptions(PersonReadListQuery request)
+    protected override QueryOptions<Person> ConstructOptions(PersonReadListQuery query)
     {
-        var specification = new PersonSpecification();
-        var options = specification.BuildOptions()!;
-        ApplySortOptions(request.SortOptions, options);
+        var specification = new PersonSpecification(query.Request);
+        var options = specification.BuildOptions();
+        ApplySortOptions(query.Request.ConvertSortOptions(), options);
         return options;
     }
 }

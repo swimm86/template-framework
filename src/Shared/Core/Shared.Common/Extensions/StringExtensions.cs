@@ -32,6 +32,19 @@ public static class StringExtensions
     }
 
     /// <summary>
+    /// Конвертирует строку в строку, которая нчинается с маленькой буквы.
+    /// </summary>
+    /// <param name="input">Исходная строка.</param>
+    /// <returns>Строка с маленькой буквы.</returns>
+    public static string ToLowerFirstChar(this string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        return char.ToLower(input[0]) + input.Substring(1);
+    }
+
+    /// <summary>
     /// Конвертирует строку в слова с маленькой буквы, разделенные разделителем <paramref name="delimiter"/>.
     /// </summary>
     /// <param name="value">Исходная строка.</param>

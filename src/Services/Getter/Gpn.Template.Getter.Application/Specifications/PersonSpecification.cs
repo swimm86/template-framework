@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Domain.Entities;
+using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.Specification.Models;
 
@@ -13,11 +14,18 @@ namespace Gpn.Template.Getter.Application.Specifications;
 /// <summary>
 /// Спецификация для 'Person'.
 /// </summary>
-public record PersonSpecification : SpecificationBase<Person>
+public record PersonSpecification(PersonListRequest Request)
+    : SpecificationBase<Person>(Request.ConvertSortOptions())
 {
     /// <inheritdoc />
     public override QueryOptions<Person> BuildOptions()
     {
-        return new QueryOptions<Person>();
+        base.BuildOptions();
+        if (!string.IsNullOrWhiteSpace(Request.Filter?.Email))
+        {
+            Options.AddFilter(x => x.Email.ToLower().Equals(Request.Filter.Email.ToLower()));
+        }
+
+        return Options;
     }
 }

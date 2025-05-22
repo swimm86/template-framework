@@ -9,9 +9,9 @@ using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
-using Shared.Application.Cqrs.Core.Utils;
 using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal;
+using Shared.Domain.Core.Dal.Models;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
@@ -61,12 +61,12 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
         CancellationToken cancellationToken)
     {
         var options = ConstructOptions(query);
-        ApplySortOptions(query.SortOptions, options);
+        ApplySortOptions(query.Request.ConvertSortOptions(), options);
         var (skip, take) = CalculatePagination(query.PageNumber, query.PageSize);
 
         var repository = unitOfWork.GetRepository<TEntity>();
         var dtoList = await GetPayloadAsync(repository, options, skip, take);
-        var totalCount = await repository.CountAsync(options);
+        var totalCount = await repository.CountAsync(options, cancellationToken);
         await PostProcessAsync(dtoList, query);
         var pagesCount = PaginationHelper.GetTotalPages(totalCount, query.PageSize);
         var response = new TResponse
@@ -117,18 +117,17 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
         IEnumerable<SortOption> sortOptions,
         QueryOptions<TEntity> options)
     {
-        if (typeof(TEntity).GetInterfaces().All(x => x != typeof(IWithDateCreated)))
+        var sortOptionsCollection = sortOptions.ToList();
+        sortOptionsCollection.ForEach(options.AddOrderBy);
+        var dateCreatedOption = sortOptionsCollection.FirstOrDefault(x =>
+            x.Key.Equals(nameof(IWithCreated.DateCreated), StringComparison.OrdinalIgnoreCase));
+        if (typeof(TEntity).GetInterfaces().All(x => x != typeof(IWithDateCreated)) ||
+            dateCreatedOption is not null)
         {
             return;
         }
 
-        var sortList = sortOptions.ToList();
-        var orderDirection =
-            sortList
-                .FirstOrDefault(x => x.Key.Equals(nameof(IWithCreated.DateCreated)))
-                ?.DirectionType ??
-            OrderDirectionType.Ascending;
-        options.AddOrderBy(x => (x as IWithDateCreated)!.DateCreated, orderDirection, 0);
+        options.AddOrderBy(x => (x as IWithDateCreated)!.DateCreated, OrderDirectionType.Ascending, 0);
     }
 
     /// <inheritdoc/>

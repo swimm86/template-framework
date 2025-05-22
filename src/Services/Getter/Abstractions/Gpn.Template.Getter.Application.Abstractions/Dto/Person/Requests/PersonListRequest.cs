@@ -14,6 +14,5 @@ namespace Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 /// Request-Dto для получения всех 'Person-ов'.
 /// </summary>
 /// <param name="DalPattern">Dal-паттерн, который необходимо использовать для получения 'Person-ов' из Dal-слоя.</param>
-public record PersonListRequest(DalPattern DalPattern) : PageableRequest<PersonListFilter>
-{
-}
+public record PersonListRequest(DalPattern DalPattern)
+    : PageableRequest<PersonListFilter>;
