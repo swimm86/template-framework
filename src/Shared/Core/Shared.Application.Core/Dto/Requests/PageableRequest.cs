@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Text.Json.Serialization;
 using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Models;
