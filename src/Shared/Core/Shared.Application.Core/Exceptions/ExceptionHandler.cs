@@ -135,7 +135,7 @@ internal sealed class ExceptionHandler(
             StatusCode = details.FirstOrDefault()?.Status ?? StatusCodes.Status500InternalServerError,
         };
 
-        bool enrichErrorResponse;
+        var enrichErrorResponse = false;
 #if DEBUG
         enrichErrorResponse = true;
 #endif
