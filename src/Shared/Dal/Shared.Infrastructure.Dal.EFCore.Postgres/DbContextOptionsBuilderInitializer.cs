@@ -20,7 +20,7 @@ public class DbContextOptionsBuilderInitializer(
     IConfiguration configuration)
     : IDbContextOptionsBuilderInitializer
 {
-    private const string DefaultConnectionString = "Host=localhost:5432;";
+    private const string DefaultConnectionString = "Host=localhost:5433;Database=template;Username=postgres;Password=sw;commandtimeout=0;Include Error Detail=true;Search Path=public";
 
     /// <inheritdoc />
     public void Initialize<TSettings>(

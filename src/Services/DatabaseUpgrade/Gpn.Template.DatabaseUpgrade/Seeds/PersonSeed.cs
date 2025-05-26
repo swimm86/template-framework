@@ -21,8 +21,12 @@ public class PersonSeed : ISeed
     public async Task SeedAsync(IUnitOfWork unitOfWork)
     {
         await unitOfWork.GetRepository<Person>()
-            .AddRangeAsync(
-                Enumerable.Range(0, 100).Select(i => Person.Create(i.ToString(), $"email{i}")));
+            .AddRangeAsync(Enumerable
+                .Range(0, 100)
+                .Select(i => Person.Create(
+                    name: i.ToString(),
+                    email: $"email{i}")));
+
         await unitOfWork.SaveChangesAsync();
     }
 }

@@ -9,6 +9,7 @@ using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Interfaces;
 using Shared.Domain.Core.Mapping.Interfaces;
+using Shared.Infrastructure.Dal.EFCore.Repository.Extensions;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
 
@@ -34,7 +35,7 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
 
         // Применяем Includes-ы
         queryable = options.Includes
-            .Aggregate(queryable, (acc, x) => acc.Include(x));
+            .Aggregate(queryable, (acc, x) => acc.IncludeUntyped(x));
 
         // Применяем порядок сортировки
         if (options.OrderBy.Count != 0)
