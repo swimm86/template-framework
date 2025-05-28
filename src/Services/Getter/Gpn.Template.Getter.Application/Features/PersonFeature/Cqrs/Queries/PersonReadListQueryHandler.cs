@@ -29,8 +29,9 @@ public class PersonReadListQueryHandler(
     /// <inheritdoc />
     protected override QueryOptions<Person> ConstructOptions(PersonReadListQuery query)
     {
-        var specification = new PersonSpecification(query.Request);
-        var options = specification.BuildOptions();
+        var options = base.ConstructOptions(query);
+        var specification = new PersonSpecification(query.Request, options);
+        specification.BuildOptions();
         ApplySortOptions(query.Request.ConvertSortOptions(), options);
         return options;
     }

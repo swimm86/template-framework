@@ -6,9 +6,11 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Dto.Interfaces;
 using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
+using Shared.Common.Extensions;
 using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Models;
@@ -38,7 +40,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     where TRequest : PageableRequest<TFilter>
     where TResponse : PageableResponse<ICollection<TPayload>>, new()
     where TEntity : class, IEntity
-    where TFilter : new()
+    where TFilter : FilterBase, new()
 {
     /// <inheritdoc/>
     public override async Task<TResponse> Handle(
@@ -134,7 +136,8 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     protected override QueryOptions<TEntity> ConstructOptions(TQuery request)
     {
         var options = base.ConstructOptions(request);
-        if (request.Filter is ListFilterBase baseFilter && (baseFilter.Ids?.Any() ?? false))
+        request.Filter.Fields?.ForEach(f => options.AddFilter(f));
+        if (request.Filter is IWithIdsFilter baseFilter && (baseFilter.Ids?.Any() ?? false))
         {
             options.AddFilter(x => baseFilter.Ids.Any(id => id.Equals(x.Id)));
         }

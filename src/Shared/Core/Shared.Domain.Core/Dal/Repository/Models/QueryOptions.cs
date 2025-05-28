@@ -5,10 +5,12 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
+using System.Text.Json;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal.Models;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
+using Shared.Domain.Core.Exceptions.Models;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Dal.Repository.Models;
@@ -24,6 +26,7 @@ public class QueryOptions<TEntity>(
     where TEntity : IEntity
 {
     private readonly HashSet<string> _orderByFields = [];
+    private readonly HashSet<FilterOption> _filtersFields = [];
 
     /// <summary>
     /// Фильтры.
@@ -98,6 +101,128 @@ public class QueryOptions<TEntity>(
     {
         Filters.Add(expression);
         return this;
+    }
+
+    /// <summary>
+    /// Добавление фильтра.
+    /// </summary>
+    /// <param name="filter">Фильтр.</param>
+    /// <returns><see cref="QueryOptions{TEntity}"/>.</returns>
+    public QueryOptions<TEntity> AddFilter(
+        FilterOption filter)
+    {
+        if (!_filtersFields.Add(filter))
+        {
+            return this;
+        }
+
+        var entityType = typeof(TEntity);
+        var param = Expression.Parameter(entityType, "x");
+        var property = entityType.GetProperty(filter.FieldName.ToUpperFirstChar());
+        if (property == null)
+        {
+            throw new BusinessLogicException("Некорректный фильтр: " + JsonSerializer.Serialize(filter));
+        }
+
+        var propAccess = Expression.Property(param, property);
+        var value = filter.Value;
+        var convertedValue = value != null
+            ? property.PropertyType == typeof(string)
+                ? value.ToString()
+                : Convert.ChangeType(value, property.PropertyType)
+            : null;
+        var constant = convertedValue != null ? Expression.Constant(convertedValue) : Expression.Constant(null);
+
+        Expression condition;
+        switch (filter.OperationType)
+        {
+            case FilterOperationType.Equals:
+                condition = Expression.Equal(propAccess, constant);
+                break;
+            case FilterOperationType.NotEquals:
+                condition = Expression.NotEqual(propAccess, constant);
+                break;
+            case FilterOperationType.GreaterThan:
+                condition = Expression.GreaterThan(propAccess, constant);
+                break;
+            case FilterOperationType.GreaterThanOrEqual:
+                condition = Expression.GreaterThanOrEqual(propAccess, constant);
+                break;
+            case FilterOperationType.LessThan:
+                condition = Expression.LessThan(propAccess, constant);
+                break;
+            case FilterOperationType.LessThanOrEqual:
+                condition = Expression.LessThanOrEqual(propAccess, constant);
+                break;
+            case FilterOperationType.Contains
+                when propAccess.Type == typeof(string):
+                var toLowerProp = Expression.Call(
+                    propAccess,
+                    typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!);
+
+                if (constant is null)
+                {
+                    throw new ArgumentException($"Value can't be null for '{Enum.GetName(filter.OperationType)}' operation.");
+                }
+
+                if (constant.Value is not string stringValue)
+                {
+                    throw new ArgumentException($"'{Enum.GetName(filter.OperationType)}' operation allows only string values.");
+                }
+
+                var toLowerValue = Expression.Constant(stringValue.ToLower());
+                var containsMethod = typeof(string).GetMethod(nameof(string.Contains), new[] { typeof(string) })!;
+
+                // x.SomeProp.ToLower().Contains(value.ToLower())
+                var containsCall = Expression.Call(toLowerProp, containsMethod, toLowerValue);
+
+                condition = containsCall;
+                break;
+            case FilterOperationType.StartsWith or FilterOperationType.EndsWith
+                when propAccess.Type == typeof(string):
+                var methodName = filter.OperationType switch
+                {
+                    FilterOperationType.Contains => nameof(string.Contains),
+                    FilterOperationType.StartsWith => nameof(string.StartsWith),
+                    _ => nameof(string.EndsWith)
+                };
+                var methodInfo = typeof(string).GetMethod(methodName, new[] { typeof(string) });
+                condition = methodInfo is not null
+                    ? Expression.Call(propAccess, methodInfo, constant)
+                    : throw new ArgumentException($"{methodName} operation can only be used on string properties.");
+                break;
+            case FilterOperationType.In:
+                condition = BuildInExpression(propAccess, constant, property.PropertyType);
+                break;
+            case FilterOperationType.IsNull:
+                condition = Expression.Equal(propAccess, Expression.Constant(null, propAccess.Type));
+                break;
+            case FilterOperationType.IsNotNull:
+                condition = Expression.NotEqual(propAccess, Expression.Constant(null, propAccess.Type));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        return AddFilter(Expression.Lambda<Func<TEntity, bool>>(condition, param));
+
+        static Expression BuildInExpression(
+            Expression prop,
+            Expression valuesConstant,
+            Type propertyType)
+        {
+            var listType = typeof(List<>).MakeGenericType(propertyType);
+            if (!listType.IsAssignableFrom(valuesConstant.Type))
+            {
+                throw new InvalidCastException($"Cannot cast {valuesConstant.Type} to {listType}");
+            }
+
+            var method = typeof(Enumerable).GetMethods()
+                .FirstOrDefault(m => m.Name == "Contains" && m.GetParameters().Length == 2)?
+                .MakeGenericMethod(propertyType);
+
+            return Expression.Call(method, valuesConstant, prop);
+        }
     }
 
     /// <summary>

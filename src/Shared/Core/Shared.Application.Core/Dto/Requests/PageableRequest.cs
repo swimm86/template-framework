@@ -52,8 +52,8 @@ public abstract record PageableRequest
             {
                 var sortOptionValues = value.Split(ValueDelimiter);
                 return new SortOption(
-                    key: string.Join(ValueDelimiter, sortOptionValues[..^1]),
-                    directionType: GetDirectionType(
+                    Key: string.Join(ValueDelimiter, sortOptionValues[..^1]),
+                    DirectionType: GetDirectionType(
                         sortOptionValues.ElementAtOrDefault(sortOptionValues.Length - 1)));
             })
             .ToList();

@@ -18,8 +18,7 @@ namespace Shared.Domain.Core.Dal.Specification.Models;
 /// Базовый класс для спецификаций.
 /// </summary>
 /// <typeparam name="TEntity"></typeparam>
-public abstract record SpecificationBase<TEntity>(
-    ICollection<SortOption>? SortOptions = default)
+public abstract record SpecificationBase<TEntity>
     : ISpecification<TEntity>
     where TEntity : class, IEntity
 {
@@ -28,12 +27,24 @@ public abstract record SpecificationBase<TEntity>(
     /// </summary>
     protected readonly QueryOptions<TEntity> Options = new();
 
-    /// <inheritdoc />
-    public virtual QueryOptions<TEntity> BuildOptions()
+    /// <summary>
+    /// Конструктор класса.
+    /// </summary>
+    /// <param name="options">Настройки запроса.</param>
+    /// <param name="sortOptions">Настройки сортировки.</param>
+    /// <param name="filterOptions">Настройки фильтрации.</param>
+    protected SpecificationBase(
+        QueryOptions<TEntity>? options = default,
+        ICollection<SortOption>? sortOptions = default,
+        ICollection<FilterOption>? filterOptions = default)
     {
-        SortOptions?.ForEach(Options.AddOrderBy);
-        return Options;
+        Options = options ?? new QueryOptions<TEntity>();
+        filterOptions?.ForEach(filter => Options.AddFilter(filter));
+        sortOptions?.ForEach(Options.AddOrderBy);
     }
+
+    /// <inheritdoc />
+    public abstract QueryOptions<TEntity> BuildOptions();
 
     /// <summary>
     /// Добавляет свойство навигации для включения в запрос к коллекции.

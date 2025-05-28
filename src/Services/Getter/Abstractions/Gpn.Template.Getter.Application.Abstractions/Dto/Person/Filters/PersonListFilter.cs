@@ -4,30 +4,23 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Application.Core.Dto.Requests;
+
 namespace Gpn.Template.Getter.Application.Abstractions.Dto.Person.Filters;
 
 /// <summary>
-/// Фильтра для <see cref="Person"/>.
+/// Фильтра для <see cref="Domain.Entities.Person"/>.
 /// </summary>
-public class PersonListFilter
+public record PersonListFilter
+    : FilterBase
 {
     /// <summary>
-    /// <inheritdoc cref="Person.Name"/>
+    /// <inheritdoc cref="Domain.Entities.Person.Name"/>
     /// </summary>
-    public string? Name { get; set; }
+    public string? Name { get; init; }
 
     /// <summary>
-    /// Часть от имени.
-    /// </summary>
-    public string? NameContains { get; set; }
-
-    /// <summary>
-    /// <inheritdoc cref="Person.Email"/>
+    /// <inheritdoc cref="Domain.Entities.Person.Email"/>
     /// </summary>
     public string? Email { get; set; }
-
-    /// <summary>
-    /// Часть от адреса электронной почты.
-    /// </summary>
-    public string? EmailContains { get; set; }
 }

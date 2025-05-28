@@ -25,3 +25,22 @@ public enum OrderDirectionType
     [Description("desc")]
     Descending,
 }
+
+/// <summary>
+/// Операции для фильтрации.
+/// </summary>
+public enum FilterOperationType
+{
+    Equals,
+    NotEquals,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
+    Contains,        // Например, для строк
+    StartsWith,
+    EndsWith,
+    In,              // Для списков значений
+    IsNull,
+    IsNotNull
+}

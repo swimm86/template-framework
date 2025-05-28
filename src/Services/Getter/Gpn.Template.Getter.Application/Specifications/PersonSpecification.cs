@@ -14,13 +14,17 @@ namespace Gpn.Template.Getter.Application.Specifications;
 /// <summary>
 /// Спецификация для 'Person'.
 /// </summary>
-public record PersonSpecification(PersonListRequest Request)
-    : SpecificationBase<Person>(Request.ConvertSortOptions())
+public record PersonSpecification(
+    PersonListRequest Request,
+    QueryOptions<Person>? Options = default)
+    : SpecificationBase<Person>(
+        Options,
+        Request.ConvertSortOptions(),
+        Request.Filter?.Fields)
 {
     /// <inheritdoc />
     public override QueryOptions<Person> BuildOptions()
     {
-        base.BuildOptions();
         if (!string.IsNullOrWhiteSpace(Request.Filter?.Email))
         {
             Options.AddFilter(x => x.Email.ToLower().Equals(Request.Filter.Email.ToLower()));

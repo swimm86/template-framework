@@ -17,7 +17,7 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest request)
     : IQuery<TResponse>
     where TRequest : PageableRequest<TFilter>
-    where TFilter : new()
+    where TFilter : FilterBase, new()
 {
     /// <summary>
     /// Минимальный номер страницы.

@@ -32,16 +32,31 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Конвертирует строку в строку, которая нчинается с маленькой буквы.
+    /// Конвертирует строку в строку, которая нчинается с заглавной буквы.
     /// </summary>
     /// <param name="input">Исходная строка.</param>
-    /// <returns>Строка с маленькой буквы.</returns>
+    /// <returns>Строка с заглавной буквы.</returns>
+    public static string ToUpperFirstChar(this string input)
+    {
+        return string.IsNullOrEmpty(input)
+            ? input
+            : input.Length > 1
+                ? char.ToUpper(input[0]) + input[1..]
+                : input.ToUpper();
+    }
+
+    /// <summary>
+    /// Конвертирует строку в строку, которая нчинается со строчной буквы.
+    /// </summary>
+    /// <param name="input">Исходная строка.</param>
+    /// <returns>Строка со строчной буквы.</returns>
     public static string ToLowerFirstChar(this string input)
     {
-        if (string.IsNullOrEmpty(input))
-            return input;
-
-        return char.ToLower(input[0]) + input.Substring(1);
+        return string.IsNullOrEmpty(input)
+            ? input
+            : input.Length > 1
+                ? char.ToLower(input[0]) + input[1..]
+                : input.ToLower();
     }
 
     /// <summary>
