@@ -38,7 +38,7 @@ public class QueryOptions<TEntity>(
     /// <summary>
     /// Включаемые связанные сущности.
     /// </summary>
-    public List<string> Includes { get; private set; } = [];
+    public List<IIncludable<TEntity>> Includes { get; private set; } = [];
 
     /// <summary>
     /// Признак необходимости отслеживания изменений сущностей.
@@ -61,30 +61,30 @@ public class QueryOptions<TEntity>(
     public Expression<Func<TEntity, bool>>? DistinctBy { get; set; }
 
     /// <summary>
-    /// Include если возвращается коллекция.
+    /// Include для плоских свойств.
     /// </summary>
-    /// <param name="expression">Include.</param>
-    /// /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
+    /// <param name="expression">Выражение инклюда.</param>
+    /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
     /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public IIncludable<TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, ICollection<TProperty>>> expression)
+    public Includable<TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, TProperty>> expression)
     {
-        var includable = new Includable<TProperty>(Includes);
-        includable.AddInclude(expression.GetPropertyName());
+        var includable = new Includable<TEntity, TProperty>(expression);
+        Includes.Add(includable);
         return includable;
     }
 
     /// <summary>
-    /// Include.
+    /// Inlcude для типа коллекций.
     /// </summary>
-    /// <param name="include">Include.</param>
+    /// <param name="expression">Выражение инклюда.</param>
     /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>
     /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public IIncludable<TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, TProperty>> include)
+    public Includable<TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, IEnumerable<TProperty>>> expression)
     {
-        var includable = new Includable<TProperty>(Includes);
-        includable.AddInclude(include.GetPropertyName());
+        var includable = new Includable<TEntity, TProperty>(expression);
+        Includes.Add(includable);
         return includable;
     }
 

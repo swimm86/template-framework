@@ -32,8 +32,15 @@ public class Person : IEntity<Guid>
     /// <param name="name">Имя.</param>
     /// <param name="email">Адрес электронной почты.</param>
     /// <returns>Экземпляр сущности "Person".</returns>
-    public static Person Create(string name, string email)
+    public static Person Create(
+        string name,
+        string email)
     {
-        return new Person { Id = Guid.NewGuid(), Name = name, Email = email, };
+        return new Person
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Email = email,
+        };
     }
 }

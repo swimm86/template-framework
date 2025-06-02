@@ -5,74 +5,67 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 
 namespace Shared.Domain.Core.Dal.Repository.Extensions;
 
 /// <summary>
-/// Расшения для <see cref="IIncludable{TProperty}"/>.
+/// Расширения для <see cref="IIncludable{TProperty}"/>.
 /// </summary>
 public static class IncludableExtension
 {
     /// <summary>
-    /// ThenInclude если возвращается единственная сущность.
+    /// ThenInclude, если на предыдущем шаге была выбрана коллекция.
     /// </summary>
+    /// <typeparam name="TSrcEntity">Начальный тип сущности.</typeparam>
+    /// <typeparam name="TPreviosProp">Тип промежуточного свойства.</typeparam>
+    /// <typeparam name="TProp">Тип целевого свойства.</typeparam>
     /// <param name="includable">Расширяемый объект.</param>
-    /// <param name="navigationProperty">Выражение.</param>
-    /// <typeparam name="TPreviousProperty">Предыдущий тип.</typeparam>
-    /// <typeparam name="TProperty">Возвращаемый тип.</typeparam>
-    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public static IIncludable<TProperty> ThenInclude<TPreviousProperty, TProperty>(
-        this IIncludable<TPreviousProperty> includable,
-        Expression<Func<TPreviousProperty, TProperty>> navigationProperty)
+    /// <param name="expression">Выражение.</param>
+    /// <returns><see cref="Includable{TSrcEntity,TProp}"/>.</returns>
+    public static Includable<TSrcEntity, TProp> ThenInclude<TSrcEntity, TPreviosProp, TProp>(
+        this Includable<TSrcEntity, ICollection<TPreviosProp>> includable,
+        Expression<Func<TPreviosProp, TProp>> expression)
     {
-        var next = new Includable<TProperty>(includable.Includes);
-        var listSize = next.Includes.Count;
-        var lastElem = next.Includes[listSize - 1];
-        next.Includes[listSize - 1] = string.Join('.', lastElem, navigationProperty.GetPropertyName());
-
-        return next;
+        var thenIncludable = new Includable<TSrcEntity, TProp>(expression);
+        includable.SetChild(thenIncludable);
+        return thenIncludable;
     }
 
     /// <summary>
-    /// ThenInclude если возвращается коллекция сущностей.
+    /// ThenInclude, если на предыдущем шаге была выбрана фильтрованная коллекция.
     /// </summary>
+    /// <typeparam name="TSrcEntity">Начальный тип сущности.</typeparam>
+    /// <typeparam name="TPreviosProp">Тип промежуточного свойства.</typeparam>
+    /// <typeparam name="TProp">Тип целевого свойства.</typeparam>
     /// <param name="includable">Расширяемый объект.</param>
-    /// <param name="navigationProperty">Выражение.</param>
-    /// <typeparam name="TPreviousProperty">Предыдущий тип.</typeparam>
-    /// <typeparam name="TProperty">Возвращаемый тип.</typeparam>
-    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public static IIncludable<TProperty> ThenInclude<TPreviousProperty, TProperty>(
-        this IIncludable<ICollection<TPreviousProperty>> includable,
-        Expression<Func<TPreviousProperty, TProperty>> navigationProperty)
+    /// <param name="expression">Выражение.</param>
+    /// <returns><see cref="Includable{TSrcEntity,TProp}"/>.</returns>
+    public static Includable<TSrcEntity, TProp> ThenInclude<TSrcEntity, TPreviosProp, TProp>(
+        this Includable<TSrcEntity, IEnumerable<TPreviosProp>> includable,
+        Expression<Func<TPreviosProp, TProp>> expression)
     {
-        var next = new Includable<TProperty>(includable.Includes);
-        var listSize = next.Includes.Count;
-        var lastElem = next.Includes[listSize - 1];
-        next.Includes[listSize - 1] = string.Join('.', lastElem, navigationProperty.GetPropertyName());
-
-        return next;
+        var thenIncludable = new Includable<TSrcEntity, TProp>(expression);
+        includable.SetChild(thenIncludable);
+        return thenIncludable;
     }
 
     /// <summary>
-    /// ThenInclude если возвращается коллекция сущностей.
+    /// ThenInclude, если на предыдущем шаге было выбрано плоское свойство.
     /// </summary>
+    /// <typeparam name="TSrcEntity">Начальный тип сущности.</typeparam>
+    /// <typeparam name="TPreviosProp">Тип промежуточного свойства.</typeparam>
+    /// <typeparam name="TProp">Тип целевого свойства.</typeparam>
     /// <param name="includable">Расширяемый объект.</param>
-    /// <param name="navigationProperty">Выражение.</param>
-    /// <typeparam name="TPreviousProperty">Предыдущий тип.</typeparam>
-    /// <typeparam name="TProperty">Возвращаемый тип.</typeparam>
-    /// <returns><see cref="IIncludable{TProperty}"/>.</returns>
-    public static IIncludable<TProperty> ThenInclude<TPreviousProperty, TProperty>(
-        this IIncludable<IReadOnlyCollection<TPreviousProperty>> includable,
-        Expression<Func<TPreviousProperty, TProperty>> navigationProperty)
+    /// <param name="expression">Выражение.</param>
+    /// <returns><see cref="Includable{TSrcEntity,TProp}"/>.</returns>
+    public static Includable<TSrcEntity, TProp> ThenInclude<TSrcEntity, TPreviosProp, TProp>(
+        this Includable<TSrcEntity, TPreviosProp> includable,
+        Expression<Func<TPreviosProp, TProp>> expression)
     {
-        var next = new Includable<TProperty>(includable.Includes);
-        var listSize = next.Includes.Count;
-        var lastElem = next.Includes[listSize - 1];
-        next.Includes[listSize - 1] = string.Join('.', lastElem, navigationProperty.GetPropertyName());
-
-        return next;
+        var thenIncludable = new Includable<TSrcEntity, TProp>(expression);
+        includable.SetChild(thenIncludable);
+        return thenIncludable;
     }
 }

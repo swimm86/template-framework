@@ -4,20 +4,29 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 
 namespace Shared.Domain.Core.Dal.Repository.Models;
 
-/// <inheritdoc />
-public class Includable<TProperty>(List<string> includes)
-    : IIncludable<TProperty>
+/// <summary>
+/// Импементация кастомного Include.
+/// </summary>
+/// <typeparam name="TSrcEntity">Сущность, для которой осуществляется Include</typeparam>
+/// <typeparam name="TDstEntity">Сущность, в которую проецирует Include</typeparam>
+/// <param name="expression">Выражение</param>
+public class Includable<TSrcEntity, TDstEntity>(LambdaExpression expression)
+    : IIncludable<TSrcEntity>
 {
     /// <inheritdoc />
-    public List<string> Includes { get; private set; } = includes;
+    public LambdaExpression Expression { get; } = expression;
 
     /// <inheritdoc />
-    public void AddInclude(string include)
+    public IIncludable<TSrcEntity>? Child { get; private set; }
+
+    /// <inheritdoc />
+    public void SetChild(IIncludable<TSrcEntity> includable)
     {
-        Includes.Add(include);
+        Child = includable;
     }
 }

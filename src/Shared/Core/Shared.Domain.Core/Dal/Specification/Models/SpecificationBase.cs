@@ -36,24 +36,24 @@ public abstract record SpecificationBase<TEntity>(
     }
 
     /// <summary>
-    /// Добавляет свойство навигации для включения в запрос к коллекции.
+    /// Добавляет свойство навигации для включения в запрос.
     /// </summary>
     /// <typeparam name="TProperty">Тип свойства навигации.</typeparam>
     /// <param name="expression">Выражение для доступа к свойству навигации.</param>
     /// <returns>Объект, позволяющий добавить дополнительные включения.</returns>
-    protected IIncludable<TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, ICollection<TProperty>>> expression) =>
+    protected Includable<TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, TProperty>> expression) =>
         Options.AddInclude(expression);
 
     /// <summary>
     /// Добавляет свойство навигации для включения в запрос.
     /// </summary>
     /// <typeparam name="TProperty">Тип свойства навигации.</typeparam>
-    /// <param name="include">Выражение для доступа к свойству навигации.</param>
+    /// <param name="expression">Выражение для доступа к свойству навигации.</param>
     /// <returns>Объект, позволяющий добавить дополнительные включения.</returns>
-    protected IIncludable<TProperty> AddInclude<TProperty>(
-        Expression<Func<TEntity, TProperty>> include) =>
-        Options.AddInclude(include);
+    protected Includable<TEntity, TProperty> AddInclude<TProperty>(
+        Expression<Func<TEntity, IEnumerable<TProperty>>> expression) =>
+        Options.AddInclude(expression);
 
     /// <summary>
     /// Добавляет выражение фильтрации к запросу.

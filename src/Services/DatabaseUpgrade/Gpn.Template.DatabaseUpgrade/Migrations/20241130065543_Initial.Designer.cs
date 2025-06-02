@@ -26,38 +26,38 @@ namespace Gpn.Template.DatabaseUpgrade.Migrations
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Gpn.Template.Domain.Entities.Person", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
+                b.Property<string>("Email")
+                    .IsRequired()
+                    .HasColumnType("text")
+                    .HasColumnName("email");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("text")
+                    .HasColumnName("name");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("Person");
+                b.ToTable("Person");
 
-                    b.UseTptMappingStrategy();
-                });
+                b.UseTptMappingStrategy();
+            });
 
             modelBuilder.Entity("Shared.Application.Core.Dal.DbSeeder.Entities.Seed", b =>
-                {
-                    b.Property<string>("Name")
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+            {
+                b.Property<string>("Name")
+                    .HasColumnType("text")
+                    .HasColumnName("name");
 
-                    b.HasKey("Name");
+                b.HasKey("Name");
 
-                    b.ToTable("seed", (string)null);
-                });
+                b.ToTable("seed", (string)null);
+            });
 #pragma warning restore 612, 618
         }
     }

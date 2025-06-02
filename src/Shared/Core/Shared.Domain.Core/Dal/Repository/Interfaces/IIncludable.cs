@@ -4,22 +4,29 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Linq.Expressions;
+
 namespace Shared.Domain.Core.Dal.Repository.Interfaces;
 
 /// <summary>
-/// Кастомное представлени инклюда.
+/// Кастомное представление Include.
 /// </summary>
-/// <typeparam name="TProperty">Возвращаемый проперти.</typeparam>
-public interface IIncludable<TProperty>
+/// <typeparam name="TSrcEntity">Сущность, для которой осуществляется Include.</typeparam>
+public interface IIncludable<TSrcEntity>
 {
     /// <summary>
-    /// Includes.
+    /// Выражение Include.
     /// </summary>
-    List<string> Includes { get; }
+    LambdaExpression Expression { get; }
 
     /// <summary>
-    /// Метод добавления в массив Includes.
+    /// Последующий Include.
     /// </summary>
-    /// <param name="include">Include.</param>
-    void AddInclude(string include);
+    IIncludable<TSrcEntity>? Child { get; }
+
+    /// <summary>
+    /// Установление последующего Include.
+    /// </summary>
+    /// <param name="includable">Include для вложения.</param>
+    void SetChild(IIncludable<TSrcEntity> includable);
 }
