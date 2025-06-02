@@ -23,11 +23,13 @@ public interface IWithIdsFilter
 /// <typeparam name="TKey">Тип идентификатора.</typeparam>
 public interface IWithIdsFilter<TKey> : IWithIdsFilter
 {
+    /// <inheritdoc/>
     ICollection<object>? IWithIdsFilter.Ids
     {
         get => Ids?.OfType<object>().ToArray();
         init => Ids = value?.OfType<TKey>().ToArray();
     }
+
     /// <summary>
     /// Идентификаторы сущностей.
     /// </summary>

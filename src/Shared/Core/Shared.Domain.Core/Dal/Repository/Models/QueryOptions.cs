@@ -119,14 +119,14 @@ public class QueryOptions<TEntity>(
 
         var entityType = typeof(TEntity);
         var param = Expression.Parameter(entityType, "x");
-        var property = entityType.GetProperty(filter.FieldName.ToUpperFirstChar());
-        if (property == null)
+        var (propAccess, propertyType) = param.GetPropertyAccessAndType<TEntity>(filter.FieldName);
+
+        if (propAccess == null || propertyType == null)
         {
             throw new BusinessLogicException("Некорректный фильтр: " + JsonSerializer.Serialize(filter));
         }
 
-        var propAccess = Expression.Property(param, property);
-        var convertedValue = ConvertValue(filter.Value, property.PropertyType, filter.OperationType);
+        var convertedValue = ConvertValue(filter.Value, propertyType, filter.OperationType);
         var constant = convertedValue != null ? Expression.Constant(convertedValue) : Expression.Constant(null);
 
         Expression condition;
@@ -188,7 +188,7 @@ public class QueryOptions<TEntity>(
                     : throw new ArgumentException($"{methodName} operation can only be used on string properties.");
                 break;
             case FilterOperationType.In:
-                condition = BuildInExpression(propAccess, constant, property.PropertyType);
+                condition = BuildInExpression(propAccess, constant, propertyType);
                 break;
             case FilterOperationType.IsNull:
                 condition = Expression.Equal(propAccess, Expression.Constant(null, propAccess.Type));
@@ -217,7 +217,7 @@ public class QueryOptions<TEntity>(
                 .FirstOrDefault(m => m.Name == "Contains" && m.GetParameters().Length == 2)?
                 .MakeGenericMethod(propertyType);
 
-            return Expression.Call(method, valuesConstant, prop);
+            return Expression.Call(method!, valuesConstant, prop);
         }
     }
 
@@ -308,29 +308,6 @@ public class QueryOptions<TEntity>(
         return this;
     }
 
-    private bool ApplySorting(
-        string propToSort,
-        OrderDirectionType directionType)
-    {
-        var prop = typeof(TEntity).GetProperties()
-            .FirstOrDefault(p => p.Name.Equals(propToSort, StringComparison.OrdinalIgnoreCase));
-        if (prop is null)
-        {
-            return false;
-        }
-
-        if (prop.PropertyType == typeof(bool))
-        {
-            directionType = directionType == OrderDirectionType.Ascending
-                ? OrderDirectionType.Descending
-                : OrderDirectionType.Ascending;
-        }
-
-        var expression = ExpressionHelper.GetPropExpression<TEntity>(prop.Name);
-        AddOrderBy(expression, directionType);
-        return true;
-    }
-
     private static object? ConvertValue(object? value, Type propertyType, FilterOperationType operationType)
     {
         value = value is JsonElement jsonElement ? jsonElement.ToObject() : value;
@@ -359,5 +336,28 @@ public class QueryOptions<TEntity>(
             list.Add(Convert.ChangeType(item, propertyType));
 
         return list;
+    }
+
+    private bool ApplySorting(
+        string propToSort,
+        OrderDirectionType directionType)
+    {
+        var prop = typeof(TEntity).GetProperties()
+            .FirstOrDefault(p => p.Name.Equals(propToSort, StringComparison.OrdinalIgnoreCase));
+        if (prop is null)
+        {
+            return false;
+        }
+
+        if (prop.PropertyType == typeof(bool))
+        {
+            directionType = directionType == OrderDirectionType.Ascending
+                ? OrderDirectionType.Descending
+                : OrderDirectionType.Ascending;
+        }
+
+        var expression = ExpressionHelper.GetPropExpression<TEntity>(prop.Name);
+        AddOrderBy(expression, directionType);
+        return true;
     }
 }

@@ -31,16 +31,65 @@ public enum OrderDirectionType
 /// </summary>
 public enum FilterOperationType
 {
+    /// <summary>
+    /// Равно.
+    /// </summary>
     Equals,
+
+    /// <summary>
+    /// Не равно.
+    /// </summary>
     NotEquals,
+
+    /// <summary>
+    /// Больше, чем.
+    /// </summary>
     GreaterThan,
+
+    /// <summary>
+    /// Больше, чем, или равно.
+    /// </summary>
     GreaterThanOrEqual,
+
+    /// <summary>
+    /// Меньше, чем.
+    /// </summary>
     LessThan,
+
+    /// <summary>
+    /// Меньше, чем, или равно.
+    /// </summary>
     LessThanOrEqual,
-    Contains,        // Например, для строк
+
+    /// <summary>
+    /// Содержится.
+    /// </summary>
+    /// <remarks>Подходит для строк.</remarks>
+    Contains,
+
+    /// <summary>
+    /// Начинается с.
+    /// </summary>
     StartsWith,
+
+    /// <summary>
+    /// Заканчивается на.
+    /// </summary>
     EndsWith,
-    In,              // Для списков значений
+
+    /// <summary>
+    /// Содержится в коллекции.
+    /// </summary>
+    /// <remarks>Подходит для списков значений.</remarks>
+    In,
+
+    /// <summary>
+    /// Равно <see langword="null"/>.
+    /// </summary>
     IsNull,
+
+    /// <summary>
+    /// Ну равно <see langword="null"/>.
+    /// </summary>
     IsNotNull
 }
