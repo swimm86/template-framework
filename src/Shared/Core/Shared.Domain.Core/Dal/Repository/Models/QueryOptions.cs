@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Collections;
 using System.Linq.Expressions;
 using System.Text.Json;
 using Shared.Common.Extensions;
@@ -125,12 +126,7 @@ public class QueryOptions<TEntity>(
         }
 
         var propAccess = Expression.Property(param, property);
-        var value = filter.Value;
-        var convertedValue = value != null
-            ? property.PropertyType == typeof(string)
-                ? value.ToString()
-                : Convert.ChangeType(value, property.PropertyType)
-            : null;
+        var convertedValue = ConvertValue(filter.Value, property.PropertyType, filter.OperationType);
         var constant = convertedValue != null ? Expression.Constant(convertedValue) : Expression.Constant(null);
 
         Expression condition;
@@ -333,5 +329,35 @@ public class QueryOptions<TEntity>(
         var expression = ExpressionHelper.GetPropExpression<TEntity>(prop.Name);
         AddOrderBy(expression, directionType);
         return true;
+    }
+
+    private static object? ConvertValue(object? value, Type propertyType, FilterOperationType operationType)
+    {
+        value = value is JsonElement jsonElement ? jsonElement.ToObject() : value;
+
+        if (value is null)
+            return null;
+
+        if (operationType is not FilterOperationType.In)
+        {
+            return propertyType == typeof(string)
+                ? value.ToString()
+                : Convert.ChangeType(value, propertyType);
+        }
+
+        if (value is not IEnumerable collection)
+        {
+            throw new BusinessLogicException(
+                $"Некорректный параметр фильтрации '{value}' " +
+                $"для операции '{Enum.GetName(operationType)}'");
+        }
+
+        var listType = typeof(List<>).MakeGenericType(propertyType);
+        var list = (IList)Activator.CreateInstance(listType)!;
+
+        foreach (var item in collection)
+            list.Add(Convert.ChangeType(item, propertyType));
+
+        return list;
     }
 }
