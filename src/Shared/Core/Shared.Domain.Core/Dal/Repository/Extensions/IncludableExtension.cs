@@ -52,6 +52,24 @@ public static class IncludableExtension
     }
 
     /// <summary>
+    /// ThenInclude, если на предыдущем шаге была выбрана сортированная коллекция.
+    /// </summary>
+    /// <typeparam name="TSrcEntity">Начальный тип сущности.</typeparam>
+    /// <typeparam name="TPreviosProp">Тип промежуточного свойства.</typeparam>
+    /// <typeparam name="TProp">Тип целевого свойства.</typeparam>
+    /// <param name="includable">Расширяемый объект.</param>
+    /// <param name="expression">Выражение.</param>
+    /// <returns><see cref="Includable{TSrcEntity,TProp}"/>.</returns>
+    public static Includable<TSrcEntity, TProp> ThenInclude<TSrcEntity, TPreviosProp, TProp>(
+        this Includable<TSrcEntity, IOrderedEnumerable<TPreviosProp>> includable,
+        Expression<Func<TPreviosProp, TProp>> expression)
+    {
+        var thenIncludable = new Includable<TSrcEntity, TProp>(expression);
+        includable.SetChild(thenIncludable);
+        return thenIncludable;
+    }
+
+    /// <summary>
     /// ThenInclude, если на предыдущем шаге было выбрано плоское свойство.
     /// </summary>
     /// <typeparam name="TSrcEntity">Начальный тип сущности.</typeparam>
