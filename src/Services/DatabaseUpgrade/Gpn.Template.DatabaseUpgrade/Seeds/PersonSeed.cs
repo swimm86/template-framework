@@ -25,7 +25,8 @@ public class PersonSeed : ISeed
                 .Range(0, 100)
                 .Select(i => Person.Create(
                     name: i.ToString(),
-                    email: $"email{i}")));
+                    email: $"email{i}",
+                    someKey: i % 5)));
 
         await unitOfWork.SaveChangesAsync();
     }
