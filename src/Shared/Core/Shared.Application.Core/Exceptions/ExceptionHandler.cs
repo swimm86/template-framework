@@ -39,7 +39,10 @@ internal sealed class ExceptionHandler(
     /// <param name="exception"> Ошибка. </param>
     /// <param name="cancellationToken"> Токен отмены. </param>
     /// <returns> Результат выполнения. </returns>
-    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext httpContext,
+        Exception exception,
+        CancellationToken cancellationToken)
     {
         var message = exception.InnerException == null
             ? exception.Message
@@ -56,7 +59,8 @@ internal sealed class ExceptionHandler(
         return true;
     }
 
-    private static ICollection<ProblemDetails> ProcessException(Exception exception)
+    private static ICollection<ProblemDetails> ProcessException(
+        Exception exception)
     {
         var details = exception switch
         {
@@ -70,7 +74,8 @@ internal sealed class ExceptionHandler(
         return [details];
     }
 
-    private static ProblemDetails CreateResponseFromAppException(AppException appException)
+    private static ProblemDetails CreateResponseFromAppException(
+        AppException appException)
     {
         return appException switch
         {
@@ -80,26 +85,32 @@ internal sealed class ExceptionHandler(
         };
     }
 
-    private static ProblemDetails CreateResponseFromProxiedException(ProxiedException proxiedException)
+    private static ProblemDetails CreateResponseFromProxiedException(
+        ProxiedException proxiedException)
     {
         proxiedException.ProblemDetails.Status = proxiedException.StatusCode;
         return proxiedException.ProblemDetails;
     }
 
-    private static ProblemDetails CreateResponseFromUnauthorizedException(UnauthorizedException unauthorizedException)
+    private static ProblemDetails CreateResponseFromUnauthorizedException(
+        UnauthorizedException unauthorizedException)
         => CreateProblemDetails("Пользователь не аутентифицирован", StatusCodes.Status401Unauthorized, unauthorizedException.Message);
 
-    private static ProblemDetails CreateResponseFromBusinessLogicException(BusinessLogicException businessLogicException)
+    private static ProblemDetails CreateResponseFromBusinessLogicException(
+        BusinessLogicException businessLogicException)
         => CreateProblemDetails("Ошибка бизнес-логики", StatusCodes.Status422UnprocessableEntity, businessLogicException.Message);
 
-    private static ProblemDetails CreateResponseFromNotFoundException(NotFoundException notFoundException)
+    private static ProblemDetails CreateResponseFromNotFoundException(
+        NotFoundException notFoundException)
         => CreateProblemDetails("Ошибка - не найден", StatusCodes.Status404NotFound, notFoundException.Message);
 
-    private static ProblemDetails CreateResponseFromValidationException(ValidationException validationException)
+    private static ProblemDetails CreateResponseFromValidationException(
+        ValidationException validationException)
         => CreateProblemDetails(
             "Ошибка валидации", ValidationErrorsToExtensions(validationException.Errors), StatusCodes.Status400BadRequest);
 
-    private static ProblemDetails CreateResponseFromApplicationException(AppException validationException)
+    private static ProblemDetails CreateResponseFromApplicationException(
+        AppException validationException)
         => CreateProblemDetails(
             "Ошибка приложения", StatusCodes.Status500InternalServerError, validationException.Message);
 
@@ -107,7 +118,9 @@ internal sealed class ExceptionHandler(
         => CreateProblemDetails("Ошибка сервера");
 
     private static ProblemDetails CreateProblemDetails(
-        string title, int statusCode = StatusCodes.Status500InternalServerError, string? detail = null)
+        string title,
+        int statusCode = StatusCodes.Status500InternalServerError,
+        string? detail = null)
         => new ProblemDetails()
         {
             Status = statusCode,
@@ -116,7 +129,10 @@ internal sealed class ExceptionHandler(
         };
 
     private static ProblemDetails CreateProblemDetails(
-        string title, IDictionary<string, object?> extensions, int statusCode = StatusCodes.Status500InternalServerError, string? detail = null)
+        string title,
+        IDictionary<string, object?> extensions,
+        int statusCode = StatusCodes.Status500InternalServerError,
+        string? detail = null)
     {
         var problemDetails = CreateProblemDetails(title, statusCode, detail);
         problemDetails.Extensions = extensions;
@@ -124,10 +140,12 @@ internal sealed class ExceptionHandler(
         return problemDetails;
     }
 
-    private static Dictionary<string, object?> ValidationErrorsToExtensions(IEnumerable<ValidationFailure> validationFailures)
-        => new Dictionary<string, object?>() { { "details", validationFailures.Select(x => x.ErrorMessage) } };
+    private static Dictionary<string, object?> ValidationErrorsToExtensions(
+        IEnumerable<ValidationFailure> validationFailures)
+        => new() { { "errors", validationFailures.Select(x => new { field = x.PropertyName, message = x.ErrorMessage }).ToArray() } };
 
-    private ErrorResponse CreateResponseFromException(Exception exception)
+    private ErrorResponse CreateResponseFromException(
+        Exception exception)
     {
         var details = ProcessException(exception);
         var response = new ErrorResponse(details)
@@ -149,7 +167,9 @@ internal sealed class ExceptionHandler(
         return response;
     }
 
-    private string GetExceptionDetails(Exception exception, int stackTraceDepth = 2)
+    private string GetExceptionDetails(
+        Exception exception,
+        int stackTraceDepth = 2)
     {
         var detailsBuilder = new StringBuilder();
 
