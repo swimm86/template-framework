@@ -6,6 +6,7 @@
 
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Common.Helpers;
 
@@ -26,10 +27,24 @@ public static class FluentValidationExtensions
         // Получаем все сборки, содержащие типы, наследованные от AbstractValidator<T>
         var applicationAssemblies =
             AssemblyHelper.GetAssembliesContainingDerivedGenericTypes(typeof(AbstractValidator<>));
-
-        // Добавляем автоматическую валидацию и загружаем валидаторы из сборок
         return services
+            // Включаем автоматическую валидацию, но настраиваем её для выброса исключений вместо добавления ошибок в ModelState
             .AddFluentValidationAutoValidation()
-            .AddValidatorsFromAssemblies(applicationAssemblies, includeInternalTypes: true);
+            // Добавляем валидаторы из всех сборок
+            .AddValidatorsFromAssemblies(applicationAssemblies, includeInternalTypes: true)
+            // Настраиваем обработку ошибок API
+            .Configure<ApiBehaviorOptions>(options =>
+            {
+                // Настраиваем обработчик ошибок валидации через наш ExceptionHandler
+                options.InvalidModelStateResponseFactory = actionContext =>
+                {
+                    var errors = actionContext.ModelState
+                        .Where(e => e.Value?.Errors.Count > 0)
+                        .SelectMany(e => e.Value!.Errors
+                            .Select(error => new FluentValidation.Results.ValidationFailure(e.Key, error.ErrorMessage)))
+                        .ToList();
+                    throw new ValidationException(errors);
+                };
+            });
     }
 }
