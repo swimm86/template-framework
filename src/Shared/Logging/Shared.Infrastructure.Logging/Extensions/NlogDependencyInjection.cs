@@ -35,6 +35,10 @@ public static class NlogDependencyInjection
                 var configPath = settings?.Path;
                 loggerBuilder.ClearProviders();
                 loggerBuilder.AddNLog(string.IsNullOrEmpty(configPath) ? "nlog.base.config" : configPath);
+                if (settings is not null)
+                {
+                    loggerBuilder.SetMinimumLevel(settings.LogLevel);
+                }
             });
     }
 }

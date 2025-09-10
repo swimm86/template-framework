@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.Extensions.Logging;
+
 namespace Shared.Infrastructure.Logging.Settings;
 
 /// <summary>
@@ -15,4 +17,9 @@ public class NlogSettings
     /// Путь к nlog.config.
     /// </summary>
     required public string Path { get; init; } = null!;
+
+    /// <summary>
+    /// Минимальный уровень логирования.
+    /// </summary>
+    required public LogLevel LogLevel { get; init; } = LogLevel.Information;
 }
