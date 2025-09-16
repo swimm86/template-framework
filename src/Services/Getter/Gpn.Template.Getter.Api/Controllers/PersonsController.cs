@@ -4,9 +4,11 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Domain.Entities;
 using Gpn.Template.Getter.Api.Controllers.Base;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 using Gpn.Template.Getter.Application.Interfaces;
+using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 
 namespace Gpn.Template.Getter.Api.Controllers;
 
@@ -14,6 +16,7 @@ namespace Gpn.Template.Getter.Api.Controllers;
 /// Person контроллер.
 /// </summary>
 public sealed class PersonsController(
+    IUnitOfWork unitOfWork,
     IPersonsService personsService,
     ILogger<PersonsController> logger
     ) : GetterControllerBase(logger)
@@ -29,4 +32,23 @@ public sealed class PersonsController(
         [FromBody] PersonListRequest dto,
         CancellationToken cancellationToken = default) =>
         Process(() => personsService.GetPersonsAsync(dto), cancellationToken);
+
+    /// <summary>
+    /// test
+    /// </summary>
+    /// <param name="dto">.</param>
+    /// <returns>.</returns>
+    [HttpPost("test_sequence_number")]
+    public async Task<IActionResult> TestSequenceNumber(
+        [FromBody] TestSequenceNumberRequest dto)
+    {
+        var guid = Guid.NewGuid();
+        var p = Person.Create($"test{guid}", $"test{guid}", dto.GroupNumber);
+
+        var repo = unitOfWork.GetRepository<Person>();
+        await repo.AddAsync(p);
+        await unitOfWork.SaveChangesAsync();
+
+        return Ok();
+    }
 }

@@ -17,7 +17,9 @@ namespace Gpn.Template.DatabaseUpgrade.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "text", nullable: false),
-                    email = table.Column<string>(type: "text", nullable: false)
+                    email = table.Column<string>(type: "text", nullable: false),
+                    some_key = table.Column<int>(type: "integer", nullable: false),
+                    sequence_number = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {

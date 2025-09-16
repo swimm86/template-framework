@@ -76,6 +76,12 @@ public abstract class EntityConfigurationBase<TEntity>
                 .HasColumnName("deleted_by_id");
         }
 
+        if (typeof(IWithSequenceNumber<TEntity>).IsAssignableFrom(typeof(TEntity)))
+        {
+            builder.Property(nameof(IWithSequenceNumber<TEntity>.SequenceNumber))
+                .HasColumnName("sequence_number");
+        }
+
         ConfigureDates(builder);
     }
 
