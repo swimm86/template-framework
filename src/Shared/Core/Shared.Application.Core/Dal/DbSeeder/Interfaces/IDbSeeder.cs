@@ -4,20 +4,19 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Application.Core.Dal.DbSeeder.Entities;
+
 namespace Shared.Application.Core.Dal.DbSeeder.Interfaces;
 
 /// <summary>
-/// Интерфейс для классов, которые выполняют инициализацию и миграцию базы данных.
+/// Интерфейс для управления <see cref="Seed"/>-ами.
 /// </summary>
 public interface IDbSeeder
 {
     /// <summary>
-    /// Выполняет миграцию базы данных до последней версии.
+    /// Применяет все <see cref="Seed"/>-ы.
     /// </summary>
-    void Migrate();
-
-    /// <summary>
-    /// Выполняет инициализацию базы данных.
-    /// </summary>
-    void Initialize();
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    Task ApplySeedsAsync(CancellationToken cancellationToken = default);
 }

@@ -26,6 +26,16 @@ public class QueryOptions<TEntity>(
     private readonly HashSet<string> _orderByFields = [];
 
     /// <summary>
+    /// Пользовательское пост-преобразование IQueryable{TEntity}.
+    /// </summary>
+    public List<Func<IQueryable<TEntity>, IQueryable<TEntity>>> CustomQueryPostProcesses { get; set; } = [];
+
+    /// <summary>
+    /// Пользовательское пре-преобразование IQueryable{TEntity}.
+    /// </summary>
+    public List<Func<IQueryable<TEntity>, IQueryable<TEntity>>> CustomQueryBeforeProcesses { get; set; } = [];
+
+    /// <summary>
     /// Фильтры.
     /// </summary>
     public List<Expression<Func<TEntity, bool>>> Filters { get; private set; } = [];

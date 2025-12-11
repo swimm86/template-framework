@@ -607,8 +607,9 @@ public interface IRepository<TEntity>
     /// <summary>
     /// Возвращает <see cref="IQueryable{TEntity}"/>.
     /// </summary>
+    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <returns><see cref="IQueryable{TEntity}"/>.</returns>
-    IQueryable<TEntity> Set();
+    IQueryable<TEntity> Set(QueryOptions<TEntity>? options = null);
 
     /// <summary>
     /// Применяет внесенные до вызова изменения.

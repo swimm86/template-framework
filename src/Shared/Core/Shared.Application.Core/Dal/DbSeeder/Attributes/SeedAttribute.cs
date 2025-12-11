@@ -10,7 +10,8 @@ namespace Shared.Application.Core.Dal.DbSeeder.Attributes;
 /// Атрибут seed-а.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class SeedAttribute(string name, int order) : Attribute
+public class SeedAttribute(string name, int order)
+    : Attribute
 {
     /// <summary>
     /// Наименование.

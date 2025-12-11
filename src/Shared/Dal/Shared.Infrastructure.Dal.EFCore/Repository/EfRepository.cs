@@ -362,8 +362,8 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public IQueryable<TEntity> Set() =>
-        dbContext.Set<TEntity>();
+    public IQueryable<TEntity> Set(QueryOptions<TEntity>? options = null) =>
+        evaluator.Build(DbSet, options);
 
     /// <inheritdoc/>
     public void SaveChanges() =>

@@ -4,10 +4,12 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Enums;
+using Shared.Domain.Core.Event.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Base;
@@ -19,78 +21,111 @@ namespace Shared.Domain.Core.Base;
 public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
 {
     /// <summary>
-    /// События, которые обьязательно должны быть выполнены до сохранения.
+    /// Словарь доменных эвентов до сохранения.
     /// </summary>
-    protected virtual IDomainEvent[] RequiredEventsBeforeSave { get; } = [];
+    [NotMapped]
+    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsBeforeSave = default!;
 
     /// <summary>
-    /// События, которые обьязательно должны быть выполнены после сохранения.
+    /// Словарь доменных эвентов после сохранения.
     /// </summary>
-    protected virtual IDomainEvent[] RequiredEventsAfterSave { get; } = [];
+    [NotMapped]
+    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsAfterSave = default!;
+
+    /// <inheritdoc />
+    public virtual TKey Id { get; set; } = default!;
+
+    /// <inheritdoc />
+    public virtual string[] RequiredToSaveNavigationPropertiesNames => [];
+
+    /// <summary>
+    /// События, выполняемые перед сохранением.
+    /// </summary>
+    protected virtual IDomainEvent[] BeforeSaveEvents => [];
+
+    /// <summary>
+    /// События, выполняемые после сохранения.
+    /// </summary>
+    protected virtual IDomainEvent[] AfterSaveEvents => [];
 
     /// <summary>
     /// Консруктор.
     /// </summary>
     protected BaseEntity()
     {
-        ResetEvents();
+        CreateEvents();
+    }
+
+    /// <inheritdoc />
+    public bool TryGetEvent(
+        DomainEventType domainEventType,
+        Enum key,
+        [MaybeNullWhen(false)] out IDomainEvent domainEvent)
+        => GetCurrentDomainEvents(domainEventType).TryGetValue(key, out domainEvent);
+
+    /// <inheritdoc />
+    public void ResetEvents() =>
+        EnableDomainEvents();
+
+    /// <inheritdoc />
+    public ICollection<Enum> GetAllKeys(DomainEventType domainEventType)
+        => GetCurrentDomainEvents(domainEventType).Keys;
+
+    /// <summary>
+    /// Отключает доменные события.
+    /// </summary>
+    public void DisableDomainEvents()
+    {
+        DisableDomainEvents(DomainEventType.BeforeSave);
+        DisableDomainEvents(DomainEventType.AfterSave);
     }
 
     /// <summary>
-    /// Потокобезопасная очередь доменных эвентов до сохранения.
+    /// Отключает доменные события.
     /// </summary>
-    [NotMapped]
-    private readonly ConcurrentQueue<IDomainEvent> _domainEventsBeforeSave = [];
-
-    /// <summary>
-    /// Потокобезопасная очередь доменных эвентов после сохранения.
-    /// </summary>
-    [NotMapped]
-    private readonly ConcurrentQueue<IDomainEvent> _domainEventsAfterSave = [];
-
-    /// <inheritdoc />
-    public TKey Id { get; set; } = default!;
-
-    /// <inheritdoc />
-    public virtual string[] RequiredToSaveNavigationPropertiesNames => [];
-
-    /// <summary>
-    /// Попытка извлечения доменного события.
-    /// </summary>
-    /// <param name="domainEvent">Доменное событие.</param>
     /// <param name="domainEventType">Тип доменного события.</param>
-    /// <returns>Признак успешного извлечения.</returns>
-    public bool TryDequeueEvent(out IDomainEvent? domainEvent, DomainEventType domainEventType)
-        => domainEventType == DomainEventType.AfterSave
-            ? _domainEventsAfterSave.TryDequeue(out domainEvent)
-            : _domainEventsBeforeSave.TryDequeue(out domainEvent);
+    /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
+    public void DisableDomainEvents(DomainEventType domainEventType, Enum? flags = default)
+        => UpdateDomainEvents(domainEventType, flags, x => x.Disable());
 
-    /// <inheritdoc />
-    public void ResetEvents()
+    /// <summary>
+    /// Включает доменные события.
+    /// </summary>
+    public void EnableDomainEvents()
     {
-        ClearDomainEvent(DomainEventType.BeforeSave);
-        ClearDomainEvent(DomainEventType.AfterSave);
-        RequiredEventsBeforeSave.ForEach(e => AddEvent(e, DomainEventType.BeforeSave));
-        RequiredEventsAfterSave.ForEach(e => AddEvent(e, DomainEventType.AfterSave));
+        EnableDomainEvents(DomainEventType.BeforeSave);
+        EnableDomainEvents(DomainEventType.AfterSave);
     }
 
     /// <summary>
-    /// Добавляет эвент в очередь.
+    /// Включает доменные события.
     /// </summary>
-    /// <param name="domainEvents">Эвент.</param>
-    /// <param name="domainEventType"> Тип доменного события. </param>
-    protected void AddEvent(IDomainEvent domainEvents, DomainEventType domainEventType)
+    /// <param name="domainEventType">Тип доменного события.</param>
+    /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
+    public void EnableDomainEvents(DomainEventType domainEventType, Enum? flags = default)
+        => UpdateDomainEvents(domainEventType, flags, x => x.Enable());
+
+    /// <summary>
+    /// Создает доменные события.
+    /// </summary>
+    private void CreateEvents()
     {
-        GetCurrentDomainEvents(domainEventType).Enqueue(domainEvents);
+        _domainEventsBeforeSave = new ReadOnlyDictionary<Enum, IDomainEvent>(BeforeSaveEvents.ToDictionary(x => x.Key));
+        _domainEventsAfterSave = new ReadOnlyDictionary<Enum, IDomainEvent>(AfterSaveEvents.ToDictionary(x => x.Key));
     }
 
     /// <summary>
-    /// Очищает очередь.
+    /// Обновляет доменные события.
     /// </summary>
-    /// <param name="domainEventType">Тип очереди.</param>
-    protected void ClearDomainEvent(DomainEventType domainEventType)
+    /// <param name="domainEventType">Тип доменного события.</param>
+    /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
+    /// <param name="eventAction">Действие над событием.</param>
+    private void UpdateDomainEvents(DomainEventType domainEventType, Enum? flags, Action<IDomainEvent> eventAction)
     {
-        GetCurrentDomainEvents(domainEventType).Clear();
+        var events = GetCurrentDomainEvents(domainEventType);
+
+        events.Where(x => flags?.HasFlag(x.Key) ?? true)
+            .ForEach(x => eventAction(x.Value));
     }
 
     /// <summary>
@@ -98,6 +133,6 @@ public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
     /// </summary>
     /// <param name="domainEventType"> Тип доменного события. </param>
     /// <returns> Коллекцию доменных событий выбранного типа. </returns>
-    private ConcurrentQueue<IDomainEvent> GetCurrentDomainEvents(DomainEventType domainEventType)
+    private ReadOnlyDictionary<Enum, IDomainEvent> GetCurrentDomainEvents(DomainEventType domainEventType)
         => domainEventType == DomainEventType.AfterSave ? _domainEventsAfterSave : _domainEventsBeforeSave;
 }

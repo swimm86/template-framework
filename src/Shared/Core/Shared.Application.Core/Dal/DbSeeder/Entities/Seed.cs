@@ -4,13 +4,19 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Domain.Core.Interfaces;
+
 namespace Shared.Application.Core.Dal.DbSeeder.Entities;
 
 /// <summary>
 /// Сущность "Seed".
 /// </summary>
 public class Seed
+    : IEntity<Guid>
 {
+    /// <inheritdoc />
+    public Guid Id { get; private init; }
+
     /// <summary>
     /// Конструктор класса <see cref="Seed"/>.
     /// </summary>
@@ -30,6 +36,10 @@ public class Seed
     /// <returns>Экземпляр класса <see cref="Seed"/>.</returns>
     public static Seed Create(string name)
     {
-        return new Seed { Name = name };
+        return new Seed
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+        };
     }
 }

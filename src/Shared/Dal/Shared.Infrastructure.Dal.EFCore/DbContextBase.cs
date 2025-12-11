@@ -16,7 +16,6 @@ namespace Shared.Infrastructure.Dal.EFCore;
 /// </summary>
 public abstract class DbContextBase(
     DbContextOptions options,
-    IServiceProvider serviceProvider,
     IHostEnvironment environment)
     : DbContext(options)
 {

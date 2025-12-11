@@ -4,8 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
-
 namespace Shared.Application.Core.Dal.DbSeeder.Interfaces;
 
 /// <summary>
@@ -16,7 +14,6 @@ public interface ISeed
     /// <summary>
     /// Реализуеты seed-процесс.
     /// </summary>
-    /// <param name="unitOfWork"><see cref="IUnitOfWork"/>.</param>
-    /// <returns><see cref="Task"/>.</returns>
-    Task SeedAsync(IUnitOfWork unitOfWork);
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    Task SeedAsync();
 }

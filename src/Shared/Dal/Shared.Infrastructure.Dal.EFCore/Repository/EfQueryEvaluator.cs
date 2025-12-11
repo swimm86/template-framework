@@ -9,14 +9,16 @@ using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Interfaces;
 using Shared.Domain.Core.Mapping.Interfaces;
-using Shared.Infrastructure.Dal.EFCore.Repository.Extensions;
+using Shared.Infrastructure.Dal.EFCore.Extensions;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
 
 /// <summary>
 /// Реализация интерфейса <see cref="IQueryEvaluator"/> на основе ORM "Entity Framework Core"
 /// </summary>
-public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
+public class EfQueryEvaluator(
+    IMapper mapper)
+    : IQueryEvaluator
 {
     /// <inheritdoc />>
     public IQueryable<TEntity> Build<TEntity>(
@@ -29,13 +31,27 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
             return queryable;
         }
 
-        // Применяем фильтры
+        queryable = options.CustomQueryBeforeProcesses
+            .Aggregate(queryable, (acc, func) => func(acc));
+
+        // Применяем фильтры.
         queryable = options.Filters
             .Aggregate(queryable, (acc, x) => acc.Where(x));
 
-        // Применяем Includes-ы
+        // Применяем Includes-ы.
         queryable = options.Includes
             .Aggregate(queryable, (acc, x) => acc.IncludeUntyped(x));
+
+        if (options.AsSplitQuery)
+        {
+            queryable = queryable.AsSplitQuery();
+
+            // Если SplitQuery используется без сортировки с Include, то некоторые Orm могут не подгрузить связанные сущности.
+            if (!options.OrderBy.Any() && options.Includes.Any())
+            {
+                options.AddOrderBy(x => x.Id, OrderDirectionType.Ascending);
+            }
+        }
 
         // Применяем порядок сортировки
         if (options.OrderBy.Count != 0)
@@ -58,10 +74,8 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
             queryable = queryable.AsNoTracking();
         }
 
-        if (options.AsSplitQuery)
-        {
-            queryable = queryable.AsSplitQuery();
-        }
+        queryable = options.CustomQueryPostProcesses
+            .Aggregate(queryable, (acc, func) => func(acc));
 
         if (options.Distinct)
         {
@@ -70,24 +84,27 @@ public class EfQueryEvaluator(IMapper mapper) : IQueryEvaluator
 
         if (options.DistinctBy is not null)
         {
-            queryable = queryable.DistinctBy(options.DistinctBy);
+            queryable = queryable
+                .GroupBy(options.DistinctBy)
+                .Select(group => group.First());
         }
 
         return queryable;
     }
 
-    /// <inheritdoc />>
+    /// <inheritdoc />
     public IQueryable<TOut> BuildWithTransform<TEntity, TOut>(
         IQueryable<TEntity> queryable,
+        QueryOptions<TEntity>? options = null,
+        object? parameters = null)
+        where TEntity : class, IEntity =>
+        mapper.ProjectTo<TOut>(Build(queryable, options), parameters);
+
+    /// <inheritdoc />
+    public IQueryable<TOut> BuildWithTransform<TEntity, TIntermediate, TOut>(
+        IQueryable<TEntity> queryable,
+        Func<IQueryable<TEntity>, IQueryable<TIntermediate>> postBuildProcess,
         QueryOptions<TEntity>? options = null)
         where TEntity : class, IEntity
-    {
-        var result = Build(queryable, options);
-        if (result is IQueryable<TOut> tOutQuery)
-        {
-            return tOutQuery;
-        }
-
-        return mapper.ProjectTo<TOut>(result);
-    }
+        => mapper.ProjectTo<TOut>(postBuildProcess(Build(queryable, options)));
 }

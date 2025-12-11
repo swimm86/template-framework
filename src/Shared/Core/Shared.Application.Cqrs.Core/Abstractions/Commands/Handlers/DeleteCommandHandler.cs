@@ -61,7 +61,7 @@ public abstract class DeleteCommandHandler<TCommand, TEntity>(
     protected virtual async Task<Response> DeleteAsync(TEntity entity, TCommand command)
     {
         await Repository.RemoveAsync(entity, userId: userProvider.UserId);
-        await unitOfWork.SaveChangesAsync();
+        await unitOfWork.SaveChangesAsync(default);
         return new Response { StatusCode = StatusCodes.Status200OK };
     }
 }

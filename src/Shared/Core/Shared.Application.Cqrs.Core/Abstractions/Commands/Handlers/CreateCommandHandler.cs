@@ -68,7 +68,7 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
         await ValidateAsync(entity, validators, cancellationToken);
         var newEntity = await Repository
             .AddAsync(entity, userProvider.UserId, userProvider.UserFullName, cancellationToken);
-        await unitOfWork.SaveChangesAsync(token: cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
         return CreateResponseDto(newEntity);
     }
 

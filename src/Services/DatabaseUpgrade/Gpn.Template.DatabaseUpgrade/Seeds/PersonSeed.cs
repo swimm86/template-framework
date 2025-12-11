@@ -15,10 +15,12 @@ namespace Gpn.Template.DatabaseUpgrade.Seeds;
 /// Seed, который добавляет сущности "Person".
 /// </summary>
 [Seed("person", 0)]
-public class PersonSeed : ISeed
+public class PersonSeed(
+    IUnitOfWork unitOfWork)
+    : ISeed
 {
     /// <inheritdoc />
-    public async Task SeedAsync(IUnitOfWork unitOfWork)
+    public async Task SeedAsync()
     {
         await unitOfWork.GetRepository<Person>()
             .AddRangeAsync(Enumerable

@@ -53,4 +53,52 @@ public static class EnumExtensions
             .Cast<Enum>()
             .Where(v => v.Description().ToLower().Contains(description.ToLower()));
     }
+
+    /// <summary>
+    /// Объединяет флаги между собой.
+    /// </summary>
+    /// <param name="flags">Флаги.</param>
+    /// <param name="flagsToAdd">Флаги для добавления.</param>
+    /// <returns>Объединенные флаги.</returns>
+    /// <exception cref="ArgumentException">
+    /// Возникает, если типы не совпадают между собой или не наследуют <see cref="Enum"/>.
+    /// </exception>
+    public static Enum With(this Enum flags, Enum flagsToAdd) =>
+        flags.Combine(flagsToAdd, (value1, value2) => value1 | value2);
+
+    /// <summary>
+    /// Исключает флаги из других флагов.
+    /// </summary>
+    /// <param name="flags">Флаги.</param>
+    /// <param name="flagsToAdd">Флаги для исключения.</param>
+    /// <returns>Флаги после исключения.</returns>
+    /// <exception cref="ArgumentException">
+    /// Возникает, если типы не совпадают между собой или не наследуют <see cref="Enum"/>.
+    /// </exception>
+    public static Enum Without(this Enum flags, Enum flagsToAdd) =>
+        flags.Combine(flagsToAdd, (value1, value2) => value1 ^ value2);
+
+    private static Enum Combine(this Enum flags, Enum flagsToAdd, Func<long, long, long> combineFunc)
+    {
+        var type = flags.GetType();
+        var addValueType = flagsToAdd.GetType();
+
+        if (!type.IsEnum)
+        {
+            throw new ArgumentException($"Тип {type.Name} должен наследовать {nameof(Enum)}.");
+        }
+
+        if (type != addValueType)
+        {
+            throw new ArgumentException(
+                $"Невозможно объединить значения {nameof(Enum)} разных тпиов " +
+                $"(типы '{type.Name}' и '{addValueType.Name}').");
+        }
+
+        return (Enum)Enum.ToObject(
+            type,
+            Convert.ChangeType(
+                combineFunc(Convert.ToInt64(flags), Convert.ToInt64(flagsToAdd)),
+                Enum.GetUnderlyingType(type)));
+    }
 }

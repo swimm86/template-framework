@@ -16,9 +16,8 @@ namespace Gpn.Template.Infrastructure.Dal;
 /// </summary>
 public class DbContext(
     DbContextOptions<DbContext> options,
-    IServiceProvider serviceProvider,
     IHostEnvironment environment)
-    : DbContextBase(options, serviceProvider, environment)
+    : DbContextBase(options, environment)
 {
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

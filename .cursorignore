@@ -1,0 +1,76 @@
+# Чувствительные данные и конфигурационные файлы
+appsettings.json
+appsettings.*.json
+*.secrets.json
+secrets.json
+*.env
+.env
+.env.*
+*.local
+*.local.json
+
+# Сертификаты и ключи
+*.pfx
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.jks
+*.keystore
+*.truststore
+id_rsa
+id_rsa.pub
+*.pub
+*.private
+
+# Базы данных
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+*.bak
+
+# Логи
+*.log
+logs/
+Logs/
+
+# Временные файлы и артефакты сборки
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+.vs/
+*.user
+*.suo
+*.cache
+
+# Node modules (если есть)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Docker secrets
+docker-compose.override.yml
+*.secret
+secrets/
+
+# Backup файлы
+*.bak
+*.backup
+*~
+
+# Файлы с паролями и токенами
+*password*
+*token*
+*secret*
+*key*
+*credential*
+*.credentials
+
+# Миграции базы данных (могут содержать чувствительные данные)
+# Раскомментируйте, если миграции содержат реальные данные
+# Migrations/
+

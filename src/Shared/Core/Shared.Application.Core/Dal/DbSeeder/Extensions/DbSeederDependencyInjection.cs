@@ -6,7 +6,6 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.Dal.DbSeeder.Interfaces;
-using Shared.Application.Core.DependencyInjection.Extensions;
 
 namespace Shared.Application.Core.Dal.DbSeeder.Extensions;
 
@@ -21,5 +20,5 @@ public static class DbSeederDependencyInjection
     /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
     /// <returns>Измененная коллекция сервисов с добавленными <see cref="IDbSeeder"/>.</returns>
     public static IServiceCollection AddDbSeeder(this IServiceCollection serviceCollection) =>
-        serviceCollection.RegisterDerivedTypeDependencies<IDbSeeder>(ServiceLifetime.Scoped);
+        serviceCollection.AddScoped<IDbSeeder, Implementation.DbSeeder>();
 }

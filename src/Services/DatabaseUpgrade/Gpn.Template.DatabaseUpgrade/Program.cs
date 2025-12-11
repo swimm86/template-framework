@@ -7,16 +7,17 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shared.Application.Core.Configuration.Extensions;
-using Shared.Application.Core.Dal.DbSeeder.Interfaces;
+using Shared.Application.Core.Dal.DbUpdater.Interfaces;
 using Shared.Infrastructure.Core;
 using Shared.Infrastructure.Dal.EFCore.Attributes;
 
 [assembly: MigrationAssembly]
 var builder = CreateHostBuilder(args);
 using var host = builder.Build();
-var dbSeeder = host.Services.GetRequiredService<IDbSeeder>();
-dbSeeder.Migrate();
-dbSeeder.Initialize();
+var dbUpdater = host.Services.GetRequiredService<IDbUpdater>();
+dbUpdater.CreateDbIfNotExists();
+dbUpdater.Migrate();
+dbUpdater.Initialize();
 return;
 
 static IHostBuilder CreateHostBuilder(string[] args) =>

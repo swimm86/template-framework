@@ -8,9 +8,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.DependencyInjection.Attributes;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Attributes;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
+using Shared.Infrastructure.Dal.EFCore.Repository;
 using Shared.Infrastructure.Dal.EFCore.Settings;
 
 namespace Shared.Infrastructure.Dal.EFCore.Extensions;
@@ -40,8 +42,18 @@ public static class ServiceCollectionExtensions
             scope.ServiceProvider.GetService<IDbContextOptionsBuilderInitializer>()!;
 
         return serviceCollection
+            // Регистрируем фабрику контекстов (для безопасного извлечения TContext-ов)
             .AddDbContextFactory<TContext>(opt =>
                 dbContextOptionsBuilderInitializer.Initialize<TSettings>(opt, migrationAssemblyName))
+            // Регистрируем TContext как scoped сервис через factory для использования в репозиториях
+            .AddScoped<TContext>(sp =>
+            {
+                var factory = sp.GetRequiredService<IDbContextFactory<TContext>>();
+                return factory.CreateDbContext();
+            })
+            // Регистрируем базовый DbContext для использования в EfRepository<>
+            .AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>())
+            .AddScoped(typeof(IRepository<>), typeof(EfRepository<>))
             .AddScoped<IUnitOfWork, EfUnitOfWork<TContext>>();
     }
 

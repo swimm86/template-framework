@@ -4,6 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Common.Extensions;
+using Shared.Domain.Core.Enums;
+using Shared.Domain.Core.Event.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Event;
@@ -11,16 +14,61 @@ namespace Shared.Domain.Core.Event;
 /// <summary>
 /// Базовый класс событий при создании сущности, реализующей интерфейс <see cref="IEntity"/>.
 /// </summary>
-/// <typeparam name="TEntity"> Сущность, реализующая интерфейс <see cref="IEntity"/>. </typeparam>
-public abstract class EntityEventBase<TEntity>(TEntity entity)
+/// <param name="key">Ключ события.</param>
+public abstract class EntityEventBase(Enum key)
     : IDomainEvent
-    where TEntity : IEntity
 {
     /// <summary>
-    /// Экземпляр сущности, реализующей интерфейс <see cref="IEntity"/>.
+    /// Признак того, что событие включено.
     /// </summary>
-    public TEntity Entity => entity;
+    private bool _enabled = true;
 
     /// <inheritdoc />
-    public abstract Task ProcessAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken);
+    public Enum Key { get; } = key;
+
+    /// <inheritdoc />
+    public async Task ProcessAsync(
+        DomainEventType eventType,
+        IServiceProvider serviceProvider,
+        ICollection<IWithDomainEvents> entities,
+        CancellationToken cancellationToken)
+    {
+        if (_enabled)
+            await ProcessActionAsync(serviceProvider, entities, cancellationToken);
+
+        Disable();
+        DisableEntitiesEvents(eventType, entities);
+    }
+
+    /// <inheritdoc />
+    public void Enable() => _enabled = true;
+
+    /// <inheritdoc />
+    public void Disable() => _enabled = false;
+
+    /// <summary>
+    /// Выполняет действия события.
+    /// </summary>
+    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="entities">Сущности для обработки.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    protected abstract Task ProcessActionAsync(
+        IServiceProvider serviceProvider,
+        ICollection<IWithDomainEvents> entities,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Отключает события, которые обработались вместе с текущим.
+    /// </summary>
+    /// <param name="eventType">Тип события.</param>
+    /// <param name="entities">Сущности для обработки.</param>
+    protected virtual void DisableEntitiesEvents(
+        DomainEventType eventType,
+        ICollection<IWithDomainEvents> entities) =>
+        entities.ForEach(x =>
+        {
+            if (x.TryGetEvent(eventType, Key, out var domainEvent))
+                domainEvent.Disable();
+        });
 }

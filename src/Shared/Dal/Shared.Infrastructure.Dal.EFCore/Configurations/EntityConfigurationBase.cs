@@ -26,7 +26,10 @@ public abstract class EntityConfigurationBase<TEntity>
         const string idName = nameof(IEntity.Id);
         builder.UseTptMappingStrategy();
         builder.HasKey(idName);
-        builder.Property(idName).ValueGeneratedNever();
+        builder
+            .Property(idName)
+            .ValueGeneratedNever()
+            .HasComment("Идентификатор.");
 
         ConfigureDomainEvents(builder);
         ConfigureMeta(builder);
@@ -55,25 +58,31 @@ public abstract class EntityConfigurationBase<TEntity>
         {
             builder
                 .Property(nameof(IWithCreated.CreatedByUserId))
-                .HasColumnName("created_by");
+                .IsRequired()
+                .HasColumnName("created_by")
+                .HasComment("Идентификатор пользователя, который создал сущность.");
 
             builder
                 .Property(nameof(IWithCreated.CreatedByUserName))
-                .HasColumnName("created_by_user_name");
+                .IsRequired()
+                .HasColumnName("created_by_user_name")
+                .HasComment("Имя пользователя, который создал сущность.");
         }
 
         if (typeof(IWithUpdated).IsAssignableFrom(typeof(TEntity)))
         {
             builder
                 .Property(nameof(IWithUpdated.UpdatedByUserId))
-                .HasColumnName("updated_by");
+                .HasColumnName("updated_by")
+                .HasComment("Идентификатор пользователя, который создал сущность.");
         }
 
         if (typeof(IWithDeleted).IsAssignableFrom(typeof(TEntity)))
         {
             builder
                 .Property(nameof(IWithDeleted.DeletedByUserId))
-                .HasColumnName("deleted_by_id");
+                .HasColumnName("deleted_by_id")
+                .HasComment("Идентификатор пользователя, который удалил сущность.");
         }
 
         ConfigureDates(builder);
@@ -86,23 +95,24 @@ public abstract class EntityConfigurationBase<TEntity>
             builder
                 .Property(nameof(IWithDateCreated.DateCreated))
                 .IsRequired()
-                .HasColumnName("created_at");
+                .HasColumnName("created_at")
+                .HasComment("Время создания сущности.");
         }
 
         if (typeof(IWithDateUpdated).IsAssignableFrom(typeof(TEntity)))
         {
             builder
                 .Property(nameof(IWithDateUpdated.DateUpdated))
-                .IsRequired()
-                .HasColumnName("updated_at");
+                .HasColumnName("updated_at")
+                .HasComment("Время обновления сущности.");
         }
 
         if (typeof(IWithDateDeleted).IsAssignableFrom(typeof(TEntity)))
         {
             builder
                 .Property(nameof(IWithDateDeleted.DateDeleted))
-                .IsRequired()
-                .HasColumnName("deleted_at");
+                .HasColumnName("deleted_at")
+                .HasComment("Время удаления сущности.");
         }
     }
 }

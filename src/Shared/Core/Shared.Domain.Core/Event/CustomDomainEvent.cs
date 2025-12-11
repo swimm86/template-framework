@@ -11,21 +11,15 @@ namespace Shared.Domain.Core.Event;
 /// <summary>
 /// Кастомное доменное событие.
 /// </summary>
-public record CustomDomainEvent
-    : IDomainEvent
+public class CustomDomainEvent(
+    Enum key,
+    Func<IServiceProvider, ICollection<IWithDomainEvents>, CancellationToken, Task> action)
+    : EntityEventBase(key)
 {
-    private readonly Func<IServiceProvider, CancellationToken, Task> _action;
-
-    /// <summary>
-    /// Консутруктор.
-    /// </summary>
-    /// <param name="action">Действие, которое реализует событие.</param>
-    public CustomDomainEvent(Func<IServiceProvider, CancellationToken, Task> action)
-    {
-        _action = action;
-    }
-
     /// <inheritdoc />
-    public Task ProcessAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken) =>
-        _action(serviceProvider, cancellationToken);
+    protected override Task ProcessActionAsync(
+        IServiceProvider serviceProvider,
+        ICollection<IWithDomainEvents> entities,
+        CancellationToken cancellationToken) =>
+        action(serviceProvider, entities, cancellationToken);
 }
