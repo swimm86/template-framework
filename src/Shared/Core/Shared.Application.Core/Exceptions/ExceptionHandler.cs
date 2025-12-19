@@ -148,7 +148,7 @@ internal sealed class ExceptionHandler(
                 "errors",
                 validationFailures
                     .Select(x => new { field = x.PropertyName, message = x.ErrorMessage })
-                    .DistinctBy(x => x.field + x.message)
+                    .Distinct()
                     .ToArray()
             }
         };
