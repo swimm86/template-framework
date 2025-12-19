@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="ValidationPipelineBehaviour.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
@@ -45,6 +45,8 @@ internal sealed class ValidationPipelineBehaviour<TRequest, TResponse>(
         var failures = validationResults
             .SelectMany(result => result.Errors)
             .Where(failure => failure is not null)
+            .GroupBy(f => new { f.PropertyName, f.ErrorMessage })
+            .Select(g => g.First())
             .ToList();
         if (failures.Count == 0)
         {

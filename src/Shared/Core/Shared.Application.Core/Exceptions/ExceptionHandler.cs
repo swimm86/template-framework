@@ -142,7 +142,16 @@ internal sealed class ExceptionHandler(
 
     private static Dictionary<string, object?> ValidationErrorsToExtensions(
         IEnumerable<ValidationFailure> validationFailures)
-        => new() { { "errors", validationFailures.Select(x => new { field = x.PropertyName, message = x.ErrorMessage }).ToArray() } };
+        => new()
+        {
+            {
+                "errors",
+                validationFailures
+                    .Select(x => new { field = x.PropertyName, message = x.ErrorMessage })
+                    .DistinctBy(x => x.field + x.message)
+                    .ToArray()
+            }
+        };
 
     private ErrorResponse CreateResponseFromException(
         Exception exception)
