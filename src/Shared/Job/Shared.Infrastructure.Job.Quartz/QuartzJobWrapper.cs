@@ -42,7 +42,7 @@ public class QuartzJobWrapper(
                 JobKey = context.JobDetail.Key,
                 StartTimeUtc = DateBuilder.NextGivenMinuteDate(DateTime.Now, 5),
             };
-            await context.Scheduler.ScheduleJob(retryTrigger);
+            await context.Scheduler.ScheduleJob(retryTrigger, context.CancellationToken);
             throw new JobExecutionException(ex, false);
         }
     }

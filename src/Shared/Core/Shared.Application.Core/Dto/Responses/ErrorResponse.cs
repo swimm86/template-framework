@@ -11,11 +11,21 @@ namespace Shared.Application.Core.Dto.Responses;
 /// <summary>
 /// Ответ с ошибками.
 /// </summary>
-/// <param name="Errors">Ошибки.</param>
-public record ErrorResponse(ICollection<ProblemDetails> Errors) : ResponseBase
+public record ErrorResponse
+    : ResponseBase
 {
+    /// <summary>
+    /// Ошибки.
+    /// </summary>
+    public ICollection<ProblemDetails> Errors { get; set; }
+
     /// <summary>
     /// Подробная информация об ошибке.
     /// </summary>
     public string? Details { get; internal set; }
+
+    /// <summary>
+    /// Дополнительная информация.
+    /// </summary>
+    public Dictionary<string, object>? AdditionalData { get; set; }
 }

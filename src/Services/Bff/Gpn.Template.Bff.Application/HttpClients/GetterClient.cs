@@ -26,7 +26,7 @@ public sealed class GetterClient(
         PersonListRequest request,
         CancellationToken cancellationToken = default)
     {
-        return PostAsync<PersonListRequest, PersonListResponse>(
+        return PostAsync<PersonListResponse>(
             "persons/list",
             request,
             cancellationToken)!;
@@ -37,7 +37,7 @@ public sealed class GetterClient(
         PersonListRequest request,
         CancellationToken cancellationToken = default)
     {
-        return PostAsync<PersonListRequest, PersonListResponse>(
+        return PostAsync<PersonListResponse>(
             "persons-cqrs/list",
             request,
             cancellationToken)!;

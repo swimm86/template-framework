@@ -53,8 +53,7 @@ internal sealed class ExceptionHandler(
         httpContext.Response.StatusCode = response.StatusCode;
 
         await httpContext.Response
-            .WriteAsJsonAsync(response, cancellationToken)
-            .ConfigureAwait(false);
+            .WriteAsJsonAsync(response, cancellationToken);
 
         return true;
     }
@@ -64,10 +63,10 @@ internal sealed class ExceptionHandler(
     {
         var details = exception switch
         {
+            ProxiedException proxiedException => CreateResponseFromProxiedException(proxiedException),
             AppException appException => CreateResponseFromAppException(appException),
             ValidationException validationException => CreateResponseFromValidationException(validationException),
             UnauthorizedException unauthorizedException => CreateResponseFromUnauthorizedException(unauthorizedException),
-            ProxiedException proxiedException => CreateResponseFromProxiedException(proxiedException),
             _ => CreateResponseFromDefaultException(),
         };
 
@@ -157,9 +156,11 @@ internal sealed class ExceptionHandler(
         Exception exception)
     {
         var details = ProcessException(exception);
-        var response = new ErrorResponse(details)
+        var response = new ErrorResponse
         {
+            Errors = details,
             StatusCode = details.FirstOrDefault()?.Status ?? StatusCodes.Status500InternalServerError,
+            AdditionalData = (exception as AppException)?.AdditionalData,
         };
 
         var enrichErrorResponse = false;

@@ -9,8 +9,14 @@ namespace Shared.Domain.Core.Exceptions.Models.Base;
 /// <summary>
 /// Базовый класс ошибки приложения.
 /// </summary>
-public abstract class AppException : Exception
+public abstract class AppException
+    : Exception
 {
+    /// <summary>
+    /// Дополнительная информация.
+    /// </summary>
+    public Dictionary<string, object>? AdditionalData { get; set; }
+
     /// <summary>
     /// Инициализация <see cref="AppException"/>.
     /// </summary>
