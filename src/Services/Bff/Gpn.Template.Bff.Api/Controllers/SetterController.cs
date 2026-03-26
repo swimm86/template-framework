@@ -17,7 +17,7 @@ namespace Gpn.Template.Bff.Api.Controllers;
 /// <param name="logger">Логгер.</param>
 public class SetterController(
     ISetterClient setterClient,
-    ILogger<IGetterController> logger
-) : BffControllerBase(logger), ISetterController
+    ILogger<SetterController> logger)
+    : BffControllerBase(logger), ISetterController
 {
 }

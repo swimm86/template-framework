@@ -4,16 +4,18 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Presentation;
 using Shared.Presentation.Core.Attributes;
 using ControllerBase = Shared.Presentation.Core.Controllers.ControllerBase;
 
 namespace Gpn.Template.Bff.Api.Controllers.Base;
 
 /// <summary>
-/// Базовый класс для Getter Controller-ов
+/// Базовый класс для BFF Controller-ов.
 /// </summary>
 /// <param name="logger">Логгер.</param>
+[AppName(Constants.AppName)]
 [ControllerType("bff")]
-public abstract class BffControllerBase(ILogger logger) : ControllerBase(logger)
-{
-}
+public abstract class BffControllerBase(
+    ILogger logger)
+    : ControllerBase(logger);

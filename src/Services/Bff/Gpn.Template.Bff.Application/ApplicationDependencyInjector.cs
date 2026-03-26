@@ -4,10 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Contour.Admin.Auth.Sdk.Helpers;
-using Gpn.Template.Bff.Application.HttpClients;
-using Gpn.Template.Bff.Application.HttpClients.Settings;
-using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,14 +23,15 @@ public class ApplicationDependencyInjector(
     ) : DependencyInjectorBase(logger)
 {
     /// <inheritdoc />
-    protected override IServiceCollection Process(IServiceCollection serviceCollection)
+    protected override IServiceCollection Process(
+        IServiceCollection serviceCollection)
     {
         return serviceCollection
-            .AddClient<GetterApiClientSettings, IGetterClient, GetterClient>(
+            .AddHttpClients(
                 configuration,
-                builder => builder.AddHttpMessageHandler<AuthHttpClientHandler>())
-            .AddClient<SetterApiClientSettings, ISetterClient, SetterClient>(
-                configuration,
-                builder => builder.AddHttpMessageHandler<AuthHttpClientHandler>());
+                x => x.ConfigurePrimaryHttpMessageHandler(_ => new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
+                }));
     }
 }

@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Shared\Core\Shared.Presentation.Core\Shared.Presentation.Core.csproj" />
+    <ProjectReference Include="..\..\Common\Gpn.Template.Presentation\Gpn.Template.Presentation.csproj" />
     <ProjectReference Include="..\Gpn.Template.Bff.Infrastructure\Gpn.Template.Bff.Infrastructure.csproj" />
   </ItemGroup>
 

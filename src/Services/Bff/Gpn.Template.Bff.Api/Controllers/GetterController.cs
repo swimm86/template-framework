@@ -20,8 +20,8 @@ namespace Gpn.Template.Bff.Api.Controllers;
 /// <param name="logger">Логгер.</param>
 public class GetterController(
     ISender sender,
-    ILogger<IGetterController> logger
-) : BffControllerBase(logger), IGetterController
+    ILogger<GetterController> logger)
+    : BffControllerBase(logger), IGetterController
 {
     /// <summary>
     /// Возвращает список всех 'Person'-ов.

@@ -10,9 +10,26 @@ using Shared.Common.Extensions;
 namespace Shared.Presentation.Core.Conventions;
 
 /// <summary>
-/// Класс для применения конвенции именования контроллеров и шаблонов маршрутов в приложении.
+/// Конвенция для нормализации имён контроллеров в маршрутах.
 /// </summary>
-public class ControllerNameConvention : IApplicationModelConvention
+/// <remarks>
+/// <para>
+/// Преобразует имена контроллеров следующим образом:
+/// </para>
+/// <list type="bullet">
+/// <item>Удаляет суффикс "Controller" (если присутствует)</item>
+/// <item>Преобразует PascalCase в kebab-case (например, "PersonsController" → "persons")</item>
+/// </list>
+/// </remarks>
+/// <example>
+/// <code>
+/// PersonsController     → "persons"
+/// OrdersController      → "orders"
+/// UserProfilesController → "user-profiles"
+/// </code>
+/// </example>
+public class ControllerNameConvention
+    : IApplicationModelConvention
 {
     /// <inheritdoc />
     public void Apply(ApplicationModel application)

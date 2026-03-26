@@ -16,8 +16,8 @@ namespace Gpn.Template.Getter.Api.Controllers;
 /// </summary>
 public sealed class PersonsCqrsController(
     ISender sender,
-    ILogger<PersonsController> logger
-    ) : GetterControllerBase(logger)
+    ILogger<PersonsController> logger)
+    : GetterControllerBase(logger)
 {
     /// <summary>
     /// Возвращает список всех 'Person'-ов.

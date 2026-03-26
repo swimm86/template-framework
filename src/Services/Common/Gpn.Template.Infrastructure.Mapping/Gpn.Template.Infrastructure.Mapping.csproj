@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
+    <ProjectReference Include="..\Gpn.Template.Application\Gpn.Template.Application.csproj" />
   </ItemGroup>
 
 </Project>

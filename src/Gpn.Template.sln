@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.2.32505.173
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11605.240 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gpn.Template.Getter.Api", "Services\Getter\Gpn.Template.Getter.Api\Gpn.Template.Getter.Api.csproj", "{9B4BD831-5014-416B-8223-789019A89B21}"
 EndProject
@@ -94,6 +94,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Job", "Job", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Infrastructure.Job.Quartz", "Shared\Job\Shared.Infrastructure.Job.Quartz\Shared.Infrastructure.Job.Quartz.csproj", "{4DBF2740-04D6-4479-6900-7F384C922B79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gpn.Template.Presentation", "Services\Common\Gpn.Template.Presentation\Gpn.Template.Presentation.csproj", "{0AA79437-0741-4B9E-8821-C59BA12A66D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -276,6 +278,12 @@ Global
 		{4DBF2740-04D6-4479-6900-7F384C922B79}.Publish|Any CPU.Build.0 = Release|Any CPU
 		{4DBF2740-04D6-4479-6900-7F384C922B79}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4DBF2740-04D6-4479-6900-7F384C922B79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2}.Publish|Any CPU.ActiveCfg = Release|Any CPU
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2}.Publish|Any CPU.Build.0 = Release|Any CPU
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -325,6 +333,7 @@ Global
 		{D38BE378-945E-4E81-845A-724CEA9ADF47} = {6D40614C-8AA2-4A85-A4D7-1FB07F77F54B}
 		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {30DEDAD4-3A5F-4E66-AD49-CA7F74EF9750}
 		{4DBF2740-04D6-4479-6900-7F384C922B79} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{0AA79437-0741-4B9E-8821-C59BA12A66D2} = {6D40614C-8AA2-4A85-A4D7-1FB07F77F54B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E9890C3A-FAB7-4EC9-854B-41BF56852932}

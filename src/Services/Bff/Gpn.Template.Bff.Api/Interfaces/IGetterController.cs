@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Bff.Application.Dto.Requests;
-using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gpn.Template.Bff.Api.Interfaces;

@@ -13,14 +13,27 @@ using Shared.Common.Extensions;
 namespace Shared.Presentation.Core.Controllers;
 
 /// <summary>
-/// Базовый класс для контроллеров
-/// </summary>
-/// <summary>
 /// Абстрактный базовый класс для всех контроллеров, обеспечивающий общую логику обработки запросов.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Предоставляет единую точку входа для обработки запросов с автоматическим
+/// логированием, обработкой исключений и формированием HTTP-ответа.
+/// </para>
+/// <para>
+/// <b>Архитектурная роль:</b>
+/// <list type="bullet">
+/// <item>Инкапсулирует обработку CQRS-запросов через метод <see cref="Process{TResponse}"/></item>
+/// <item>Автоматически логирует выполнение запросов через <see cref="ILogger"/></item>
+/// <item>Преобразует результаты в HTTP-ответы с соответствующими статус кодами</item>
+/// </list>
+/// </para>
+/// </remarks>
+/// <param name="logger">Логгер для записи событий выполнения запросов.</param>
 [ApiController]
-[Route("api/pir/[controllerType]/v1/[controller]")]
-public abstract class ControllerBase(ILogger logger)
+[Route("api/[appName]/[controllerType]/v1/[controller]")]
+public abstract class ControllerBase(
+    ILogger logger)
     : Microsoft.AspNetCore.Mvc.ControllerBase
 {
     /// <summary>
