@@ -19,15 +19,20 @@ public static class JsonHelper
     /// <typeparam name="T">Тип целевого объекта (должен быть ссылочным типом).</typeparam>
     /// <param name="json">Строка в формате JSON.</param>
     /// <param name="result">При успешной десериализации — результирующий объект; иначе — <c>null</c>.</param>
+    /// <param name="options">Настройки сериализации <see cref="JsonSerializerOptions"/>.
+    /// Если <c>null</c>, используются настройки по умолчанию.</param>
     /// <returns><c>true</c>, если десериализация прошла успешно; <c>false</c>, если не удалось десериализовать.</returns>
-    public static bool TryDeserialize<T>(string json, out T? result)
+    public static bool TryDeserialize<T>(
+        string json,
+        out T? result,
+        JsonSerializerOptions? options = null)
         where T : class
     {
         bool isParsed;
         result = null;
         try
         {
-            result = JsonSerializer.Deserialize<T>(json);
+            result = JsonSerializer.Deserialize<T>(json, options);
             isParsed = true;
         }
         catch

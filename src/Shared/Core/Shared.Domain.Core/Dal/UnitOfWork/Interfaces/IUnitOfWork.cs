@@ -13,7 +13,8 @@ namespace Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 /// <summary>
 /// Интерфейс, который используется для unit of work
 /// </summary>
-public interface IUnitOfWork : IDisposable
+public interface IUnitOfWork
+    : IDisposable
 {
     /// <summary>
     /// Сохраняет изменения
