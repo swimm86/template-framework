@@ -25,6 +25,6 @@ public class ColumnsNamesConvention : IModelFinalizingConvention
             .GetEntityTypes()
             .ToList()
             .ForEach(entity =>
-                entity.GetProperties().ForEach(prop => prop.SetColumnName(prop.GetColumnName().ConvertToSnakeCase())));
+                entity.GetProperties().ForEach(prop => prop.SetColumnName(prop.GetColumnName().ToSnakeCase())));
     }
 }
