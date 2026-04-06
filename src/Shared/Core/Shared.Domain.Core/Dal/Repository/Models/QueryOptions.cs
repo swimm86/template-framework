@@ -165,7 +165,7 @@ public class QueryOptions<TEntity>(
     public void AddOrderBy(
         SortOption sortOption)
     {
-        var propToSort = sortOption.Key.ToLowerFirstChar();
+        var propToSort = sortOption.Key.ToCamelCase();
         if (!_orderByFields.Add(propToSort))
         {
             return;

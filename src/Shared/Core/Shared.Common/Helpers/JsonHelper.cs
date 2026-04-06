@@ -35,7 +35,15 @@ public static class JsonHelper
             result = JsonSerializer.Deserialize<T>(json, options);
             isParsed = true;
         }
-        catch
+        catch (JsonException)
+        {
+            isParsed = false;
+        }
+        catch (ArgumentException)
+        {
+            isParsed = false;
+        }
+        catch (NotSupportedException)
         {
             isParsed = false;
         }

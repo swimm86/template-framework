@@ -4,6 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
 namespace Shared.Common.Extensions;
 
 /// <summary>
@@ -26,23 +29,44 @@ public static class StringExtensions
     /// </summary>
     /// <param name="value">Исходная строка.</param>
     /// <returns>Преобразованная в формат snake_case строка.</returns>
-    public static string ConvertToSnakeCase(this string value)
+    public static string ToSnakeCase(this string value)
     {
         return value.ToLowerCaseWithDelimiter("_");
     }
 
     /// <summary>
-    /// Конвертирует строку в строку, которая нчинается с маленькой буквы.
+    /// Преобразовывает строку в camelCase.
     /// </summary>
     /// <param name="input">Исходная строка.</param>
-    /// <returns>Строка с маленькой буквы.</returns>
-    public static string ToLowerFirstChar(this string input)
+    /// <returns>Строка преобразованная в camelCase.</returns>
+    public static string ToCamelCase(this string input)
     {
-        if (string.IsNullOrEmpty(input))
-            return input;
-
-        return char.ToLower(input[0]) + input.Substring(1);
+        return string.IsNullOrWhiteSpace(input)
+            ? input
+            : JsonNamingPolicy.CamelCase.ConvertName(input);
     }
+
+    /// <summary>
+    /// Конвертирует строку в строку, которая нчинается с заглавной буквы.
+    /// </summary>
+    /// <param name="input">Исходная строка.</param>
+    /// <returns>Строка с заглавной буквы.</returns>
+    public static string ToUpperFirstChar(this string input)
+    {
+        return string.IsNullOrEmpty(input)
+            ? input
+            : input.Length > 1
+                ? char.ToUpper(input[0]) + input[1..]
+                : input.ToUpper();
+    }
+
+    /// <summary>
+    /// Удаляет все пробельные символы из строки.
+    /// </summary>
+    /// <param name="input">Исходная строка.</param>
+    /// <returns>Строка без пробельных символов.</returns>
+    public static string RemoveWhiteSpaces(this string input)
+        => Regex.Replace(input, @"\s+", string.Empty);
 
     /// <summary>
     /// Конвертирует строку в слова с маленькой буквы, разделенные разделителем <paramref name="delimiter"/>.
@@ -50,8 +74,14 @@ public static class StringExtensions
     /// <param name="value">Исходная строка.</param>
     /// <param name="delimiter">Разделитель.</param>
     /// <returns>Преобразованная строка.</returns>
-    private static string ToLowerCaseWithDelimiter(this string value, string delimiter)
+    private static string ToLowerCaseWithDelimiter(
+        this string value,
+        string delimiter)
     {
-        return string.Concat(value.Select((x, i) => i > 0 && char.IsUpper(x) ? delimiter + x : x.ToString())).ToLower();
+        return string.Concat(
+                value.Select((x, i) => i > 0 && char.IsUpper(x)
+                    ? delimiter + x
+                    : x.ToString()))
+            .ToLower();
     }
 }

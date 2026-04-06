@@ -61,7 +61,7 @@ public class ControllerTypeConvention
 
                     var attributeTypeName = type.Name;
                     var template = attributeTypeName
-                        .ToLowerFirstChar()
+                        .ToCamelCase()
                         .Remove(attributeTypeName.Length - nameof(Attribute).Length);
                     controller.Selectors.ForEach(selector =>
                         selector.AttributeRouteModel!.Template =
