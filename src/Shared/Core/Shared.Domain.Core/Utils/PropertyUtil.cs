@@ -1,9 +1,10 @@
-﻿// ----------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------
 // <copyright file="PropertyUtil.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using Shared.Domain.Core.Converters;
 using Shared.Domain.Core.Converters.Interfaces;
@@ -15,44 +16,60 @@ namespace Shared.Domain.Core.Utils;
 /// </summary>
 public class PropertyUtil
 {
-    private readonly Dictionary<(Type, string), Action<object, object>> _propertySetters = new();
-    private readonly Dictionary<(Type, string), Func<object, object>> _propertyGetters = new();
+    private static readonly Action<object, object?> NoOpSetter = (_, _) => { };
+    private static readonly Func<object, object?> NullGetter = _ => null;
+    private static readonly IObjectToStringConverter DefaultConverter = new DefaultObjectToStringConverter();
+
+    private readonly ConcurrentDictionary<(Type, string), Action<object, object?>> _propertySetters = new();
+    private readonly ConcurrentDictionary<(Type, string), Func<object, object?>> _propertyGetters = new();
 
     /// <summary>
-    /// Устанавливает значения для свойств объекта.
+    /// Устанавливает значение свойства объекта.
     /// </summary>
-    /// <typeparam name="TObj">Тип объекта.</typeparam>
-    /// <param name="obj">Обект, которому необходимо установить значение свойства.</param>
+    /// <param name="obj">Объект, которому необходимо установить значение свойства.</param>
     /// <param name="propertyName">Название свойства, в которое необходимо установить значение.</param>
-    /// <param name="value">Знаечние.</param>
-    public void SetProperty<TObj>(TObj obj, string propertyName, object value)
+    /// <param name="value">Значение.</param>
+    /// <param name="throwIfNotFound">
+    /// Если <c>true</c> (по умолчанию) — выбрасывает <see cref="InvalidOperationException"/>, когда свойство не найдено.
+    /// Если <c>false</c> — операция игнорируется молча: исключение не выбрасывается, значение не устанавливается.
+    /// </param>
+    public void SetProperty(
+        object obj,
+        string propertyName,
+        object? value,
+        bool throwIfNotFound = true)
     {
-        var objectType = typeof(TObj);
-        var key = (objectType, propertyName);
-        if (!_propertySetters.TryGetValue(key, out var setter))
+        if (obj == null)
         {
-            var propertyInfo = objectType.GetProperty(propertyName);
-            if (propertyInfo != null)
+            throw new ArgumentNullException(nameof(obj));
+        }
+
+        var objectType = obj.GetType();
+        var key = (objectType, propertyName);
+
+        var setter = _propertySetters.GetOrAdd(key, x =>
+        {
+            var (type, name) = x;
+            var propertyInfo = type.GetProperty(name);
+            if (propertyInfo == null)
             {
-                var parameter = Expression.Parameter(typeof(object), "instance");
-                var valueParameter = Expression.Parameter(typeof(object), nameof(value));
-                var propertyExpression = Expression.Property(
-                    Expression.Convert(parameter, objectType),
-                    propertyInfo);
-                var assignExpression = Expression.Assign(
-                    propertyExpression,
-                    Expression.Convert(valueParameter, propertyInfo.PropertyType));
-                var lambdaExpression = Expression.Lambda<Action<object, object>>(
-                    assignExpression,
-                    parameter,
-                    valueParameter);
-                setter = lambdaExpression.Compile();
-                _propertySetters.Add(key, setter);
+                return NoOpSetter;
             }
-            else
-            {
-                throw new InvalidOperationException($"Property {propertyName} not found");
-            }
+
+            var parameter = Expression.Parameter(typeof(object), "instance");
+            var valueParameter = Expression.Parameter(typeof(object), "value");
+            var propertyExpression = Expression.Property(Expression.Convert(parameter, type), propertyInfo);
+            var assignExpression = Expression.Assign(
+                propertyExpression,
+                Expression.Convert(valueParameter, propertyInfo.PropertyType));
+            var lambdaExpression =
+                Expression.Lambda<Action<object, object?>>(assignExpression, parameter, valueParameter);
+            return lambdaExpression.Compile();
+        });
+
+        if (setter == NoOpSetter && throwIfNotFound)
+        {
+            throw new InvalidOperationException($"Property {propertyName} not found");
         }
 
         setter(obj, value);
@@ -61,52 +78,68 @@ public class PropertyUtil
     /// <summary>
     /// Получает значение свойства объекта.
     /// </summary>
-    /// <typeparam name="TObj">Тип объекта.</typeparam>
-    /// <param name="obj">Обект, из которого необходимо получить значение свойства.</param>
+    /// <param name="obj">Объект, из которого необходимо получить значение свойства.</param>
     /// <param name="propertyName">Название свойства, значение которого необходимо получить.</param>
-    /// <returns>Значение свойства.</returns>
-    public object? GetProperty<TObj>(TObj obj, string propertyName)
+    /// <param name="throwIfNotFound">
+    /// Если <c>true</c> (по умолчанию) — выбрасывает <see cref="InvalidOperationException"/>, когда свойство не найдено.
+    /// Если <c>false</c> — возвращает <c>null</c>.
+    /// </param>
+    /// <returns>Значение свойства, либо <c>null</c> если свойство не найдено и <paramref name="throwIfNotFound"/> равен <c>false</c>.</returns>
+    public object? GetProperty(
+        object? obj,
+        string propertyName,
+        bool throwIfNotFound = true)
     {
-        var objectType = typeof(TObj);
-        var key = (objectType, propertyName);
-        if (_propertyGetters.TryGetValue(key, out var getter))
+        if (obj == null)
         {
-            return getter(obj);
+            throw new ArgumentNullException(nameof(obj));
         }
 
-        var propertyInfo = objectType.GetProperty(propertyName);
-        if (propertyInfo != null)
+        var objectType = obj.GetType();
+        var key = (objectType, propertyName);
+
+        var getter = _propertyGetters.GetOrAdd(key, x =>
         {
+            var (type, name) = x;
+            var propertyInfo = type.GetProperty(name);
+            if (propertyInfo == null)
+            {
+                return NullGetter;
+            }
+
             var parameter = Expression.Parameter(typeof(object), "instance");
-            var propertyExpression = Expression.Property(Expression.Convert(parameter, objectType), propertyInfo);
+            var propertyExpression = Expression.Property(Expression.Convert(parameter, type), propertyInfo);
             var convertExpression = Expression.Convert(propertyExpression, typeof(object));
             var lambdaExpression =
-                Expression.Lambda<Func<object, object>>(convertExpression, parameter);
-            getter = lambdaExpression.Compile();
-            _propertyGetters.Add(key, getter);
-        }
-        else
+                Expression.Lambda<Func<object, object?>>(convertExpression, parameter);
+            return lambdaExpression.Compile();
+        });
+
+        if (getter == NullGetter)
         {
-            throw new InvalidOperationException($"Property {propertyName} not found");
+            return throwIfNotFound
+                ? throw new InvalidOperationException($"Property {propertyName} not found")
+                : null;
         }
 
         return getter(obj);
     }
 
     /// <summary>
-    /// Получает значение свойства объекта.
+    /// Получает строковое представление значения свойства объекта.
     /// </summary>
-    /// <param name="obj">Обект, из которого необходимо получить значение свойства.</param>
+    /// <param name="obj">Объект, из которого необходимо получить значение свойства.</param>
     /// <param name="propertyName">Название свойства, значение которого необходимо получить.</param>
-    /// <param name="converter">Конвертер объекта в строку (по-умолчанию используется <see cref="DefaultObjectToStringConverter"/>).</param>
-    /// <returns>Значение свойства.</returns>
+    /// <param name="converter">Конвертер объекта в строку. По умолчанию используется <see cref="DefaultObjectToStringConverter"/>.</param>
+    /// <returns>Строковое представление значения свойства.</returns>
+    /// <exception cref="InvalidOperationException">Выбрасывается, если свойство с именем <paramref name="propertyName"/> не найдено.</exception>
     public string GetPropertyAsString(
         object obj,
         string propertyName,
-        IObjectToStringConverter? converter = default)
+        IObjectToStringConverter? converter = null)
     {
         var value = GetProperty(obj, propertyName);
-        converter ??= new DefaultObjectToStringConverter();
+        converter ??= DefaultConverter;
         return converter.Convert(value);
     }
 }
