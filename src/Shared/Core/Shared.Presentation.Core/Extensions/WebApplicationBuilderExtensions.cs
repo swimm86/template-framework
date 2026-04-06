@@ -11,6 +11,8 @@ using Shared.Application.Core.Configuration.Extensions;
 using Shared.Common;
 using Shared.Infrastructure.Core;
 using Shared.Presentation.Core.Conventions;
+using Shared.Presentation.Core.Exceptions.Extensions;
+using Shared.Presentation.Core.RequestLogging.Filters;
 using Shared.Presentation.Core.Swagger;
 
 namespace Shared.Presentation.Core.Extensions;
@@ -34,6 +36,7 @@ public static class WebApplicationBuilderExtensions
             {
                 options.Conventions.Add(new ControllerTypeConvention());
                 options.Conventions.Add(new ControllerNameConvention());
+                options.Filters.Add<RequestLoggingFilter>();
             }).Services
             .AddEndpointsApiExplorer()
             .AddSwagger()
