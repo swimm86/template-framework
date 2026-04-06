@@ -67,7 +67,7 @@ public class ControllerTypeConvention
                         selector.AttributeRouteModel!.Template =
                             selector.AttributeRouteModel.Template!.Replace(
                                 $"[{template}]",
-                                (attribute as ControllerRouteAttributeBase)!.Value));
+                                (attribute as ControllerRouteAttributeBase)!.Value.ToKebabCase()));
                 }));
     }
 }

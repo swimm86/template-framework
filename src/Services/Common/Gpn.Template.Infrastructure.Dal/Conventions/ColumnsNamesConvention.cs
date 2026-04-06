@@ -14,7 +14,8 @@ namespace Gpn.Template.Infrastructure.Dal.Conventions;
 /// <summary>
 /// Конвенция для приведения названия полей к snake_case.
 /// </summary>
-public class ColumnsNamesConvention : IModelFinalizingConvention
+public class ColumnsNamesConvention
+    : IModelFinalizingConvention
 {
     /// <inheritdoc />
     public void ProcessModelFinalizing(

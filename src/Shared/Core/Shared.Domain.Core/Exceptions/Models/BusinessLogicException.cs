@@ -11,7 +11,8 @@ namespace Shared.Domain.Core.Exceptions.Models;
 /// <summary>
 /// Ошибка бизнес логики.
 /// </summary>
-public class BusinessLogicException : AppException
+public class BusinessLogicException
+    : AppException
 {
     /// <summary>
     /// Инициализация <see cref="BusinessLogicException"/>.
@@ -24,8 +25,11 @@ public class BusinessLogicException : AppException
     /// Инициализация <see cref="BusinessLogicException"/> с сообщением.
     /// </summary>
     /// <param name="message"> Сообщение. </param>
-    public BusinessLogicException(string message)
-        : base(message)
+    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    public BusinessLogicException(
+        string message,
+        IReadOnlyDictionary<string, object>? additionalData = null)
+        : base(message, additionalData)
     {
     }
 
@@ -34,8 +38,12 @@ public class BusinessLogicException : AppException
     /// </summary>
     /// <param name="message"> Сообщение. </param>
     /// <param name="innerException"> Внутренняя ошибка. </param>
-    public BusinessLogicException(string message, Exception innerException)
-        : base(message, innerException)
+    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    public BusinessLogicException(
+        string message,
+        Exception innerException,
+        IReadOnlyDictionary<string, object>? additionalData = null)
+        : base(message, innerException, additionalData)
     {
     }
 }

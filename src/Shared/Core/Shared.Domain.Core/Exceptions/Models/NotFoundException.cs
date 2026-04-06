@@ -13,7 +13,8 @@ namespace Shared.Domain.Core.Exceptions.Models;
 /// <summary>
 /// Ошибка типа - Не найден.
 /// </summary>
-public class NotFoundException : AppException
+public class NotFoundException
+    : AppException
 {
     /// <summary>
     /// Инициализация <see cref="NotFoundException"/>.
@@ -26,8 +27,11 @@ public class NotFoundException : AppException
     /// Инициализация <see cref="NotFoundException"/> с сообщением.
     /// </summary>
     /// <param name="message"> Сообщение. </param>
-    public NotFoundException(string message)
-        : base(message)
+    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    public NotFoundException(
+        string message,
+        IReadOnlyDictionary<string, object>? additionalData = null)
+        : base(message, additionalData)
     {
     }
 
@@ -36,10 +40,16 @@ public class NotFoundException : AppException
     /// </summary>
     /// <param name="entityType">Тип сущности, которая не была найдена.</param>
     /// <param name="key">Ключ.</param>
-    public NotFoundException(MemberInfo entityType, object key)
-        : base($"Сущность " +
-               $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
-               $"не была найдена. Ключ: {key}")
+    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    public NotFoundException(
+        MemberInfo entityType,
+        object key,
+        IReadOnlyDictionary<string, object>? additionalData = null)
+        : base(
+            $"Сущность " +
+            $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
+            $"не была найдена. Ключ: {key}",
+            additionalData)
     {
     }
 
@@ -48,10 +58,16 @@ public class NotFoundException : AppException
     /// </summary>
     /// <param name="entityType">Тип сущности, которая не была найдена.</param>
     /// <param name="keys">Ключи.</param>
-    public NotFoundException(MemberInfo entityType, object[] keys)
-        : base($"Сущности " +
-               $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
-               $"не были найдены. Ключи: {string.Join(", ", keys)}")
+    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    public NotFoundException(
+        MemberInfo entityType,
+        object[] keys,
+        IReadOnlyDictionary<string, object>? additionalData = null)
+        : base(
+            $"Сущности " +
+            $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
+            $"не были найдены. Ключи: {string.Join(", ", keys)}",
+            additionalData)
     {
     }
 
@@ -60,8 +76,12 @@ public class NotFoundException : AppException
     /// </summary>
     /// <param name="message"> Сообщение. </param>
     /// <param name="innerException"> Внутренняя ошибка. </param>
-    public NotFoundException(string message, Exception innerException)
-        : base(message, innerException)
+    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    public NotFoundException(
+        string message,
+        Exception innerException,
+        IReadOnlyDictionary<string, object>? additionalData = null)
+        : base(message, innerException, additionalData)
     {
     }
 }

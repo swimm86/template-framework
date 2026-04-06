@@ -10,9 +10,9 @@ using Shared.Application.Core.Cache;
 using Shared.Application.Core.Dal.DbSeeder.Extensions;
 using Shared.Application.Core.Dal.Extensions;
 using Shared.Application.Core.DependencyInjection;
-using Shared.Application.Core.Exceptions.Extensions;
 using Shared.Application.Core.Json;
 using Shared.Domain.Core.Cache.Interfaces;
+using Shared.Domain.Core.Utils;
 
 namespace Shared.Application.Core;
 
@@ -29,9 +29,9 @@ public class CoreDependencyInjector(
     {
         return serviceCollection
             .ConfigureJsonSerializer()
-            .AddExceptionsHandlers()
             .AddRepositories()
             .AddDbSeeder()
+            .AddSingleton<PropertyUtil>()
             .AddScoped<IScopedMemoryCache, ScopedMemoryCache>();
     }
 }

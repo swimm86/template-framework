@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Application.Core.Exceptions.Settings;
+namespace Shared.Presentation.Core.Exceptions.Settings;
 
 /// <summary>
 /// Настройка отображения расширенного дебага.

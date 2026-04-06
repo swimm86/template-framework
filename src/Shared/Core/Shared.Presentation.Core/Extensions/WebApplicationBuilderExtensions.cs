@@ -52,7 +52,8 @@ public static class WebApplicationBuilderExtensions
                         policy.AllowAnyHeader();
                         policy.AllowAnyMethod();
                     });
-            });
+            })
+            .AddExceptionsHandlers();
 
         return builder;
     }

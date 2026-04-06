@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.AspNetCore.Mvc;
+using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Application.Core.Dto.Responses;
 
@@ -12,20 +13,18 @@ namespace Shared.Application.Core.Dto.Responses;
 /// Ответ с ошибками.
 /// </summary>
 public record ErrorResponse
-    : ResponseBase
+    : ResponseBase, IWithAdditionalData
 {
     /// <summary>
     /// Ошибки.
     /// </summary>
-    public ICollection<ProblemDetails> Errors { get; set; }
+    public IReadOnlyCollection<ProblemDetails> Errors { get; init; }
 
     /// <summary>
     /// Подробная информация об ошибке.
     /// </summary>
-    public string? Details { get; internal set; }
+    public string? Details { get; init; }
 
-    /// <summary>
-    /// Дополнительная информация.
-    /// </summary>
-    public Dictionary<string, object>? AdditionalData { get; set; }
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, object>? AdditionalData { get; init; }
 }

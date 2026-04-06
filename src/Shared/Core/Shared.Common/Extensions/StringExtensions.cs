@@ -17,21 +17,25 @@ public static class StringExtensions
     /// <summary>
     /// Конвертирует строку в формат kebab-case.
     /// </summary>
-    /// <param name="value">Исходная строка.</param>
+    /// <param name="input">Исходная строка.</param>
     /// <returns>Преобразованная в формат kebab-case строка.</returns>
-    public static string ToKebabCase(this string value)
+    public static string ToKebabCase(this string input)
     {
-        return value.ToLowerCaseWithDelimiter("-");
+        return string.IsNullOrWhiteSpace(input)
+            ? input
+            : JsonNamingPolicy.KebabCaseLower.ConvertName(input);
     }
 
     /// <summary>
     /// Конвертирует строку в формат snake_case.
     /// </summary>
-    /// <param name="value">Исходная строка.</param>
+    /// <param name="input">Исходная строка.</param>
     /// <returns>Преобразованная в формат snake_case строка.</returns>
-    public static string ToSnakeCase(this string value)
+    public static string ToSnakeCase(this string input)
     {
-        return value.ToLowerCaseWithDelimiter("_");
+        return string.IsNullOrWhiteSpace(input)
+            ? input
+            : JsonNamingPolicy.SnakeCaseLower.ConvertName(input);
     }
 
     /// <summary>
@@ -67,21 +71,4 @@ public static class StringExtensions
     /// <returns>Строка без пробельных символов.</returns>
     public static string RemoveWhiteSpaces(this string input)
         => Regex.Replace(input, @"\s+", string.Empty);
-
-    /// <summary>
-    /// Конвертирует строку в слова с маленькой буквы, разделенные разделителем <paramref name="delimiter"/>.
-    /// </summary>
-    /// <param name="value">Исходная строка.</param>
-    /// <param name="delimiter">Разделитель.</param>
-    /// <returns>Преобразованная строка.</returns>
-    private static string ToLowerCaseWithDelimiter(
-        this string value,
-        string delimiter)
-    {
-        return string.Concat(
-                value.Select((x, i) => i > 0 && char.IsUpper(x)
-                    ? delimiter + x
-                    : x.ToString()))
-            .ToLower();
-    }
 }

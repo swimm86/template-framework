@@ -1,22 +1,26 @@
-﻿// ----------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------
 // <copyright file="ApiClient.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Collections.Concurrent;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Reflection;
+using System.Security;
 using System.Text.Json;
-using System.Web;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dto.Interfaces;
 using Shared.Application.Core.Dto.Responses;
-using Shared.Application.Core.Exceptions;
+using Shared.Application.Core.Exceptions.Models;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
-using Shared.Domain.Core.Exceptions.Models;
-using Shared.Domain.Core.Exceptions.Models.Base;
+using Shared.Domain.Core.Interfaces;
+using Shared.Domain.Core.Utils;
 
 namespace Shared.Application.Core.ApiClient;
 
@@ -40,13 +44,34 @@ namespace Shared.Application.Core.ApiClient;
 /// Использует <see cref="HttpClient"/> для выполнения запросов и <see cref="ILogger"/> для логирования.
 /// </para>
 /// </remarks>
-/// <param name="clientFactory">Фабрика HTTP-клиентов для создания экземпляра <see cref="HttpClient"/>.</param>
-/// <param name="logger">Логгер для записи событий и ошибок.</param>
-public abstract class ApiClient(
-    IHttpClientFactory clientFactory,
-    ILogger<ApiClient> logger)
+public abstract class ApiClient
 {
-    private readonly string _additionDataKey = nameof(AppException.AdditionalData).ToLowerFirstChar();
+    private static readonly string ErrorsPropertyName = nameof(ErrorResponse.Errors).ToCamelCase();
+    private static readonly string DetailPropertyName = nameof(ProblemDetails.Detail).ToCamelCase();
+    private static readonly string StatusPropertyName = nameof(ProblemDetails.Status).ToCamelCase();
+    private static readonly string AdditionalDataPropertyName = nameof(IWithAdditionalData.AdditionalData).ToCamelCase();
+
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertiesCache = new();
+
+    private readonly HttpClient _httpClient;
+    private readonly PropertyUtil _propertyUtil;
+    private readonly ILogger<ApiClient> _logger;
+
+    /// <summary>
+    /// Инициализирует новый экземпляр <see cref="ApiClient"/>.
+    /// </summary>
+    /// <param name="clientFactory">Фабрика HTTP-клиентов для создания экземпляра <see cref="HttpClient"/>.</param>
+    /// <param name="propertyUtil"><see cref="PropertyUtil"/>.</param>
+    /// <param name="logger">Логгер для записи событий и ошибок.</param>
+    protected ApiClient(
+        IHttpClientFactory clientFactory,
+        PropertyUtil propertyUtil,
+        ILogger<ApiClient> logger)
+    {
+        _propertyUtil = propertyUtil;
+        _logger = logger;
+        _httpClient = clientFactory.CreateClient(GetType().Name);
+    }
 
     /// <summary>
     /// Выполняет HTTP PUT-запрос по указанному URI.
@@ -64,15 +89,17 @@ public abstract class ApiClient(
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
-    public async Task<HttpResponseMessage> PutAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    public Task<HttpResponseMessage> PutAsync(
         string uri,
-        object? content = default,
+        object? content = null,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.PutAsJsonAsync(
-            new Uri(string.Empty, UriKind.Relative),
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.PutAsJsonAsync(
+            uri,
             content,
             cancellationToken);
     }
@@ -88,14 +115,16 @@ public abstract class ApiClient(
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
-    public async Task<HttpResponseMessage> DeleteAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    public Task<HttpResponseMessage> DeleteAsync(
         string uri,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.DeleteAsync(
-            new Uri(string.Empty, UriKind.Relative),
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.DeleteAsync(
+            uri,
             cancellationToken);
     }
 
@@ -106,13 +135,17 @@ public abstract class ApiClient(
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns><see cref="HttpResponseMessage"/> с результатом запроса.</returns>
     /// <exception cref="HttpRequestException">Выбрасывается при ошибках HTTP-запроса.</exception>
-    protected async Task<HttpResponseMessage> GetAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    protected Task<HttpResponseMessage> GetAsync(
         string uri,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.GetAsync(new Uri(string.Empty, UriKind.Relative), cancellationToken);
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.GetAsync(
+            uri,
+            cancellationToken);
     }
 
     /// <summary>
@@ -144,15 +177,16 @@ public abstract class ApiClient(
     /// <returns><see cref="HttpResponseMessage"/> с результатом запроса.</returns>
     /// <exception cref="HttpRequestException">Выбрасывается при ошибках HTTP-запроса.</exception>
     /// <exception cref="JsonException">Выбрасывается при ошибках десериализации JSON.</exception>
-    protected async Task<HttpResponseMessage> GetAsync(
+    protected Task<HttpResponseMessage> GetAsync(
         string uri,
         Dictionary<string, string> queryParams,
         CancellationToken cancellationToken = default)
     {
         uri = AddQueryParams(uri, queryParams);
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.GetAsync(new Uri(string.Empty, UriKind.Relative), cancellationToken);
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.GetAsync(
+            uri,
+            cancellationToken);
     }
 
     /// <summary>
@@ -164,22 +198,24 @@ public abstract class ApiClient(
     /// <param name="content">
     /// Содержимое запроса в формате <see cref="HttpContent"/>.
     /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>ы
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>
     /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
     /// </returns>
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
-    protected async Task<HttpResponseMessage> PostAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    protected Task<HttpResponseMessage> PostAsync(
         string uri,
         HttpContent content,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.PostAsync(
-            new Uri(string.Empty, UriKind.Relative),
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.PostAsync(
+            uri,
             content,
             cancellationToken);
     }
@@ -197,13 +233,18 @@ public abstract class ApiClient(
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
-    protected async Task<HttpResponseMessage> PostAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    protected Task<HttpResponseMessage> PostAsync(
         string uri,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.PostAsync(new Uri(string.Empty, UriKind.Relative), null, cancellationToken);
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.PostAsync(
+            uri,
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -222,15 +263,17 @@ public abstract class ApiClient(
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
-    protected async Task<HttpResponseMessage> PostAsJsonAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    protected Task<HttpResponseMessage> PostAsJsonAsync(
         string uri,
-        object? content = default,
+        object? content = null,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.PostAsJsonAsync(
-            new Uri(string.Empty, UriKind.Relative),
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.PostAsJsonAsync(
+            uri,
             content,
             cancellationToken);
     }
@@ -251,9 +294,12 @@ public abstract class ApiClient(
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
     protected Task<HttpResponseMessage> PostWithoutResponseAsync(
         string uri,
-        object? content = default,
+        object? content = null,
         CancellationToken cancellationToken = default)
     {
         return PostAsJsonAsync(uri, content, cancellationToken);
@@ -285,9 +331,12 @@ public abstract class ApiClient(
     /// <exception cref="JsonException">
     /// Выбрасывается при ошибках десериализации JSON.
     /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
     protected async Task<TResult?> PostAsync<TResult>(
         string uri,
-        object? content = default,
+        object? content = null,
         CancellationToken cancellationToken = default)
     {
         var result = await ResponseAsJsonAsync<TResult>(
@@ -320,6 +369,9 @@ public abstract class ApiClient(
     /// </exception>
     /// <exception cref="JsonException">
     /// Выбрасывается при ошибках десериализации JSON.
+    /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
     /// </exception>
     protected async Task<TResult?> PostAsync<TResult>(
         string uri,
@@ -355,15 +407,20 @@ public abstract class ApiClient(
     /// <exception cref="JsonException">
     /// Выбрасывается при ошибках десериализации JSON.
     /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
     protected async Task<TResult?> PutAsync<TResult>(
         string uri,
-        object? content = default,
-        CancellationToken cancellationToken = default) =>
-        await ResponseAsJsonAsync<TResult>(
+        object? content = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ResponseAsJsonAsync<TResult>(
             await PutAsync(uri, content, cancellationToken),
             uri,
             content,
             cancellationToken);
+    }
 
     /// <summary>
     /// Выполняет HTTP PATCH-запрос по указанному URI.
@@ -381,15 +438,17 @@ public abstract class ApiClient(
     /// <exception cref="ArgumentNullException">
     /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
     /// </exception>
-    protected async Task<HttpResponseMessage> PatchAsync(
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
+    protected Task<HttpResponseMessage> PatchAsync(
         string uri,
-        object? content = default,
+        object? content = null,
         CancellationToken cancellationToken = default)
     {
-        using var client = CreateClient(uri);
-        client.BaseAddress = new Uri(client.BaseAddress + uri);
-        return await client.PatchAsJsonAsync(
-            new Uri(string.Empty, UriKind.Relative),
+        GuardAgainstInvalidUri(uri);
+        return _httpClient.PatchAsJsonAsync(
+            uri,
             content,
             cancellationToken);
     }
@@ -417,15 +476,20 @@ public abstract class ApiClient(
     /// <exception cref="JsonException">
     /// Выбрасывается при ошибках десериализации JSON.
     /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
     protected async Task<TResult?> PatchAsync<TResult>(
         string uri,
-        object? content = default,
-        CancellationToken cancellationToken = default) =>
-        await ResponseAsJsonAsync<TResult>(
+        object? content = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ResponseAsJsonAsync<TResult>(
             await PatchAsync(uri, content, cancellationToken),
             uri,
             content,
             cancellationToken);
+    }
 
     /// <summary>
     /// Выполняет типизированный HTTP DELETE-запрос по указанному URI.
@@ -447,12 +511,17 @@ public abstract class ApiClient(
     /// <exception cref="JsonException">
     /// Выбрасывается при ошибках десериализации JSON.
     /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
+    /// </exception>
     protected async Task<TResult?> DeleteAsync<TResult>(
         string uri,
-        CancellationToken cancellationToken = default) =>
-        await ResponseAsJsonAsync<TResult>(
+        CancellationToken cancellationToken = default)
+    {
+        return await ResponseAsJsonAsync<TResult>(
             await DeleteAsync(uri, cancellationToken),
             cancellationToken: cancellationToken);
+    }
 
     /// <summary>
     /// Преобразует HTTP-ответ в объект указанного типа.
@@ -470,16 +539,19 @@ public abstract class ApiClient(
         object? logContent = null,
         CancellationToken cancellationToken = default)
     {
-        await ValidateResponseAsync(httpResponse, cancellationToken, logUri, logContent);
-
-        var result = await httpResponse.Content
-            .ReadFromJsonAsync<TResult>(cancellationToken);
-        if (result is ResponseBase response)
+        using (httpResponse)
         {
-            response.StatusCode = (int)httpResponse.StatusCode;
-        }
+            await ValidateResponseAsync(httpResponse, cancellationToken, logUri, logContent);
 
-        return result;
+            var result = await httpResponse.Content
+                .ReadFromJsonAsync<TResult>(cancellationToken);
+            if (result is ResponseBase response)
+            {
+                response.StatusCode = (int)httpResponse.StatusCode;
+            }
+
+            return result;
+        }
     }
 
     /// <summary>
@@ -489,9 +561,6 @@ public abstract class ApiClient(
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <param name="logUri">URI запроса для логирования (опционально).</param>
     /// <param name="logContent">Содержимое запроса для логирования (опционально).</param>
-    /// <exception cref="UnauthorizedException">Выбрасывается при статусе 401 Unauthorized.</exception>
-    /// <exception cref="ProxiedException">Выбрасывается при наличии детализированных ошибок в ответе.</exception>
-    /// <exception cref="Exception">Выбрасывается при других ошибках HTTP.</exception>
     /// <returns>Результат выполнения асинхронной операции.</returns>
     protected async Task ValidateResponseAsync(
         HttpResponseMessage httpResponse,
@@ -507,7 +576,10 @@ public abstract class ApiClient(
         var isThrown = false;
         try
         {
-            var absolutePath = httpResponse.RequestMessage?.RequestUri?.AbsolutePath;
+            var absolutePath =
+                httpResponse.RequestMessage?.RequestUri?.AbsolutePath
+                ?? logUri
+                ?? string.Empty;
             var clientName = GetType().Name;
 
             var response = await httpResponse.Content
@@ -517,17 +589,16 @@ public abstract class ApiClient(
                 : new ProblemDetails
                 {
                     Status = (int)httpResponse.StatusCode,
-                    Instance = absolutePath ?? logUri,
+                    Instance = absolutePath,
                     Detail = response,
                 };
 
-            problemDetails!.Extensions.Remove(_additionDataKey);
-
+            var additionalData = TakeAdditionalData(problemDetails!);
             if (logUri != null && logContent != null)
             {
-                logger.LogError(
+                _logger.LogError(
                     "Запрос по адресу {RequestUri} вернул ошибку: Status Code={StatusCode:D} с телом {ResponseBody}",
-                    absolutePath ?? logUri,
+                    absolutePath,
                     httpResponse.StatusCode,
                     JsonSerializer.Serialize(logContent));
             }
@@ -536,8 +607,7 @@ public abstract class ApiClient(
 
             SetProblemDetailsForServerError(problemDetails, absolutePath, clientName);
 
-            JsonHelper.TryDeserialize<ErrorResponse>(response, out var errorResponse);
-            throw new ProxiedException(problemDetails, (int)httpResponse.StatusCode, errorResponse?.AdditionalData);
+            throw new ProxiedException(problemDetails, (int)httpResponse.StatusCode, additionalData);
         }
         finally
         {
@@ -576,7 +646,7 @@ public abstract class ApiClient(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Произошла ошибка при создании исключения для HTTP-ответа.");
+            _logger.LogError(ex, "Произошла ошибка при создании исключения для HTTP-ответа.");
 
             return new Exception(
                 $"Не удалось прочитать содержимое ошибки HTTP. Status Code={response.StatusCode:D} ({response.ReasonPhrase})",
@@ -598,12 +668,13 @@ public abstract class ApiClient(
         TContent content,
         CancellationToken cancellationToken = default)
         where TContent : IWithFile
-        =>
-        await ResponseAsJsonAsync<TResult>(
+    {
+        return await ResponseAsJsonAsync<TResult>(
                 await PostFilesAsync(uri, content, cancellationToken),
                 uri,
                 content,
                 cancellationToken);
+    }
 
     /// <summary>
     /// Отправляет файл на сервер с использованием multipart/form-data.
@@ -618,31 +689,37 @@ public abstract class ApiClient(
     /// <exception cref="InvalidOperationException">
     /// Выбрасывается, если файл в <paramref name="request"/> не содержит данных.
     /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="url"/> является абсолютным или содержит path traversal.
+    /// </exception>
     protected async Task<HttpResponseMessage> PostFilesAsync(
         string url,
         IWithFile request,
         CancellationToken cancellationToken = default)
     {
+        GuardAgainstInvalidUri(url);
+
         var boundary = Guid.NewGuid().ToString();
-        var multipartContent = new MultipartFormDataContent(boundary);
+        using var multipartContent = new MultipartFormDataContent(boundary);
         multipartContent.Headers.Remove("Content-Type");
-        multipartContent.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary);
+        multipartContent.Headers.TryAddWithoutValidation(
+            "Content-Type",
+            "multipart/form-data; boundary=" + boundary);
 
-        await using var memoryStream = new MemoryStream();
-        await request.File!.CopyToAsync(memoryStream, cancellationToken);
+        // using не используется, тк multipartContent должен высвободить все ресурсы при Dispose()
+        var streamContent = new StreamContent(request.File.OpenReadStream());
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.File.ContentType);
+        multipartContent.Add(streamContent, "file", request.File.FileName);
 
-        var byteArrayContent = new ByteArrayContent(memoryStream.ToArray());
-        byteArrayContent.Headers.Add("Content-Type", request.File.ContentType);
-        multipartContent.Add(byteArrayContent, "file", request.File.FileName);
-
-        foreach (var prop in request.GetType().GetProperties().Where(x => x.Name != nameof(IWithFile.File)))
+        var properties = PropertiesCache.GetOrAdd(
+            request.GetType(),
+            t => t.GetProperties().Where(x => x.Name != nameof(IWithFile.File)).ToArray());
+        foreach (var prop in properties)
         {
-            multipartContent.Add(new StringContent(prop.GetValue(request)?.ToString()), prop.Name);
+            multipartContent.Add(new StringContent(_propertyUtil.GetPropertyAsString(request, prop.Name)));
         }
 
-        using var client = CreateClient(url);
-        client.BaseAddress = new Uri(client.BaseAddress + url);
-        return await client.PostAsync(string.Empty, multipartContent, cancellationToken);
+        return await _httpClient.PostAsync(url, multipartContent, cancellationToken);
     }
 
     /// <summary>
@@ -691,27 +768,39 @@ public abstract class ApiClient(
         string absolutePath,
         string clientName)
     {
-        if (!problemDetails.Extensions.TryGetValue("errors", out var errorsJsonElement) ||
+        if (!problemDetails.Extensions.TryGetValue(ErrorsPropertyName, out var errorsJsonElement) ||
             errorsJsonElement is not JsonElement { ValueKind: JsonValueKind.Array } errorsArray)
         {
             return;
         }
 
-        var hasServerErrorStatus = errorsArray
-            .EnumerateArray()
-            .Any(errorElement =>
-                errorElement.TryGetProperty("status", out var statusCodeProperty) &&
-                statusCodeProperty.TryGetInt32(out var statusCode) &&
-                statusCode == StatusCodes.Status500InternalServerError);
+        var errorFound = false;
+        var errorDetails = string.Empty;
+        foreach (var element in errorsArray.EnumerateArray())
+        {
+            if (!element.TryGetProperty(StatusPropertyName, out var statusCodeProperty) ||
+                !statusCodeProperty.TryGetInt32(out var statusCode) ||
+                statusCode != StatusCodes.Status500InternalServerError)
+            {
+                continue;
+            }
 
-        if (!hasServerErrorStatus)
+            errorFound = true;
+            errorDetails = element.GetString(DetailPropertyName);
+            break;
+        }
+
+        if (!errorFound)
         {
             return;
         }
 
         problemDetails.Title = "Ошибка во время взаимодействия с внешним сервисом.";
         problemDetails.Detail =
-            $"Не удалось корректно обработать запрос по адресу '{absolutePath}' для клиента '{clientName}'.";
+            $"Не удалось корректно обработать запрос по адресу '{absolutePath}' для клиента '{clientName}'." +
+            (string.IsNullOrWhiteSpace(errorDetails)
+                ? string.Empty
+                : $"{Environment.NewLine}Причина: {errorDetails}");
     }
 
     /// <summary>
@@ -733,26 +822,97 @@ public abstract class ApiClient(
         string relativePath,
         Dictionary<string, string>? queryParams)
     {
-        if (queryParams == null || queryParams.Count == 0)
-        {
-            return relativePath;
-        }
-
-        var queryString = HttpUtility.ParseQueryString(string.Empty);
-        foreach (var param in queryParams)
-        {
-            queryString[param.Key] = param.Value;
-        }
-
-        var query = queryString.ToString();
-        return query?.Length > 0
-            ? $"{relativePath}?{query}"
+        return queryParams?.Any() == true
+            ? relativePath + QueryString.Create(queryParams!)
             : relativePath;
     }
 
-    private HttpClient CreateClient(string uri)
+    /// <summary>
+    /// Извлекает дополнительные данные из <see cref="ProblemDetails.Extensions"/> и удаляет их из коллекции.
+    /// </summary>
+    /// <param name="problemDetails">Детали ошибки, из которых извлекаются дополнительные данные.</param>
+    /// <returns>
+    /// Словарь с дополнительными данными, если они присутствуют в <see cref="ProblemDetails.Extensions"/>;
+    /// иначе <see langword="null"/>.
+    /// </returns>
+    /// <remarks>
+    /// Дополнительные данные удаляются из <see cref="ProblemDetails.Extensions"/> после извлечения,
+    /// чтобы предотвратить их передачу фронтенду при повторном проксировании ошибки.
+    /// </remarks>
+    private static Dictionary<string, object>? TakeAdditionalData(ProblemDetails problemDetails)
     {
-        var result = clientFactory.CreateClient(GetType().Name);
-        return result;
+        if (!problemDetails.Extensions.Remove(AdditionalDataPropertyName, out var data))
+        {
+            return null;
+        }
+
+        return data switch
+        {
+            JsonElement { ValueKind: JsonValueKind.Object } jsonElement
+                => jsonElement
+                    .EnumerateObject()
+                    .ToDictionary(x => x.Name, x => x.Value as object),
+
+            // При ручном конструировании ProblemDetails в тестах данные могут быть уже десериализованы.
+            Dictionary<string, object> dict => dict,
+
+            IReadOnlyDictionary<string, object> readOnlyDict
+                => readOnlyDict.ToDictionary(x => x.Key, x => x.Value),
+
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Валидирует URI, обеспечивая что это относительный путь без path traversal.
+    /// </summary>
+    /// <param name="uri">URI для валидации.</param>
+    /// <exception cref="ArgumentException">
+    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/>, пуст или состоит из пробелов.
+    /// </exception>
+    /// <exception cref="SecurityException">
+    /// Выбрасывается, если <paramref name="uri"/> является абсолютным URI или содержит path traversal.
+    /// </exception>
+    private static void GuardAgainstInvalidUri(string uri)
+    {
+        if (string.IsNullOrWhiteSpace(uri))
+        {
+            throw new ArgumentException("URI не может быть пустым", nameof(uri));
+        }
+
+        // Запрет абсолютных URI (защита от SSRF)
+        if (Uri.IsWellFormedUriString(uri, UriKind.Absolute))
+        {
+            throw new SecurityException(
+                $"Абсолютные URI запрещены. Используйте относительный путь. URI: {uri}");
+        }
+
+        // Запрет path traversal
+        var decoded = uri;
+        string prev;
+        do
+        {
+            prev = decoded;
+            decoded = Uri.UnescapeDataString(decoded);
+        }
+        while (decoded != prev);
+        if (decoded.Contains(".."))
+        {
+            throw new SecurityException(
+                $"Path traversal запрещён. URI: {uri}");
+        }
+
+        // Запрет абсолютных путей (начинающихся с / или \)
+        if (uri.StartsWith('/') || uri.StartsWith('\\'))
+        {
+            throw new SecurityException(
+                $"URI должен быть относительным путём без начального слэша. URI: {uri}");
+        }
+
+        // Проверка формата относительного URI
+        if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
+        {
+            throw new FormatException($"Невалидный относительный URI: {uri}");
+        }
     }
 }

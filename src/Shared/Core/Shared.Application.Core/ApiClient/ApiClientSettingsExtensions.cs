@@ -29,7 +29,7 @@ public static class ApiClientSettingsExtensions
         var optionsType = typeof(TOptions);
         var optionsName = optionsType.Name;
 
-        if (options == default)
+        if (options == null)
         {
             throw new ArgumentNullException(
                 optionsName,
