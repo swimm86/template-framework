@@ -6,13 +6,15 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.ApiClient.Interfaces;
+using Shared.Application.Core.ApiClient.Validators;
 using Shared.Application.Core.Cache;
 using Shared.Application.Core.Dal.DbSeeder.Extensions;
 using Shared.Application.Core.Dal.Extensions;
 using Shared.Application.Core.DependencyInjection;
 using Shared.Application.Core.Json;
 using Shared.Domain.Core.Cache.Interfaces;
-using Shared.Domain.Core.Utils;
+using Shared.Domain.Core.Utils.Extensions;
 
 namespace Shared.Application.Core;
 
@@ -31,7 +33,9 @@ public class CoreDependencyInjector(
             .ConfigureJsonSerializer()
             .AddRepositories()
             .AddDbSeeder()
-            .AddSingleton<PropertyUtil>()
+            .AddPropertyUtil()
+            .AddSingleton<IUriValidator, RelativeUriValidator>()
+            .AddSingleton<IResponseValidator, ProxiedResponseValidator>()
             .AddScoped<IScopedMemoryCache, ScopedMemoryCache>();
     }
 }

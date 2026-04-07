@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using Shared.Domain.Core.Converters;
 using Shared.Domain.Core.Converters.Interfaces;
+using Shared.Domain.Core.Utils.Interfaces;
 
 namespace Shared.Domain.Core.Utils;
 
@@ -15,6 +16,7 @@ namespace Shared.Domain.Core.Utils;
 /// Утилита для взаимодействия со свойствами объектов.
 /// </summary>
 public class PropertyUtil
+    : IPropertyGetter, IPropertySetter
 {
     private static readonly Action<object, object?> NoOpSetter = (_, _) => { };
     private static readonly Func<object, object?> NullGetter = _ => null;
@@ -23,16 +25,7 @@ public class PropertyUtil
     private readonly ConcurrentDictionary<(Type, string), Action<object, object?>> _propertySetters = new();
     private readonly ConcurrentDictionary<(Type, string), Func<object, object?>> _propertyGetters = new();
 
-    /// <summary>
-    /// Устанавливает значение свойства объекта.
-    /// </summary>
-    /// <param name="obj">Объект, которому необходимо установить значение свойства.</param>
-    /// <param name="propertyName">Название свойства, в которое необходимо установить значение.</param>
-    /// <param name="value">Значение.</param>
-    /// <param name="throwIfNotFound">
-    /// Если <c>true</c> (по умолчанию) — выбрасывает <see cref="InvalidOperationException"/>, когда свойство не найдено.
-    /// Если <c>false</c> — операция игнорируется молча: исключение не выбрасывается, значение не устанавливается.
-    /// </param>
+    /// <inheritdoc />
     public void SetProperty(
         object obj,
         string propertyName,
@@ -75,16 +68,7 @@ public class PropertyUtil
         setter(obj, value);
     }
 
-    /// <summary>
-    /// Получает значение свойства объекта.
-    /// </summary>
-    /// <param name="obj">Объект, из которого необходимо получить значение свойства.</param>
-    /// <param name="propertyName">Название свойства, значение которого необходимо получить.</param>
-    /// <param name="throwIfNotFound">
-    /// Если <c>true</c> (по умолчанию) — выбрасывает <see cref="InvalidOperationException"/>, когда свойство не найдено.
-    /// Если <c>false</c> — возвращает <c>null</c>.
-    /// </param>
-    /// <returns>Значение свойства, либо <c>null</c> если свойство не найдено и <paramref name="throwIfNotFound"/> равен <c>false</c>.</returns>
+    /// <inheritdoc />
     public object? GetProperty(
         object? obj,
         string propertyName,
@@ -125,14 +109,7 @@ public class PropertyUtil
         return getter(obj);
     }
 
-    /// <summary>
-    /// Получает строковое представление значения свойства объекта.
-    /// </summary>
-    /// <param name="obj">Объект, из которого необходимо получить значение свойства.</param>
-    /// <param name="propertyName">Название свойства, значение которого необходимо получить.</param>
-    /// <param name="converter">Конвертер объекта в строку. По умолчанию используется <see cref="DefaultObjectToStringConverter"/>.</param>
-    /// <returns>Строковое представление значения свойства.</returns>
-    /// <exception cref="InvalidOperationException">Выбрасывается, если свойство с именем <paramref name="propertyName"/> не найдено.</exception>
+    /// <inheritdoc />
     public string GetPropertyAsString(
         object obj,
         string propertyName,

@@ -14,10 +14,9 @@ public abstract class ApiClientSettingsBase<TApiClient>
     where TApiClient : ApiClient
 {
     /// <summary>
-    /// Таймаут в секундах.
+    /// Таймаут HTTP-запроса по умолчанию (100 секунд).
     /// </summary>
-    // TODO: перенести в конфиг.
-    private const int TimeoutSec = 10000;
+    private const int DefaultTimeoutSec = 100;
 
     /// <summary>
     /// Базовый адрес сервиса.
@@ -25,7 +24,8 @@ public abstract class ApiClientSettingsBase<TApiClient>
     public virtual string BaseUrl { get; set; } = null!;
 
     /// <summary>
-    /// Http timeout.
+    /// Таймаут HTTP-запроса.
+    /// Переопределите в конфигурации для изменения значения по умолчанию.
     /// </summary>
-    public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(TimeoutSec);
+    public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(DefaultTimeoutSec);
 }

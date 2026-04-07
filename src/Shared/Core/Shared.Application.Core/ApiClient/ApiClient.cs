@@ -9,18 +9,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Security;
-using System.Text.Json;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Shared.Application.Core.ApiClient.Interfaces;
 using Shared.Application.Core.Dto.Interfaces;
-using Shared.Application.Core.Dto.Responses;
-using Shared.Application.Core.Exceptions.Models;
-using Shared.Common.Extensions;
-using Shared.Common.Helpers;
-using Shared.Domain.Core.Interfaces;
-using Shared.Domain.Core.Utils;
+using Shared.Domain.Core.Utils.Interfaces;
 
 namespace Shared.Application.Core.ApiClient;
 
@@ -29,103 +21,34 @@ namespace Shared.Application.Core.ApiClient;
 /// Предоставляет методы для выполнения HTTP-запросов (GET, POST, PUT, PATCH, DELETE)
 /// с поддержкой типизации ответов, обработки ошибок и логирования.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Класс предназначен для унификации работы с внешними API. Он предоставляет следующие возможности:
-/// </para>
-/// <list type="bullet">
-/// <item>Выполнение HTTP-запросов с поддержкой токена отмены (<see cref="CancellationToken"/>).</item>
-/// <item>Типизация ответов и преобразование JSON в объекты.</item>
-/// <item>Обработка ошибок и преобразование их в доменные исключения.</item>
-/// <item>Логирование запросов и ответов для отладки.</item>
-/// <item>Поддержка отправки файлов через multipart/form-data.</item>
-/// </list>
-/// <para>
-/// Использует <see cref="HttpClient"/> для выполнения запросов и <see cref="ILogger"/> для логирования.
-/// </para>
-/// </remarks>
-public abstract class ApiClient
+public abstract partial class ApiClient
 {
-    private static readonly string ErrorsPropertyName = nameof(ErrorResponse.Errors).ToCamelCase();
-    private static readonly string DetailPropertyName = nameof(ProblemDetails.Detail).ToCamelCase();
-    private static readonly string StatusPropertyName = nameof(ProblemDetails.Status).ToCamelCase();
-    private static readonly string AdditionalDataPropertyName = nameof(IWithAdditionalData.AdditionalData).ToCamelCase();
-
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertiesCache = new();
 
+    private readonly string _typeName;
     private readonly HttpClient _httpClient;
-    private readonly PropertyUtil _propertyUtil;
-    private readonly ILogger<ApiClient> _logger;
+    private readonly IUriValidator _uriValidator;
+    private readonly IResponseValidator _responseValidator;
+    private readonly IPropertyGetter _propertyGetter;
 
     /// <summary>
     /// Инициализирует новый экземпляр <see cref="ApiClient"/>.
     /// </summary>
     /// <param name="clientFactory">Фабрика HTTP-клиентов для создания экземпляра <see cref="HttpClient"/>.</param>
-    /// <param name="propertyUtil"><see cref="PropertyUtil"/>.</param>
-    /// <param name="logger">Логгер для записи событий и ошибок.</param>
+    /// <param name="uriValidator"><see cref="IUriValidator"/>.</param>
+    /// <param name="responseValidator"><see cref="IResponseValidator"/>.</param>
+    /// <param name="propertyGetter">Извлекает значения свойств для multipart-запросов.</param>
     protected ApiClient(
         IHttpClientFactory clientFactory,
-        PropertyUtil propertyUtil,
-        ILogger<ApiClient> logger)
+        IUriValidator uriValidator,
+        IResponseValidator responseValidator,
+        IPropertyGetter propertyGetter)
     {
-        _propertyUtil = propertyUtil;
-        _logger = logger;
-        _httpClient = clientFactory.CreateClient(GetType().Name);
-    }
-
-    /// <summary>
-    /// Выполняет HTTP PUT-запрос по указанному URI.
-    /// </summary>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, который будет обновлен.
-    /// </param>
-    /// <param name="content">
-    /// Данные, отправляемые в теле запроса.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    public Task<HttpResponseMessage> PutAsync(
-        string uri,
-        object? content = null,
-        CancellationToken cancellationToken = default)
-    {
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.PutAsJsonAsync(
-            uri,
-            content,
-            cancellationToken);
-    }
-
-    /// <summary>
-    /// Выполняет HTTP DELETE-запрос по указанному URI.
-    /// </summary>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, который будет удален.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    public Task<HttpResponseMessage> DeleteAsync(
-        string uri,
-        CancellationToken cancellationToken = default)
-    {
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.DeleteAsync(
-            uri,
-            cancellationToken);
+        _typeName = GetType().Name;
+        _httpClient = clientFactory.CreateClient(_typeName);
+        _uriValidator = uriValidator;
+        _responseValidator = responseValidator;
+        _propertyGetter = propertyGetter;
     }
 
     /// <summary>
@@ -134,292 +57,127 @@ public abstract class ApiClient
     /// <param name="uri">Относительный путь к ресурсу.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns><see cref="HttpResponseMessage"/> с результатом запроса.</returns>
-    /// <exception cref="HttpRequestException">Выбрасывается при ошибках HTTP-запроса.</exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
     protected Task<HttpResponseMessage> GetAsync(
         string uri,
         CancellationToken cancellationToken = default)
     {
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.GetAsync(
-            uri,
-            cancellationToken);
+        _uriValidator.Validate(uri);
+        return _httpClient.GetAsync(uri, cancellationToken);
     }
 
     /// <summary>
-    /// Выполняет GET-запрос с параметрами запроса и десериализует ответ в указанный тип.
-    /// </summary>
-    /// <typeparam name="TResult">Тип данных, в который будет десериализован ответ.</typeparam>
-    /// <param name="uri">Относительный путь к ресурсу.</param>
-    /// <param name="queryParams">Словарь параметров запроса.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>Десериализованный объект типа <typeparamref name="TResult"/>.</returns>
-    /// <exception cref="HttpRequestException">Выбрасывается при ошибках HTTP-запроса.</exception>
-    /// <exception cref="JsonException">Выбрасывается при ошибках десериализации JSON.</exception>
-    protected async Task<TResult?> GetAsync<TResult>(
-        string uri,
-        Dictionary<string, string> queryParams,
-        CancellationToken cancellationToken = default)
-    {
-        return await ResponseAsJsonAsync<TResult>(
-            await GetAsync(uri, queryParams, cancellationToken),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Выполняет GET-запрос к указанному URI.
+    /// Выполняет GET-запрос к указанному URI с параметрами запроса.
     /// </summary>
     /// <param name="uri">Относительный путь к ресурсу.</param>
     /// <param name="queryParams">Словарь параметров запроса.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns><see cref="HttpResponseMessage"/> с результатом запроса.</returns>
-    /// <exception cref="HttpRequestException">Выбрасывается при ошибках HTTP-запроса.</exception>
-    /// <exception cref="JsonException">Выбрасывается при ошибках десериализации JSON.</exception>
     protected Task<HttpResponseMessage> GetAsync(
         string uri,
         Dictionary<string, string> queryParams,
         CancellationToken cancellationToken = default)
     {
         uri = AddQueryParams(uri, queryParams);
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.GetAsync(
-            uri,
-            cancellationToken);
+        _uriValidator.Validate(uri);
+        return _httpClient.GetAsync(uri, cancellationToken);
     }
 
     /// <summary>
     /// Выполняет HTTP POST-запрос с указанным содержимым.
     /// </summary>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, на который отправляется запрос.
-    /// </param>
-    /// <param name="content">
-    /// Содержимое запроса в формате <see cref="HttpContent"/>.
-    /// </param>
+    /// <param name="uri">Относительный путь к ресурсу.</param>
+    /// <param name="content">Содержимое запроса.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
+    /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
     protected Task<HttpResponseMessage> PostAsync(
         string uri,
         HttpContent content,
         CancellationToken cancellationToken = default)
     {
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.PostAsync(
-            uri,
-            content,
-            cancellationToken);
+        _uriValidator.Validate(uri);
+        return _httpClient.PostAsync(uri, content, cancellationToken);
     }
 
     /// <summary>
-    /// Выполняет HTTP POST-запрос с данными в формате JSON.
+    /// Выполняет HTTP POST-запрос без тела.
     /// </summary>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, на который отправляется запрос.
-    /// </param>
+    /// <param name="uri">Относительный путь к ресурсу.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
+    /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
     protected Task<HttpResponseMessage> PostAsync(
         string uri,
         CancellationToken cancellationToken = default)
     {
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.PostAsync(
-            uri,
-            null,
-            cancellationToken);
+        _uriValidator.Validate(uri);
+        return _httpClient.PostAsync(uri, null, cancellationToken);
     }
 
     /// <summary>
     /// Выполняет HTTP POST-запрос с данными в формате JSON.
     /// </summary>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, на который отправляется запрос.
-    /// </param>
-    /// <param name="content">
-    /// Данные для отправки в теле запроса.
-    /// </param>
+    /// <param name="uri">Относительный путь к ресурсу.</param>
+    /// <param name="content">Данные для отправки в теле запроса.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
+    /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
     protected Task<HttpResponseMessage> PostAsJsonAsync(
         string uri,
         object? content = null,
         CancellationToken cancellationToken = default)
     {
-        GuardAgainstInvalidUri(uri);
-        return _httpClient.PostAsJsonAsync(
-            uri,
-            content,
-            cancellationToken);
+        _uriValidator.Validate(uri);
+        return _httpClient.PostAsJsonAsync(uri, content, cancellationToken);
     }
 
     /// <summary>
-    /// Выполняет HTTP POST-запрос без ожидания ответа.
+    /// Отправляет файл на сервер с использованием multipart/form-data.
     /// </summary>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, на который отправляется запрос.
-    /// </param>
-    /// <param name="content">
-    /// Данные для отправки в теле запроса.
-    /// </param>
+    /// <param name="url">URL-адрес для отправки запроса.</param>
+    /// <param name="request">Объект запроса, содержащий файл и дополнительные параметры.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected Task<HttpResponseMessage> PostWithoutResponseAsync(
+    /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
+    protected async Task<HttpResponseMessage> PostFilesAsync(
+        string url,
+        IWithFile request,
+        CancellationToken cancellationToken = default)
+    {
+        _uriValidator.Validate(url);
+
+        var boundary = Guid.NewGuid().ToString();
+        using var multipartContent = new MultipartFormDataContent(boundary);
+        multipartContent.Headers.Remove("Content-Type");
+        multipartContent.Headers.TryAddWithoutValidation(
+            "Content-Type",
+            "multipart/form-data; boundary=" + boundary);
+
+        var streamContent = new StreamContent(request.File.OpenReadStream());
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.File.ContentType);
+        multipartContent.Add(streamContent, "file", request.File.FileName);
+
+        var properties = PropertiesCache.GetOrAdd(
+            request.GetType(),
+            t => t.GetProperties().Where(x => x.Name != nameof(IWithFile.File)).ToArray());
+        foreach (var prop in properties)
+        {
+            multipartContent.Add(new StringContent(_propertyGetter.GetPropertyAsString(request, prop.Name)));
+        }
+
+        return await _httpClient.PostAsync(url, multipartContent, cancellationToken);
+    }
+
+    /// <summary>
+    /// Выполняет HTTP PUT-запрос по указанному URI.
+    /// </summary>
+    /// <param name="uri">Относительный путь к ресурсу, который будет обновлен.</param>
+    /// <param name="content">Данные, отправляемые в теле запроса.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
+    protected Task<HttpResponseMessage> PutAsync(
         string uri,
         object? content = null,
         CancellationToken cancellationToken = default)
     {
-        return PostAsJsonAsync(uri, content, cancellationToken);
-    }
-
-    /// <summary>
-    /// Выполняет типизированный HTTP POST-запрос с данными в формате JSON.
-    /// </summary>
-    /// <typeparam name="TResult">
-    /// Тип данных, в который будет десериализован ответ.
-    /// </typeparam>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, на который отправляется запрос.
-    /// </param>
-    /// <param name="content">
-    /// Данные для отправки в теле запроса.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Десериализованный объект типа <typeparamref name="TResult"/>.
-    /// Если ответ пустой или не может быть десериализован, возвращается <see langword="null"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="HttpRequestException">
-    /// Выбрасывается при ошибках HTTP-запроса.
-    /// </exception>
-    /// <exception cref="JsonException">
-    /// Выбрасывается при ошибках десериализации JSON.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected async Task<TResult?> PostAsync<TResult>(
-        string uri,
-        object? content = null,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await ResponseAsJsonAsync<TResult>(
-            await PostAsJsonAsync(uri, content, cancellationToken),
-            uri,
-            content,
-            cancellationToken);
-        return result;
-    }
-
-    /// <summary>
-    /// Выполняет типизированный HTTP POST-запрос с данными в формате JSON.
-    /// </summary>
-    /// <typeparam name="TResult">
-    /// Тип данных, в который будет десериализован ответ.
-    /// </typeparam>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, на который отправляется запрос.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Десериализованный объект типа <typeparamref name="TResult"/>.
-    /// Если ответ пустой или не может быть десериализован, возвращается <see langword="null"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="HttpRequestException">
-    /// Выбрасывается при ошибках HTTP-запроса.
-    /// </exception>
-    /// <exception cref="JsonException">
-    /// Выбрасывается при ошибках десериализации JSON.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected async Task<TResult?> PostAsync<TResult>(
-        string uri,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await ResponseAsJsonAsync<TResult>(
-            await PostAsync(uri, cancellationToken),
-            uri,
-            cancellationToken: cancellationToken);
-        return result;
-    }
-
-    /// <summary>
-    /// Выполняет типизированный HTTP PUT-запрос по указанному URI.
-    /// </summary>
-    /// <typeparam name="TResult">
-    /// Тип данных, в который будет десериализован ответ.
-    /// </typeparam>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, который будет обновлен.
-    /// </param>
-    /// <param name="content">
-    /// Данные, отправляемые в теле запроса.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Десериализованный объект типа <typeparamref name="TResult"/>.
-    /// Если ответ пустой или не может быть десериализован, возвращается <see langword="null"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="JsonException">
-    /// Выбрасывается при ошибках десериализации JSON.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected async Task<TResult?> PutAsync<TResult>(
-        string uri,
-        object? content = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await ResponseAsJsonAsync<TResult>(
-            await PutAsync(uri, content, cancellationToken),
-            uri,
-            content,
-            cancellationToken);
+        _uriValidator.Validate(uri);
+        return _httpClient.PutAsJsonAsync(uri, content, cancellationToken);
     }
 
     /// <summary>
@@ -446,7 +204,7 @@ public abstract class ApiClient
         object? content = null,
         CancellationToken cancellationToken = default)
     {
-        GuardAgainstInvalidUri(uri);
+        _uriValidator.Validate(uri);
         return _httpClient.PatchAsJsonAsync(
             uri,
             content,
@@ -454,465 +212,31 @@ public abstract class ApiClient
     }
 
     /// <summary>
-    /// Выполняет типизированный HTTP PATCH-запрос по указанному URI.
+    /// Выполняет HTTP DELETE-запрос по указанному URI.
     /// </summary>
-    /// <typeparam name="TResult">
-    /// Тип данных, в который будет десериализован ответ.
-    /// </typeparam>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, который будет обновлен.
-    /// </param>
-    /// <param name="content">
-    /// Данные, отправляемые в теле запроса.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Десериализованный объект типа <typeparamref name="TResult"/>.
-    /// Если ответ пустой или не может быть десериализован, возвращается <see langword="null"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="JsonException">
-    /// Выбрасывается при ошибках десериализации JSON.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected async Task<TResult?> PatchAsync<TResult>(
-        string uri,
-        object? content = null,
-        CancellationToken cancellationToken = default)
-    {
-        return await ResponseAsJsonAsync<TResult>(
-            await PatchAsync(uri, content, cancellationToken),
-            uri,
-            content,
-            cancellationToken);
-    }
-
-    /// <summary>
-    /// Выполняет типизированный HTTP DELETE-запрос по указанному URI.
-    /// </summary>
-    /// <typeparam name="TResult">
-    /// Тип данных, в который будет десериализован ответ.
-    /// </typeparam>
-    /// <param name="uri">
-    /// Относительный путь к ресурсу, который будет удален.
-    /// </param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Десериализованный объект типа <typeparamref name="TResult"/>.
-    /// Если ответ пустой или не может быть десериализован, возвращается <see langword="null"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="JsonException">
-    /// Выбрасывается при ошибках десериализации JSON.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected async Task<TResult?> DeleteAsync<TResult>(
-        string uri,
-        CancellationToken cancellationToken = default)
-    {
-        return await ResponseAsJsonAsync<TResult>(
-            await DeleteAsync(uri, cancellationToken),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Преобразует HTTP-ответ в объект указанного типа.
-    /// </summary>
-    /// <typeparam name="TResult">Тип данных, в который будет десериализован ответ.</typeparam>
-    /// <param name="httpResponse">HTTP-ответ для десериализации.</param>
-    /// <param name="logUri">URI запроса для логирования (опционально).</param>
-    /// <param name="logContent">Содержимое запроса для логирования (опционально).</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>Десериализованный объект типа <typeparamref name="TResult"/>.</returns>
-    /// <exception cref="JsonException">Выбрасывается при ошибках десериализации JSON.</exception>
-    protected async Task<TResult?> ResponseAsJsonAsync<TResult>(
-        HttpResponseMessage httpResponse,
-        string? logUri = null,
-        object? logContent = null,
-        CancellationToken cancellationToken = default)
-    {
-        using (httpResponse)
-        {
-            await ValidateResponseAsync(httpResponse, cancellationToken, logUri, logContent);
-
-            var result = await httpResponse.Content
-                .ReadFromJsonAsync<TResult>(cancellationToken);
-            if (result is ResponseBase response)
-            {
-                response.StatusCode = (int)httpResponse.StatusCode;
-            }
-
-            return result;
-        }
-    }
-
-    /// <summary>
-    /// Валидирует HTTP-ответ и выбрасывает исключение в случае ошибки.
-    /// </summary>
-    /// <param name="httpResponse">HTTP-ответ для проверки.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <param name="logUri">URI запроса для логирования (опционально).</param>
-    /// <param name="logContent">Содержимое запроса для логирования (опционально).</param>
-    /// <returns>Результат выполнения асинхронной операции.</returns>
-    protected async Task ValidateResponseAsync(
-        HttpResponseMessage httpResponse,
-        CancellationToken cancellationToken,
-        string? logUri = null,
-        object? logContent = null)
-    {
-        if (httpResponse.IsSuccessStatusCode)
-        {
-            return;
-        }
-
-        var isThrown = false;
-        try
-        {
-            var absolutePath =
-                httpResponse.RequestMessage?.RequestUri?.AbsolutePath
-                ?? logUri
-                ?? string.Empty;
-            var clientName = GetType().Name;
-
-            var response = await httpResponse.Content
-                .ReadAsStringAsync(cancellationToken);
-            var problemDetails = JsonHelper.TryDeserialize<ProblemDetails>(response, out var deserializedProblemDetails)
-                ? deserializedProblemDetails
-                : new ProblemDetails
-                {
-                    Status = (int)httpResponse.StatusCode,
-                    Instance = absolutePath,
-                    Detail = response,
-                };
-
-            var additionalData = TakeAdditionalData(problemDetails!);
-            if (logUri != null && logContent != null)
-            {
-                _logger.LogError(
-                    "Запрос по адресу {RequestUri} вернул ошибку: Status Code={StatusCode:D} с телом {ResponseBody}",
-                    absolutePath,
-                    httpResponse.StatusCode,
-                    JsonSerializer.Serialize(logContent));
-            }
-
-            isThrown = true;
-
-            SetProblemDetailsForServerError(problemDetails, absolutePath, clientName);
-
-            throw new ProxiedException(problemDetails, (int)httpResponse.StatusCode, additionalData);
-        }
-        finally
-        {
-            if (!isThrown)
-            {
-                throw await CreateExceptionAsync(httpResponse, cancellationToken);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Создает исключение на основе ответа HTTP.
-    /// </summary>
-    /// <param name="response">Ответ HTTP (<see cref="HttpResponseMessage"/>), который содержит информацию об ошибке.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>
-    /// Экземпляр <see cref="Exception"/>, содержащий детализированное сообщение об ошибке.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="response"/> равен <see langword="null"/>.</exception>
-    protected virtual async Task<Exception> CreateExceptionAsync(
-        HttpResponseMessage response,
-        CancellationToken cancellationToken = default)
-    {
-        if (response == null)
-        {
-            throw new ArgumentNullException(nameof(response), "Ответ HTTP не может быть null.");
-        }
-
-        try
-        {
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var errorMessage = $"Запрос к {GetType().Name} завершился ошибкой: " +
-                               $"Status Code={response.StatusCode:D} ({response.ReasonPhrase}), " +
-                               $"Content=[{content ?? "null"}]";
-            return new Exception(errorMessage);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Произошла ошибка при создании исключения для HTTP-ответа.");
-
-            return new Exception(
-                $"Не удалось прочитать содержимое ошибки HTTP. Status Code={response.StatusCode:D} ({response.ReasonPhrase})",
-                ex);
-        }
-    }
-
-    /// <summary>
-    /// Типизированный Put запрос.
-    /// </summary>
-    /// <typeparam name="TContent"> Тип данных. </typeparam>
-    /// <typeparam name="TResult"> Тип ответа. </typeparam>
-    /// <param name="uri"> Адрес. </param>
-    /// <param name="content"> Данные. </param>
-    /// <param name="cancellationToken"> Токен отмены. </param>
-    /// <returns> <see cref="HttpResponseMessage"/>. </returns>
-    protected async Task<TResult?> PostFileAsync<TContent, TResult>(
-        string uri,
-        TContent content,
-        CancellationToken cancellationToken = default)
-        where TContent : IWithFile
-    {
-        return await ResponseAsJsonAsync<TResult>(
-                await PostFilesAsync(uri, content, cancellationToken),
-                uri,
-                content,
-                cancellationToken);
-    }
-
-    /// <summary>
-    /// Отправляет файл на сервер с использованием multipart/form-data.
-    /// </summary>
-    /// <param name="url">URL-адрес для отправки запроса.</param>
-    /// <param name="request">Объект запроса, содержащий файл и дополнительные параметры.</param>
+    /// <param name="uri">Относительный путь к ресурсу, который будет удален.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="url"/> или <paramref name="request"/> равны <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Выбрасывается, если файл в <paramref name="request"/> не содержит данных.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="url"/> является абсолютным или содержит path traversal.
-    /// </exception>
-    protected async Task<HttpResponseMessage> PostFilesAsync(
-        string url,
-        IWithFile request,
+    protected Task<HttpResponseMessage> DeleteAsync(
+        string uri,
         CancellationToken cancellationToken = default)
     {
-        GuardAgainstInvalidUri(url);
-
-        var boundary = Guid.NewGuid().ToString();
-        using var multipartContent = new MultipartFormDataContent(boundary);
-        multipartContent.Headers.Remove("Content-Type");
-        multipartContent.Headers.TryAddWithoutValidation(
-            "Content-Type",
-            "multipart/form-data; boundary=" + boundary);
-
-        // using не используется, тк multipartContent должен высвободить все ресурсы при Dispose()
-        var streamContent = new StreamContent(request.File.OpenReadStream());
-        streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.File.ContentType);
-        multipartContent.Add(streamContent, "file", request.File.FileName);
-
-        var properties = PropertiesCache.GetOrAdd(
-            request.GetType(),
-            t => t.GetProperties().Where(x => x.Name != nameof(IWithFile.File)).ToArray());
-        foreach (var prop in properties)
-        {
-            multipartContent.Add(new StringContent(_propertyUtil.GetPropertyAsString(request, prop.Name)));
-        }
-
-        return await _httpClient.PostAsync(url, multipartContent, cancellationToken);
-    }
-
-    /// <summary>
-    /// Проверяет наличие ошибки сервера (статус 500) в массиве ошибок <paramref name="problemDetails"/>
-    /// и модифицирует объект <see cref="ProblemDetails"/>, устанавливая значения свойств <see cref="ProblemDetails.Title"/>
-    /// и <see cref="ProblemDetails.Detail"/> в случае обнаружения такой ошибки.
-    /// </summary>
-    /// <remarks>
-    /// Метод выполняет следующие действия:
-    /// <list type="number">
-    /// <item>Проверяет наличие ключа "errors" в коллекции <see cref="ProblemDetails.Extensions"/>.</item>
-    /// <item>Если ключ существует и его значение является массивом JSON, перебирает элементы массива.</item>
-    /// <item>Ищет элемент с полем "status", равным 500 (статус серверной ошибки).</item>
-    /// <item>Если такая ошибка найдена, устанавливает значения <see cref="ProblemDetails.Title"/> и <see cref="ProblemDetails.Detail"/>.</item>
-    /// </list>
-    /// <para>
-    /// Пример структуры данных в <paramref name="problemDetails"/>:
-    /// <code>
-    /// {
-    ///     "title": "An error occurred",
-    ///     "status": 500,
-    ///     "detail": "An unexpected error occurred.",
-    ///     "extensions": {
-    ///         "errors": [
-    ///             { "status": 500, "message": "Internal server error occurred." },
-    ///             { "status": 400, "message": "Bad request." }
-    ///         ]
-    ///     }
-    /// }
-    /// </code>
-    /// </para>
-    /// </remarks>
-    /// <param name="problemDetails">
-    /// Объект <see cref="ProblemDetails"/>, который будет проверен и модифицирован.
-    /// Если в массиве ошибок найден статус 500, свойства <see cref="ProblemDetails.Title"/> и <see cref="ProblemDetails.Detail"/>
-    /// будут обновлены соответствующими значениями.
-    /// </param>
-    /// <param name="absolutePath">
-    /// Абсолютный путь запроса, который используется для формирования подробного описания ошибки (<see cref="ProblemDetails.Detail"/>).
-    /// </param>
-    /// <param name="clientName">
-    /// Имя клиента, которое используется для формирования подробного описания ошибки (<see cref="ProblemDetails.Detail"/>).
-    /// </param>
-    private static void SetProblemDetailsForServerError(
-        ProblemDetails problemDetails,
-        string absolutePath,
-        string clientName)
-    {
-        if (!problemDetails.Extensions.TryGetValue(ErrorsPropertyName, out var errorsJsonElement) ||
-            errorsJsonElement is not JsonElement { ValueKind: JsonValueKind.Array } errorsArray)
-        {
-            return;
-        }
-
-        var errorFound = false;
-        var errorDetails = string.Empty;
-        foreach (var element in errorsArray.EnumerateArray())
-        {
-            if (!element.TryGetProperty(StatusPropertyName, out var statusCodeProperty) ||
-                !statusCodeProperty.TryGetInt32(out var statusCode) ||
-                statusCode != StatusCodes.Status500InternalServerError)
-            {
-                continue;
-            }
-
-            errorFound = true;
-            errorDetails = element.GetString(DetailPropertyName);
-            break;
-        }
-
-        if (!errorFound)
-        {
-            return;
-        }
-
-        problemDetails.Title = "Ошибка во время взаимодействия с внешним сервисом.";
-        problemDetails.Detail =
-            $"Не удалось корректно обработать запрос по адресу '{absolutePath}' для клиента '{clientName}'." +
-            (string.IsNullOrWhiteSpace(errorDetails)
-                ? string.Empty
-                : $"{Environment.NewLine}Причина: {errorDetails}");
+        _uriValidator.Validate(uri);
+        return _httpClient.DeleteAsync(uri, cancellationToken);
     }
 
     /// <summary>
     /// Добавляет параметры запроса к относительному пути URL.
     /// </summary>
     /// <param name="relativePath">Относительный путь URL.</param>
-    /// <param name="queryParams">
-    /// Словарь параметров запроса, где ключ — имя параметра, значение — значение параметра.
-    /// Может быть <see langword="null"/> или пустым.
-    /// </param>
-    /// <returns>
-    /// URL с добавленными параметрами запроса в формате "?key1=value1&amp;key2=value2".
-    /// Если параметры запроса отсутствуют, возвращается исходный <paramref name="relativePath"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="relativePath"/> равен <see langword="null"/>.
-    /// </exception>
+    /// <param name="queryParams">Словарь параметров запроса.</param>
+    /// <returns>URL с добавленными параметрами запроса.</returns>
     private static string AddQueryParams(
         string relativePath,
         Dictionary<string, string>? queryParams)
     {
         return queryParams?.Any() == true
-            ? relativePath + QueryString.Create(queryParams!)
+            ? relativePath + QueryString.Create(queryParams)
             : relativePath;
-    }
-
-    /// <summary>
-    /// Извлекает дополнительные данные из <see cref="ProblemDetails.Extensions"/> и удаляет их из коллекции.
-    /// </summary>
-    /// <param name="problemDetails">Детали ошибки, из которых извлекаются дополнительные данные.</param>
-    /// <returns>
-    /// Словарь с дополнительными данными, если они присутствуют в <see cref="ProblemDetails.Extensions"/>;
-    /// иначе <see langword="null"/>.
-    /// </returns>
-    /// <remarks>
-    /// Дополнительные данные удаляются из <see cref="ProblemDetails.Extensions"/> после извлечения,
-    /// чтобы предотвратить их передачу фронтенду при повторном проксировании ошибки.
-    /// </remarks>
-    private static Dictionary<string, object>? TakeAdditionalData(ProblemDetails problemDetails)
-    {
-        if (!problemDetails.Extensions.Remove(AdditionalDataPropertyName, out var data))
-        {
-            return null;
-        }
-
-        return data switch
-        {
-            JsonElement { ValueKind: JsonValueKind.Object } jsonElement
-                => jsonElement
-                    .EnumerateObject()
-                    .ToDictionary(x => x.Name, x => x.Value as object),
-
-            // При ручном конструировании ProblemDetails в тестах данные могут быть уже десериализованы.
-            Dictionary<string, object> dict => dict,
-
-            IReadOnlyDictionary<string, object> readOnlyDict
-                => readOnlyDict.ToDictionary(x => x.Key, x => x.Value),
-
-            _ => null,
-        };
-    }
-
-    /// <summary>
-    /// Валидирует URI, обеспечивая что это относительный путь без path traversal.
-    /// </summary>
-    /// <param name="uri">URI для валидации.</param>
-    /// <exception cref="ArgumentException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/>, пуст или состоит из пробелов.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным URI или содержит path traversal.
-    /// </exception>
-    private static void GuardAgainstInvalidUri(string uri)
-    {
-        if (string.IsNullOrWhiteSpace(uri))
-        {
-            throw new ArgumentException("URI не может быть пустым", nameof(uri));
-        }
-
-        // Запрет абсолютных URI (защита от SSRF)
-        if (Uri.IsWellFormedUriString(uri, UriKind.Absolute))
-        {
-            throw new SecurityException(
-                $"Абсолютные URI запрещены. Используйте относительный путь. URI: {uri}");
-        }
-
-        // Запрет path traversal
-        var decoded = uri;
-        string prev;
-        do
-        {
-            prev = decoded;
-            decoded = Uri.UnescapeDataString(decoded);
-        }
-        while (decoded != prev);
-        if (decoded.Contains(".."))
-        {
-            throw new SecurityException(
-                $"Path traversal запрещён. URI: {uri}");
-        }
-
-        // Запрет абсолютных путей (начинающихся с / или \)
-        if (uri.StartsWith('/') || uri.StartsWith('\\'))
-        {
-            throw new SecurityException(
-                $"URI должен быть относительным путём без начального слэша. URI: {uri}");
-        }
-
-        // Проверка формата относительного URI
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
-        {
-            throw new FormatException($"Невалидный относительный URI: {uri}");
-        }
     }
 }
