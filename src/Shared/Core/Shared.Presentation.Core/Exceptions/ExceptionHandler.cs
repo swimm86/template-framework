@@ -20,7 +20,7 @@ namespace Shared.Presentation.Core.Exceptions;
 /// </remarks>
 /// <param name="exceptionMapperDispatcher">Резолвер маппера по типу исключения.</param>
 internal sealed class ExceptionHandler(
-    IExceptionMapperDispatcher exceptionMapperDispatcher)
+    IExceptionMapperResolver exceptionMapperDispatcher)
     : IExceptionHandler
 {
     /// <inheritdoc />

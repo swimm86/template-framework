@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ExceptionMapperDispatcher.cs" company="АО ИНЛАЙН ГРУП">
+// <copyright file="ExceptionMapperResolver.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -14,8 +14,8 @@ namespace Shared.Presentation.Core.Exceptions;
 /// Резолвер маппера по иерархии типов: обходит <see cref="Exception.GetType"/> и базовые типы,
 /// возвращает первый зарегистрированный маппер (самый производный выигрывает).
 /// </summary>
-internal sealed class ExceptionMapperDispatcher
-    : IExceptionMapperDispatcher
+internal sealed class ExceptionMapperResolver
+    : IExceptionMapperResolver
 {
     private readonly Dictionary<Type, IExceptionMapper> _map;
 
@@ -23,7 +23,7 @@ internal sealed class ExceptionMapperDispatcher
     /// Конструктор класса.
     /// </summary>
     /// <param name="mappers">Все зарегистрированные мапперы.</param>
-    public ExceptionMapperDispatcher(
+    public ExceptionMapperResolver(
         IEnumerable<IExceptionMapper> mappers)
     {
         _map = CreateMap(mappers);
@@ -41,7 +41,7 @@ internal sealed class ExceptionMapperDispatcher
         {
             if (_map.TryGetValue(type, out var mapper))
             {
-                return mapper.ToErrorResponse(exception);
+                return mapper.Map(exception);
             }
         }
 

@@ -19,7 +19,7 @@ namespace Shared.Presentation.Core.Exceptions.Mappers;
 /// <remarks>
 /// <para>
 /// Делегирует маппинг каждого внутреннего исключения соответствующему <see cref="IExceptionMapper"/>
-/// через <see cref="IExceptionMapperDispatcher"/>. Использует <see cref="AggregateException.Flatten"/>
+/// через <see cref="IExceptionMapperResolver"/>. Использует <see cref="AggregateException.Flatten"/>
 /// для раскрытия вложенных <see cref="AggregateException"/>, предотвращая рекурсию.
 /// </para>
 /// <para>
@@ -39,7 +39,7 @@ public sealed class AggregateExceptionMapper(
     IServiceProvider serviceProvider)
     : ExceptionMapperBase<AggregateException>(configuration)
 {
-    private IExceptionMapperDispatcher? _dispatcher;
+    private IExceptionMapperResolver? _resolver;
 
     /// <inheritdoc/>
     protected override string Title => "Ошибка сервера";
@@ -58,10 +58,10 @@ public sealed class AggregateExceptionMapper(
             return base.GetProblemDetails(exception);
         }
 
-        _dispatcher ??= serviceProvider.GetRequiredService<IExceptionMapperDispatcher>();
+        _resolver ??= serviceProvider.GetRequiredService<IExceptionMapperResolver>();
 
         return innerExceptions
-            .SelectMany(inner => _dispatcher.Map(inner).Errors)
+            .SelectMany(inner => _resolver.Map(inner).Errors)
             .ToArray();
     }
 }

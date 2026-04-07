@@ -7,7 +7,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.ObjectPool;
 using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Core.Extensions;
@@ -18,7 +17,7 @@ namespace Shared.Presentation.Core.Exceptions.Mappers.Base;
 
 /// <summary>
 /// Базовый класс маппера исключений: задаёт <see cref="IExceptionMapper.HandledType"/>, делегирует
-/// не-generic <see cref="IExceptionMapper.ToErrorResponse"/> в типобезопасный <see cref="Handle"/>
+/// не-generic <see cref="IExceptionMapper.Map"/> в типобезопасный <see cref="Handle"/>
 /// и предоставляет реализацию по умолчанию на основе  <see cref="Title"/>.
 /// </summary>
 /// <typeparam name="TException">Тип обрабатываемого исключения.</typeparam>
@@ -27,26 +26,7 @@ public abstract class ExceptionMapperBase<TException>(
     : IExceptionMapper<TException>
     where TException : Exception
 {
-    /// <summary>
-    /// Максимальная глубина вложенности InnerException для защиты от циклических ссылок.
-    /// </summary>
-    /// <remarks>
-    /// Значение 5 выбрано на основе анализа реальных инцидентов в highload-системах:
-    /// - 95% исключений укладываются в 1-2 уровня
-    /// - 99% исключений укладываются в 3-4 уровня
-    /// - 5 уровней покрывает edge-cases с AggregateException + ProxiedException + вложенные AppException
-    /// Увеличение глубины свыше 5 не даёт диагностической ценности, но растёт риск переполнения стека
-    /// и размер ответа при циклических ссылках.
-    /// </remarks>
-    private const int MaxExceptionDepth = 5;
-
-    /// <summary>
-    /// Количество строк стека вызовов для отладки. Значение по-умолчанию (10)
-    /// выбрано для баланса между полезностью и размером ответа.
-    /// </summary>
-    private const int StackTraceDepth = 10;
-
-    private readonly bool _isDebug = configuration.GetOptions<RichDebugSettings>()?.IsEnabled ?? false;
+    private readonly ExceptionMapperSettings _settings = configuration.GetOptions<ExceptionMapperSettings>() ?? new();
 
     /// <inheritdoc />
     public Type HandledType => typeof(TException);
@@ -58,13 +38,14 @@ public abstract class ExceptionMapperBase<TException>(
 
     /// <summary>
     /// Определяет, нужно ли добавлять stack trace и детали исключения в ответ.
-    /// По умолчанию <c>true</c>; переопределите в <c>false</c> для исключений,
+    /// По умолчанию берётся из <see cref="ExceptionMapperSettings.ShouldEnrichWithTrace"/>;
+    /// переопределите в <c>false</c> для исключений,
     /// данные которых не должны обогащаться (например, проксированные ошибки).
     /// </summary>
-    protected virtual bool ShouldEnrichWithTrace => true;
+    protected virtual bool ShouldEnrichWithTrace => _settings.ShouldEnrichWithTrace;
 
     /// <inheritdoc />
-    public ErrorResponse ToErrorResponse(Exception exception)
+    public ErrorResponse Map(Exception exception)
     {
         if (exception is TException typed)
         {
@@ -78,11 +59,9 @@ public abstract class ExceptionMapperBase<TException>(
     /// <inheritdoc />
     public ErrorResponse Handle(TException exception)
     {
-        var shouldEnrichWithTrace = ShouldEnrichWithTrace && _isDebug;
-
         return new ErrorResponse
         {
-            Details = shouldEnrichWithTrace
+            Details = ShouldEnrichWithTrace
                 ? FormatExceptionDetails(exception)
                 : null,
             StatusCode = GetResponseStatusCode(exception),
@@ -137,12 +116,12 @@ public abstract class ExceptionMapperBase<TException>(
         ];
     }
 
-    private static void AppendExceptionDetails(
+    private void AppendExceptionDetails(
         StringBuilder builder,
         Exception exception,
         int currentDepth)
     {
-        if (currentDepth >= MaxExceptionDepth)
+        if (currentDepth >= _settings.MaxExceptionDepth)
         {
             builder.Append("... (превышена максимальная глубина исключений)");
             return;
@@ -167,7 +146,7 @@ public abstract class ExceptionMapperBase<TException>(
 
         if (exception.StackTrace is not null)
         {
-            foreach (var line in exception.StackTrace.Split(Environment.NewLine).Take(StackTraceDepth))
+            foreach (var line in exception.StackTrace.Split(Environment.NewLine).Take(_settings.StackTraceDepth))
             {
                 builder.AppendLine();
                 builder.Append(line);
@@ -194,41 +173,4 @@ public abstract class ExceptionMapperBase<TException>(
             return builder.ToString();
         });
     }
-
-    /// <summary>
-    /// Политика создания объектов StringBuilder для пула.
-    /// </summary>
-    internal sealed class StringBuilderPolicy
-        : IPooledObjectPolicy<StringBuilder>
-    {
-        /// <summary>
-        /// Создаёт новый экземпляр StringBuilder.
-        /// </summary>
-        /// <returns>Новый экземпляр StringBuilder.</returns>
-        public StringBuilder Create() => new(capacity: 1024);
-
-        /// <summary>
-        /// Возвращает StringBuilder в пул после очистки.
-        /// </summary>
-        /// <param name="obj">StringBuilder для возврата в пул.</param>
-        /// <returns>Всегда true.</returns>
-        public bool Return(StringBuilder obj)
-        {
-            obj.Clear();
-            return true;
-        }
-    }
-}
-
-/// <summary>
-/// Статический класс, который содержит пул <see cref="StringBuilder"/>.
-/// </summary>
-internal static class ExceptionFormattingPool
-{
-    /// <summary>
-    /// Пул <see cref="StringBuilder"/>.
-    /// </summary>
-    internal static readonly DefaultObjectPool<StringBuilder> StringBuilder = new(
-        new ExceptionMapperBase<Exception>.StringBuilderPolicy(),
-        Math.Min(Environment.ProcessorCount * 2, 16));
 }

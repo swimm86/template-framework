@@ -28,7 +28,7 @@ public interface IExceptionMapper
     /// </summary>
     /// <param name="exception">Исключение для маппинга.</param>
     /// <returns>Экземпляр <see cref="ErrorResponse"/>.</returns>
-    ErrorResponse ToErrorResponse(Exception exception);
+    ErrorResponse Map(Exception exception);
 }
 
 /// <summary>

@@ -22,17 +22,17 @@ public static class ExceptionsDependencyInjection
     /// </summary>
     /// <param name="services"> Коллекция сервисов <see cref="IServiceCollection"/>. </param>
     /// <returns> Коллекция сервисов <see cref="IServiceCollection"/>. </returns>
-    public static IServiceCollection AddExceptionsHandlers(
+    public static IServiceCollection AddExceptionHandling(
         this IServiceCollection services)
     {
         return services
             .AddProblemDetails()
-            .AddExceptionsMappers()
-            .AddSingleton<IExceptionMapperDispatcher, ExceptionMapperDispatcher>()
+            .AddExceptionMappers()
+            .AddSingleton<IExceptionMapperResolver, ExceptionMapperResolver>()
             .AddExceptionHandler<ExceptionHandler>();
     }
 
-    private static IServiceCollection AddExceptionsMappers(
+    private static IServiceCollection AddExceptionMappers(
         this IServiceCollection services)
     {
         var interfaceType = typeof(IExceptionMapper);

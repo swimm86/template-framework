@@ -53,7 +53,7 @@ public static class WebApplicationBuilderExtensions
                         policy.AllowAnyMethod();
                     });
             })
-            .AddExceptionsHandlers();
+            .AddExceptionHandling();
 
         return builder;
     }

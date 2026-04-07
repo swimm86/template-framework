@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------------------------
-// <copyright file="IExceptionMapperDispatcher.cs" company="АО ИНЛАЙН ГРУП">
+// <copyright file="IExceptionMapperResolver.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ namespace Shared.Presentation.Core.Exceptions.Interfaces;
 /// Выбирает маппер по типу исключения и его базовым типам; берётся самый производный
 /// зарегистрированный тип. Порядок регистрации мапперов в DI не важен.
 /// </remarks>
-public interface IExceptionMapperDispatcher
+public interface IExceptionMapperResolver
 {
     /// <summary>
     /// Преобразует исключение в <see cref="ErrorResponse"/> с помощью
