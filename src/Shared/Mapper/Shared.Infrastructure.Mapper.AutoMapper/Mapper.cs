@@ -29,7 +29,11 @@ public class Mapper(
         object? parameters = null,
         params Expression<Func<TDestination, object>>[] membersToExpand)
     {
-        return source.ProjectTo(mapper.ConfigurationProvider, parameters, membersToExpand);
+        var sourceType = source.GetType();
+        return sourceType is { IsGenericType: true, GenericTypeArguments.Length: 1 } &&
+               typeof(TDestination) == sourceType.GenericTypeArguments[0]
+            ? (source as IQueryable<TDestination>)!
+            : source.ProjectTo(mapper.ConfigurationProvider, parameters, membersToExpand);
     }
 
     /// <inheritdoc />
