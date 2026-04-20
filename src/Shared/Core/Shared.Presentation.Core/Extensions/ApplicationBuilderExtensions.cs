@@ -7,6 +7,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Shared.Common;
+using Shared.Common.Logging;
 using Shared.Presentation.Core.Swagger;
 
 namespace Shared.Presentation.Core.Extensions;
@@ -23,6 +24,8 @@ public static class ApplicationBuilderExtensions
     /// <returns><see cref="IApplicationBuilder"/>.</returns>
     public static IApplicationBuilder ConfigurePresentationCore(this WebApplication app)
     {
+        LoggingServiceAccessor.Configure(app.Services);
+
         if (app.Environment.IsDevelopment())
         {
             app.UseSwaggerConfigured();

@@ -18,6 +18,9 @@ public interface IPersonsService
     /// Возвращает список 'Person-ов' с использованием указанного паттерна для доступа к Dal.
     /// </summary>
     /// <param name="request"><inheritdoc cref="PersonListRequest"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
     /// <returns>Список всех 'Person-ов'.</returns>
-    Task<PersonListResponse> GetPersonsAsync(PersonListRequest request);
+    Task<PersonListResponse> GetPersonsAsync(
+        PersonListRequest request,
+        CancellationToken cancellationToken);
 }

@@ -28,5 +28,5 @@ public sealed class PersonsController(
     public Task<IActionResult> GetPersonsAsync(
         [FromBody] PersonListRequest dto,
         CancellationToken cancellationToken = default) =>
-        Process(() => personsService.GetPersonsAsync(dto), cancellationToken);
+        Process(() => personsService.GetPersonsAsync(dto, cancellationToken));
 }

@@ -26,15 +26,16 @@ public class PersonsService(
 {
     /// <inheritdoc />
     public async Task<PersonListResponse> GetPersonsAsync(
-        PersonListRequest request)
+        PersonListRequest request,
+        CancellationToken cancellationToken)
     {
         var skip = request.PageSize * request.PageNumber;
         var take = request.PageSize;
         var personsTask = request.DalPattern switch
         {
-            DalPattern.UnitOfWork => GetPersonsUnitOfWorkAsync(request, skip, take),
-            DalPattern.Repository => GetPersonsRepositoryAsync(request, skip, take),
-            DalPattern.Specification => GetPersonsSpecificationAsync(request, skip, take),
+            DalPattern.UnitOfWork => GetPersonsUnitOfWorkAsync(request, skip, take, cancellationToken),
+            DalPattern.Repository => GetPersonsRepositoryAsync(request, skip, take, cancellationToken),
+            DalPattern.Specification => GetPersonsSpecificationAsync(request, skip, take, cancellationToken),
             _ => throw new ArgumentOutOfRangeException()
         };
         var result = await personsTask;
@@ -55,17 +56,22 @@ public class PersonsService(
     /// <param name="request">Запрос.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
-    public async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsUnitOfWorkAsync(
+    private async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsUnitOfWorkAsync(
         PersonListRequest request,
         int skip,
-        int take)
+        int take,
+        CancellationToken cancellationToken)
     {
         var options = new QueryOptions<Person>();
         request.ConvertSortOptions().ForEach(options.AddOrderBy);
         var repo = unitOfWork.GetRepository<Person>();
-        var collection = await repo.GetRangeAsync<PersonListPayload>(skip: skip, take: take);
-        var totalCount = await repo.CountAsync();
+        var collection = await repo.GetRangeAsync<PersonListPayload>(
+            skip: skip,
+            take: take,
+            cancellationToken: cancellationToken);
+        var totalCount = await repo.CountAsync(cancellationToken: cancellationToken);
         return (collection, totalCount);
     }
 
@@ -75,18 +81,24 @@ public class PersonsService(
     /// <param name="request">Запрос.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsRepositoryAsync(
         PersonListRequest request,
         int skip,
-        int take)
+        int take,
+        CancellationToken cancellationToken)
     {
         var options = new QueryOptions<Person>();
         request.ConvertSortOptions().ForEach(options.AddOrderBy);
         var collection = await personRepository
-            .GetRangeAsync<PersonListPayload>(options, skip, take);
+            .GetRangeAsync<PersonListPayload>(
+                options,
+                skip,
+                take,
+                cancellationToken: cancellationToken);
         var totalCount = await personRepository
-            .CountAsync(options);
+            .CountAsync(options, cancellationToken);
         return (collection, totalCount);
     }
 
@@ -96,17 +108,23 @@ public class PersonsService(
     /// <param name="request">Запрос.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsSpecificationAsync(
         PersonListRequest request,
         int skip,
-        int take)
+        int take,
+        CancellationToken cancellationToken)
     {
         var specification = new PersonSpecification(request);
         var collection = await personRepository
-            .GetRangeAsync<PersonListPayload>(specification, skip, take);
+            .GetRangeAsync<PersonListPayload>(
+                specification,
+                skip,
+                take,
+                cancellationToken: cancellationToken);
         var totalCount = await personRepository
-            .CountAsync(specification);
+            .CountAsync(specification, cancellationToken);
         return (collection, totalCount);
     }
 }

@@ -35,7 +35,6 @@ public class GetterController(
         CancellationToken cancellationToken = default)
     {
         return Process(
-            () => sender.Send(new PersonListQuery(request), cancellationToken),
-            cancellationToken);
+            () => sender.Send(new PersonListQuery(request), cancellationToken));
     }
 }

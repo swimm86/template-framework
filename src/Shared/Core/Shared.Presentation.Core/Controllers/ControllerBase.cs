@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Dto.Responses;
-using Shared.Common.Extensions;
+using Shared.Common.Logging.Extensions;
 
 namespace Shared.Presentation.Core.Controllers;
 
@@ -40,24 +40,20 @@ public abstract class ControllerBase(
     /// Асинхронно обрабатывает запрос, используя предоставленную функцию обработки.
     /// </summary>
     /// <param name="processFunc">Функция обработки запроса, которая должна вернуть результат обработки в виде объекта <see cref="Task{TResponse}"/>, где TResponse является ответом с типизированным содержимым.</param>
-    /// <param name="cancellationToken">Токен отмены операции, позволяющий отменить асинхронную операцию.</param>
     /// <param name="methodName">Наименование метода, вызвавшего асинхронную операцию.</param>
     /// <typeparam name="TResponse">Тип ответа, который должен наследоваться от <see cref="Response{TPayload}"/>, где TPayload - тип данных в теле ответа.</typeparam>
     /// <returns>Объект <see cref="Task{IActionResult}"/>, представляющий асинхронную операцию. Результат содержит статус код и данные ответа, упакованные в соответствующий формат HTTP-ответа.</returns>
     protected Task<IActionResult> Process<TResponse>(
         Func<Task<TResponse>> processFunc,
-        CancellationToken cancellationToken = default,
         [CallerMemberName] string? methodName = null)
         where TResponse : Response
     {
         return logger.LogTaskAsync(
             async () =>
             {
-                var result = await processFunc()
-                    .ConfigureAwait(false);
+                var result = await processFunc();
                 return StatusCode(result.StatusCode, result) as IActionResult;
             },
-            cancellationToken,
             methodName);
     }
 }

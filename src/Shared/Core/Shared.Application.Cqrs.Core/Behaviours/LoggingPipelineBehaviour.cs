@@ -6,7 +6,7 @@
 
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Shared.Common.Extensions;
+using Shared.Common.Logging.Extensions;
 
 namespace Shared.Application.Cqrs.Core.Behaviours;
 
@@ -25,11 +25,10 @@ internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
     public Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
+        CancellationToken _)
     {
         return logger.LogTaskAsync(
             () => next(),
-            cancellationToken,
             processDescription: $"'{request.GetType().Name}' handler");
     }
 }
