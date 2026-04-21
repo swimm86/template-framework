@@ -234,6 +234,10 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 
+# Fody auto-generated files
+**/FodyWeavers.xml
+**/FodyWeavers.xsd
+
 *.db3
 GeneratedReports/
 /DocsApp.sln.DotSettings
