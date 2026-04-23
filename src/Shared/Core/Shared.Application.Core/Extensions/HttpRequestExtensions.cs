@@ -6,7 +6,7 @@
 
 using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Core.Dto.Responses;
-using Shared.Common;
+using Shared.Common.Constants;
 using Shared.Common.Helpers;
 
 namespace Shared.Application.Core.Extensions;
@@ -32,8 +32,8 @@ public static class HttpRequestExtensions
     public static Task BatchProcessAsync<TRequest, TFilter, TResponse, TPayload>(
         this Func<TRequest, CancellationToken, Task<TResponse>> requestFunc,
         TRequest request,
-        int batchSize = Const.DefaultBatchSize,
-        Func<TResponse, Task>? processFunc = default,
+        int batchSize = BatchConstants.DefaultBatchSize,
+        Func<TResponse, Task>? processFunc = null,
         CancellationToken cancellationToken = default)
         where TRequest : PageableRequest<TFilter>
         where TResponse : PageableResponse<TPayload>
@@ -70,8 +70,8 @@ public static class HttpRequestExtensions
     public static Task BatchProcessAsync<TRequest, TFilter, TResponse, TPayload>(
         this Func<TRequest, Task<TResponse>> requestFunc,
         TRequest request,
-        int batchSize = Const.DefaultBatchSize,
-        Func<TResponse, Task>? processFunc = default,
+        int batchSize = BatchConstants.DefaultBatchSize,
+        Func<TResponse, Task>? processFunc = null,
         CancellationToken cancellationToken = default)
         where TRequest : PageableRequest<TFilter>
         where TResponse : PageableResponse<TPayload>
@@ -108,8 +108,8 @@ public static class HttpRequestExtensions
     public static IAsyncEnumerable<TResponse> BatchProcessAsync<TRequest, TFilter, TResponse, TPayload>(
         this Func<TRequest, Task<TResponse>> requestFunc,
         TRequest request,
-        int batchSize = Const.DefaultBatchSize,
-        Func<TResponse, Task<TResponse>>? processFunc = default,
+        int batchSize = BatchConstants.DefaultBatchSize,
+        Func<TResponse, Task<TResponse>>? processFunc = null,
         CancellationToken cancellationToken = default)
         where TRequest : PageableRequest<TFilter>
         where TResponse : PageableResponse<TPayload>

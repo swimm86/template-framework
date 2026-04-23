@@ -1,21 +1,16 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="Const.cs" company="АО ИНЛАЙН ГРУП">
+// <copyright file="FormatsConstants.cs" company="АО ИНЛАЙН ГРУП">
 // Copyright (c) АО ИНЛАЙН ГРУП. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Common;
+namespace Shared.Common.Constants;
 
 /// <summary>
-/// Общие константы, которые не подходят под конкретные группировки
+/// Константы с форматами отображения данных.
 /// </summary>
-public static class Const
+public static class FormatsConstants
 {
-    /// <summary>
-    /// Имя политики, которая используется в Cors.
-    /// </summary>
-    public const string CorsDefaultPolicyName = nameof(CorsDefaultPolicyName);
-
     /// <summary>
     /// Формат для даты.
     /// </summary>
@@ -25,9 +20,4 @@ public static class Const
     /// Формат для даты и времени.
     /// </summary>
     public const string DateTimeFormat = "dd.MM.yyyy HH:mm";
-
-    /// <summary>
-    /// Размер батча по-умолчанию.
-    /// </summary>
-    public const int DefaultBatchSize = 100;
 }

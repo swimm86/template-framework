@@ -7,6 +7,8 @@
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient;
 using Shared.Application.Core.ApiClient.Interfaces;
 using Shared.Domain.Core.Utils.Interfaces;
@@ -20,8 +22,16 @@ public sealed class GetterClient(
     IHttpClientFactory httpClientFactory,
     IUriValidator uriValidator,
     IResponseValidator responseValidator,
-    IPropertyGetter propertyGetter)
-    : ApiClient(httpClientFactory, uriValidator, responseValidator, propertyGetter), IGetterClient
+    IPropertyGetter propertyGetter,
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<GetterClient> logger)
+    : ApiClient(
+        httpClientFactory,
+        uriValidator,
+        responseValidator,
+        propertyGetter,
+        httpContextAccessor,
+        logger), IGetterClient
 {
     /// <inheritdoc />
     public Task<PersonListResponse> GetPersonsAsync(

@@ -58,6 +58,9 @@ public static class NlogDependencyInjection
         nlogConfig.LoggingRules.ForEach(rule =>
             rule.SetLoggingLevels(nlogLogLevel, NLog.LogLevel.Fatal));
 
+        // Регистрация идентификаторов корреляции
+        nlogConfig.AddCorrelationIdToTargetLayouts();
+
         // Устанавливаем измененную конфигурацию в LogManager
         LogManager.Configuration = nlogConfig;
 

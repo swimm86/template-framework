@@ -20,6 +20,12 @@ namespace Shared.Infrastructure.Job.Quartz;
 /// <para>
 /// Класс предоставляет два основных метода:
 /// <list type="bullet">
+/// <item>
+/// <description><see cref="RegisterJob(IServiceCollection,string,string,Func{IServiceProvider,CancellationToken,Task})"/>.</description>
+/// </item>
+/// <item>
+/// <description><see cref="RegisterJob{TJob}(IServiceCollection,string)"/>.</description>
+/// </item>
 /// </list>
 /// </para>
 /// <para>
@@ -29,11 +35,10 @@ namespace Shared.Infrastructure.Job.Quartz;
 /// <example>
 /// Пример регистрации задачи с CRON-выражением:
 /// <code>
-/// await QuartzJobRegistrar.RegisterJobAsync(
-///     schedulerFactory,
+/// serviceCollection.RegisterJob(
 ///     jobKey: "MyJob",
 ///     cronExpression: "0 0/5 * * * ?", // Каждые 5 минут
-///     job: async () => await MyTask());
+///     job: (_, ct) => MyTask(ct));
 /// </code>
 /// </example>
 /// </remarks>
@@ -53,14 +58,12 @@ public static class QuartzJobRegistrar
     /// <param name="job">
     /// Действие, которое будет выполняться при запуске задачи.
     /// </param>
-    /// <returns>
-    /// Задача, представляющая асинхронную операцию регистрации задачи.
-    /// </returns>
+    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
     public static IServiceCollection RegisterJob(
         this IServiceCollection serviceCollection,
         string jobKey,
         string cronExpression,
-        Func<IServiceProvider, Task> job)
+        Func<IServiceProvider, CancellationToken, Task> job)
     {
         ValidateParameters(jobKey, true, cronExpression, job);
 
@@ -81,9 +84,6 @@ public static class QuartzJobRegistrar
     /// CRON-выражение, определяющее расписание выполнения задачи.
     /// Например, "0 0/5 * * * ?" означает выполнение каждые 5 минут.
     /// </param>
-    /// <returns>
-    /// Задача, представляющая асинхронную операцию регистрации задачи.
-    /// </returns>
     /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
     public static IServiceCollection RegisterJob<TJob>(
         this IServiceCollection serviceCollection,
@@ -118,9 +118,7 @@ public static class QuartzJobRegistrar
     /// <param name="specificTime">
     /// Время выполнения задачи. Используется для триггеров, таких как ежедневное, еженедельное или ежемесячное выполнение.
     /// </param>
-    /// <returns>
-    /// Задача, представляющая асинхронную операцию регистрации задачи.
-    /// </returns>
+    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Выбрасывается, если указан недопустимый флаг триггера.
     /// </exception>
@@ -128,7 +126,7 @@ public static class QuartzJobRegistrar
         this IServiceCollection serviceCollection,
         string jobKey,
         JobTriggerFlags trigger,
-        Func<IServiceProvider, Task> job,
+        Func<IServiceProvider, CancellationToken, Task> job,
         TimeSpan specificTime)
     {
         ValidateParameters(jobKey, true, job: job);
@@ -155,9 +153,7 @@ public static class QuartzJobRegistrar
     /// <param name="specificTime">
     /// Время выполнения задачи. Используется для триггеров, таких как ежедневное, еженедельное или ежемесячное выполнение.
     /// </param>
-    /// <returns>
-    /// Задача, представляющая асинхронную операцию регистрации задачи.
-    /// </returns>
+    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Выбрасывается, если указан недопустимый флаг триггера.
     /// </exception>
@@ -206,9 +202,7 @@ public static class QuartzJobRegistrar
     /// </code>
     /// </example>
     /// </remarks>
-    /// <returns>
-    /// Задача, представляющая асинхронную операцию регистрации задачи.
-    /// </returns>
+    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
     public static IServiceCollection RegisterCacheJob<TData>(
         this IServiceCollection serviceCollection,
         string cacheKey,
@@ -221,7 +215,7 @@ public static class QuartzJobRegistrar
             .RegisterJob(
                 $"{cacheKey}.{jobPrefix}",
                 cronExpression,
-                serviceProvider =>
+                (serviceProvider, _) =>
                 {
                     var cacheService = serviceProvider.GetCacheService<TData>(cacheKey);
                     return cacheService.UpdateCacheAsync();
@@ -258,9 +252,7 @@ public static class QuartzJobRegistrar
     /// </code>
     /// </example>
     /// </remarks>
-    /// <returns>
-    /// Задача, представляющая асинхронную операцию регистрации задачи.
-    /// </returns>
+    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Выбрасывается, если указан недопустимый флаг триггера.
     /// </exception>
@@ -276,7 +268,7 @@ public static class QuartzJobRegistrar
             .RegisterJob(
                 $"{cacheKey}.job",
                 trigger,
-                serviceProvider =>
+                (serviceProvider, _) =>
                 {
                     var cacheService = serviceProvider.GetCacheService<TData>(cacheKey);
                     return cacheService.UpdateCacheAsync();
@@ -290,7 +282,7 @@ public static class QuartzJobRegistrar
     private static void CreateJobDetail(
         IJobConfigurator configurator,
         string jobKey,
-        Func<IServiceProvider, Task>? job = default)
+        Func<IServiceProvider, CancellationToken, Task>? job = null)
     {
         var builder = configurator
             .WithIdentity(jobKey);
@@ -381,7 +373,7 @@ public static class QuartzJobRegistrar
         string jobKey,
         bool isWrapperJob,
         string? cronExpression = null,
-        Func<IServiceProvider, Task>? job = null)
+        Func<IServiceProvider, CancellationToken, Task>? job = null)
     {
         if (string.IsNullOrWhiteSpace(jobKey))
         {

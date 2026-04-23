@@ -14,7 +14,8 @@ namespace Gpn.Template.Infrastructure.Dal.Configuration;
 /// <summary>
 /// Конфигурация для сущности OutboxEvent.
 /// </summary>
-public class OutboxEventConfiguration : EntityConfigurationBase<OutboxEvent>
+public class OutboxEventConfiguration
+    : EntityConfigurationBase<OutboxEvent>
 {
     /// <inheritdoc />
     protected override void ConfigureProcess(EntityTypeBuilder<OutboxEvent> builder)

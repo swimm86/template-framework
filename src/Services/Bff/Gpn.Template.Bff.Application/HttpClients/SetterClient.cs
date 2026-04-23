@@ -5,6 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient;
 using Shared.Application.Core.ApiClient.Interfaces;
 using Shared.Domain.Core.Utils.Interfaces;
@@ -18,5 +20,13 @@ public sealed class SetterClient(
     IHttpClientFactory httpClientFactory,
     IUriValidator uriValidator,
     IResponseValidator responseValidator,
-    IPropertyGetter propertyGetter)
-    : ApiClient(httpClientFactory, uriValidator, responseValidator, propertyGetter), ISetterClient;
+    IPropertyGetter propertyGetter,
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<SetterClient> logger)
+    : ApiClient(
+        httpClientFactory,
+        uriValidator,
+        responseValidator,
+        propertyGetter,
+        httpContextAccessor,
+        logger), ISetterClient;

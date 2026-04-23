@@ -27,9 +27,12 @@ public class CoreDependencyInjector(
     : DependencyInjectorBase(logger)
 {
     /// <inheritdoc />
-    protected override IServiceCollection Process(IServiceCollection serviceCollection)
+    protected override IServiceCollection Process(
+        IServiceCollection serviceCollection)
     {
         return serviceCollection
+            // TODO: вынести в Presentation-layer после миграции туда ApiClient и других Http-зависимостей
+            .AddHttpContextAccessor()
             .ConfigureJsonSerializer()
             .AddRepositories()
             .AddDbSeeder()

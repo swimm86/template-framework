@@ -6,8 +6,8 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
-using Shared.Common;
 using Shared.Common.Logging;
+using Shared.Presentation.Core.CorrelationId.Extensions;
 using Shared.Presentation.Core.Swagger;
 
 namespace Shared.Presentation.Core.Extensions;
@@ -26,6 +26,7 @@ public static class ApplicationBuilderExtensions
     {
         LoggingServiceAccessor.Configure(app.Services);
 
+        app.UseCorrelationId();
         if (app.Environment.IsDevelopment())
         {
             app.UseSwaggerConfigured();
@@ -37,7 +38,7 @@ public static class ApplicationBuilderExtensions
         app.UseAuthorization();
         app.MapControllers();
 
-        app.UseCors(Const.CorsDefaultPolicyName);
+        app.UseCors(Constants.CorsDefaultPolicyName);
         return app;
     }
 }

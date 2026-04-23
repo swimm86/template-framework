@@ -7,6 +7,7 @@
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl.Triggers;
+using Shared.Application.Core.CorrelationId;
 
 namespace Shared.Infrastructure.Job.Quartz;
 
@@ -28,13 +29,20 @@ public class QuartzJobWrapper(
     /// <inheritdoc />
     public async Task Execute(IJobExecutionContext context)
     {
+        var cancellationToken = context.CancellationToken;
+        var correlationIdCreated = JobCorrelationContext.TrySetCorrelationId();
+        if (!correlationIdCreated)
+        {
+            logger.LogWarning("Correlation ID already set for job {JobKey}", context.JobDetail.Key);
+        }
+
         try
         {
-            await ProcessAsync(context);
+            await ProcessAsync(context, cancellationToken);
         }
         catch (Exception ex)
         {
-            // Запускам пвторно через 5 минут.
+            // Запускаем повторно через 5 минут.
             var retryTrigger = new SimpleTriggerImpl(Guid.NewGuid().ToString())
             {
                 Description = "RetryTrigger",
@@ -42,8 +50,15 @@ public class QuartzJobWrapper(
                 JobKey = context.JobDetail.Key,
                 StartTimeUtc = DateBuilder.NextGivenMinuteDate(DateTime.Now, 5),
             };
-            await context.Scheduler.ScheduleJob(retryTrigger, context.CancellationToken);
+            await context.Scheduler.ScheduleJob(retryTrigger, cancellationToken);
             throw new JobExecutionException(ex, false);
+        }
+        finally
+        {
+            if (correlationIdCreated)
+            {
+                JobCorrelationContext.ClearCorrelationId();
+            }
         }
     }
 
@@ -51,12 +66,15 @@ public class QuartzJobWrapper(
     /// Обрабатывает задачу.
     /// </summary>
     /// <param name="context"><see cref="IJobExecutionContext"/>.</param>
-    /// <returns>Результат выполнения асинхронной опарации.</returns>
-    protected virtual async Task ProcessAsync(IJobExecutionContext context)
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    protected virtual async Task ProcessAsync(
+        IJobExecutionContext context,
+        CancellationToken cancellationToken)
     {
-        logger.LogInformation($"Job {context.JobDetail.Key} is executing.");
-        await (context.JobDetail.JobDataMap[JobActionKey] as Func<IServiceProvider, Task>)!
-            .Invoke(serviceProvider);
-        logger.LogInformation($"Job {context.JobDetail.Key} is completed.");
+        logger.LogInformation("Job {JobKey} is executing.", context.JobDetail.Key);
+        await (context.JobDetail.JobDataMap[JobActionKey] as Func<IServiceProvider, CancellationToken, Task>)!
+            .Invoke(serviceProvider, cancellationToken);
+        logger.LogInformation("Job {JobKey} is completed.", context.JobDetail.Key);
     }
 }

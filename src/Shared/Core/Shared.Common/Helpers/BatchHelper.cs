@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Runtime.CompilerServices;
+using Shared.Common.Constants;
 
 namespace Shared.Common.Helpers;
 
@@ -24,8 +25,8 @@ public static class BatchHelper
     /// <returns>Результат операции.</returns>
     public static Task ProcessBatchesAsync<TObject>(
         Func<int, int, Task<ICollection<TObject>>> getBatchFunc,
-        int batchSize = Const.DefaultBatchSize,
-        Func<ICollection<TObject>, Task>? processBatchAction = default,
+        int batchSize = BatchConstants.DefaultBatchSize,
+        Func<ICollection<TObject>, Task>? processBatchAction = null,
         CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -54,9 +55,9 @@ public static class BatchHelper
     public static async Task ProcessBatchesAsync<TObject, TBatch, TResult>(
         Func<int, int, Task<TBatch>> getBatchFunc,
         Func<TBatch, bool> isBatchEmptyFunc,
-        Func<TBatch, int>? batchSizeFunc = default,
-        Func<TBatch, Task<TResult>>? processBatchAction = default,
-        int batchSize = Const.DefaultBatchSize,
+        Func<TBatch, int>? batchSizeFunc = null,
+        Func<TBatch, Task<TResult>>? processBatchAction = null,
+        int batchSize = BatchConstants.DefaultBatchSize,
         CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -65,7 +66,7 @@ public static class BatchHelper
         {
             cancellationToken.ThrowIfCancellationRequested();
             var batch = await getBatchFunc(processed, batchSize);
-            if (batchSizeFunc != default)
+            if (batchSizeFunc != null)
             {
                 processed += batchSizeFunc(batch);
             }
@@ -75,7 +76,7 @@ public static class BatchHelper
                 break;
             }
 
-            if (processBatchAction != default)
+            if (processBatchAction != null)
             {
                 await processBatchAction(batch);
             }
@@ -98,9 +99,9 @@ public static class BatchHelper
     public static async Task ProcessBatchesAsync<TObject, TBatch, TResult>(
         Func<int, int, Task<TBatch>> getBatchFunc,
         Func<TBatch, bool> isBatchEmptyFunc,
-        Func<TBatch, int>? batchSizeFunc = default,
-        Func<TBatch, Task>? processBatchAction = default,
-        int batchSize = Const.DefaultBatchSize,
+        Func<TBatch, int>? batchSizeFunc = null,
+        Func<TBatch, Task>? processBatchAction = null,
+        int batchSize = BatchConstants.DefaultBatchSize,
         CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -109,7 +110,7 @@ public static class BatchHelper
         {
             cancellationToken.ThrowIfCancellationRequested();
             var batch = await getBatchFunc(processed, batchSize);
-            if (batchSizeFunc != default)
+            if (batchSizeFunc != null)
             {
                 processed += batchSizeFunc(batch);
             }
@@ -119,7 +120,7 @@ public static class BatchHelper
                 break;
             }
 
-            if (processBatchAction != default)
+            if (processBatchAction != null)
             {
                 await processBatchAction(batch);
             }
@@ -139,7 +140,7 @@ public static class BatchHelper
     public static async IAsyncEnumerable<TResult> ProcessBatchesAsync<TObject, TResult>(
         Func<int, int, Task<ICollection<TObject>>> getBatchFunc,
         Func<ICollection<TObject>, Task<TResult>> processBatchAction,
-        int batchSize = Const.DefaultBatchSize,
+        int batchSize = BatchConstants.DefaultBatchSize,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -169,7 +170,7 @@ public static class BatchHelper
     /// <returns>Результат обработки батча.</returns>
     public static IAsyncEnumerable<ICollection<TObject>> ProcessBatchesAsync<TObject>(
         Func<int, int, Task<ICollection<TObject>>> getBatchFunc,
-        int batchSize = Const.DefaultBatchSize,
+        int batchSize = BatchConstants.DefaultBatchSize,
         CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -195,9 +196,9 @@ public static class BatchHelper
     public static IAsyncEnumerable<TResult> ProcessBatchesAsync<TObject, TResult>(
         Func<int, int, Task<TResult>> getBatchFunc,
         Func<TResult, bool> isBatchEmptyFunc,
-        Func<TResult, Task<TResult>>? processBatchAction = default,
-        Func<TResult, int>? batchSizeFunc = default,
-        int batchSize = Const.DefaultBatchSize,
+        Func<TResult, Task<TResult>>? processBatchAction = null,
+        Func<TResult, int>? batchSizeFunc = null,
+        int batchSize = BatchConstants.DefaultBatchSize,
         CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -227,8 +228,8 @@ public static class BatchHelper
         Func<int, int, Task<TBatch>> getBatchFunc,
         Func<TBatch, Task<TResult>> processBatchAction,
         Func<TBatch, bool> isBatchEmptyFunc,
-        Func<TBatch, int>? batchSizeFunc = default,
-        int batchSize = Const.DefaultBatchSize,
+        Func<TBatch, int>? batchSizeFunc = null,
+        int batchSize = BatchConstants.DefaultBatchSize,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
         where TObject : class
     {
@@ -237,7 +238,7 @@ public static class BatchHelper
         {
             cancellationToken.ThrowIfCancellationRequested();
             var batch = await getBatchFunc(processed, batchSize);
-            if (batchSizeFunc != default)
+            if (batchSizeFunc != null)
             {
                 processed += batchSizeFunc(batch);
             }

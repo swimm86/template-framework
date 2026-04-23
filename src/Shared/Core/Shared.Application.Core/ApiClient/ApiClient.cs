@@ -8,9 +8,11 @@ using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Security;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient.Interfaces;
+using Shared.Application.Core.CorrelationId;
+using Shared.Application.Core.CorrelationId.Extensions;
 using Shared.Application.Core.Dto.Interfaces;
 using Shared.Domain.Core.Utils.Interfaces;
 
@@ -30,6 +32,8 @@ public abstract partial class ApiClient
     private readonly IUriValidator _uriValidator;
     private readonly IResponseValidator _responseValidator;
     private readonly IPropertyGetter _propertyGetter;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// Инициализирует новый экземпляр <see cref="ApiClient"/>.
@@ -38,17 +42,23 @@ public abstract partial class ApiClient
     /// <param name="uriValidator"><see cref="IUriValidator"/>.</param>
     /// <param name="responseValidator"><see cref="IResponseValidator"/>.</param>
     /// <param name="propertyGetter">Извлекает значения свойств для multipart-запросов.</param>
+    /// <param name="httpContextAccessor"><see cref="IHttpContextAccessor"/>.</param>
+    /// <param name="logger">Логгер.</param>
     protected ApiClient(
         IHttpClientFactory clientFactory,
         IUriValidator uriValidator,
         IResponseValidator responseValidator,
-        IPropertyGetter propertyGetter)
+        IPropertyGetter propertyGetter,
+        IHttpContextAccessor httpContextAccessor,
+        ILogger logger)
     {
         _typeName = GetType().Name;
         _httpClient = clientFactory.CreateClient(_typeName);
         _uriValidator = uriValidator;
         _responseValidator = responseValidator;
         _propertyGetter = propertyGetter;
+        _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
     /// <summary>
@@ -61,8 +71,10 @@ public abstract partial class ApiClient
         string uri,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.GetAsync(uri, cancellationToken);
+        return SendAsync(
+            HttpMethod.Get,
+            uri,
+            cancellationToken);
     }
 
     /// <summary>
@@ -78,8 +90,10 @@ public abstract partial class ApiClient
         CancellationToken cancellationToken = default)
     {
         uri = AddQueryParams(uri, queryParams);
-        _uriValidator.Validate(uri);
-        return _httpClient.GetAsync(uri, cancellationToken);
+        return SendAsync(
+            HttpMethod.Get,
+            uri,
+            cancellationToken);
     }
 
     /// <summary>
@@ -89,13 +103,21 @@ public abstract partial class ApiClient
     /// <param name="content">Содержимое запроса.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Ответ сервера в виде <see cref="HttpResponseMessage"/>.</returns>
+    /// <remarks>
+    /// Ответственность за утилизацию <paramref name="content"/> остаётся за вызывающим:
+    /// метод не вызывает <see cref="IDisposable.Dispose"/> для переданного содержимого
+    /// ни при успешной отправке, ни при возникновении исключения.
+    /// </remarks>
     protected Task<HttpResponseMessage> PostAsync(
         string uri,
         HttpContent content,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.PostAsync(uri, content, cancellationToken);
+        return SendAsync(
+            HttpMethod.Post,
+            uri,
+            content,
+            cancellationToken);
     }
 
     /// <summary>
@@ -108,8 +130,10 @@ public abstract partial class ApiClient
         string uri,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.PostAsync(uri, null, cancellationToken);
+        return SendAsync(
+            HttpMethod.Post,
+            uri,
+            cancellationToken);
     }
 
     /// <summary>
@@ -124,8 +148,11 @@ public abstract partial class ApiClient
         object? content = null,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.PostAsJsonAsync(uri, content, cancellationToken);
+        return SendAsync(
+            HttpMethod.Post,
+            uri,
+            content,
+            cancellationToken);
     }
 
     /// <summary>
@@ -140,8 +167,6 @@ public abstract partial class ApiClient
         IWithFile request,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(url);
-
         var boundary = Guid.NewGuid().ToString();
         using var multipartContent = new MultipartFormDataContent(boundary);
         multipartContent.Headers.Remove("Content-Type");
@@ -149,7 +174,7 @@ public abstract partial class ApiClient
             "Content-Type",
             "multipart/form-data; boundary=" + boundary);
 
-        var streamContent = new StreamContent(request.File.OpenReadStream());
+        var streamContent = new StreamContent(request.File!.OpenReadStream());
         streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.File.ContentType);
         multipartContent.Add(streamContent, "file", request.File.FileName);
 
@@ -161,7 +186,11 @@ public abstract partial class ApiClient
             multipartContent.Add(new StringContent(_propertyGetter.GetPropertyAsString(request, prop.Name)));
         }
 
-        return await _httpClient.PostAsync(url, multipartContent, cancellationToken);
+        return await SendAsync(
+            HttpMethod.Post,
+            url,
+            multipartContent,
+            cancellationToken);
     }
 
     /// <summary>
@@ -176,8 +205,11 @@ public abstract partial class ApiClient
         object? content = null,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.PutAsJsonAsync(uri, content, cancellationToken);
+        return SendAsync(
+            HttpMethod.Put,
+            uri,
+            content,
+            cancellationToken);
     }
 
     /// <summary>
@@ -193,19 +225,13 @@ public abstract partial class ApiClient
     /// <returns>
     /// Ответ сервера в виде <see cref="HttpResponseMessage"/>.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Выбрасывается, если <paramref name="uri"/> равен <see langword="null"/> или является пустой строкой.
-    /// </exception>
-    /// <exception cref="SecurityException">
-    /// Выбрасывается, если <paramref name="uri"/> является абсолютным или содержит path traversal.
-    /// </exception>
     protected Task<HttpResponseMessage> PatchAsync(
         string uri,
         object? content = null,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.PatchAsJsonAsync(
+        return SendAsync(
+            HttpMethod.Patch,
             uri,
             content,
             cancellationToken);
@@ -221,8 +247,10 @@ public abstract partial class ApiClient
         string uri,
         CancellationToken cancellationToken = default)
     {
-        _uriValidator.Validate(uri);
-        return _httpClient.DeleteAsync(uri, cancellationToken);
+        return SendAsync(
+            HttpMethod.Delete,
+            uri,
+            cancellationToken);
     }
 
     /// <summary>
@@ -238,5 +266,101 @@ public abstract partial class ApiClient
         return queryParams?.Any() == true
             ? relativePath + QueryString.Create(queryParams)
             : relativePath;
+    }
+
+    private Task<HttpResponseMessage> SendAsync(
+        HttpMethod httpMethod,
+        string uri,
+        CancellationToken cancellationToken)
+    {
+        return SendAsync(
+            httpMethod,
+            uri,
+            httpContent: null,
+            validateUri: true,
+            cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpMethod httpMethod,
+        string uri,
+        object? content,
+        CancellationToken cancellationToken)
+    {
+        // JsonContent создаётся только после валидации uri
+        _uriValidator.Validate(uri);
+        using var jsonContent = JsonContent.Create(content, mediaType: null);
+        return await SendAsync(
+            httpMethod,
+            uri,
+            jsonContent,
+            validateUri: false,
+            cancellationToken);
+    }
+
+    private Task<HttpResponseMessage> SendAsync(
+        HttpMethod httpMethod,
+        string uri,
+        HttpContent? httpContent,
+        CancellationToken cancellationToken)
+    {
+        return SendAsync(
+            httpMethod,
+            uri,
+            httpContent,
+            validateUri: true,
+            cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpMethod httpMethod,
+        string uri,
+        HttpContent? httpContent,
+        bool validateUri,
+        CancellationToken cancellationToken)
+    {
+        if (validateUri)
+        {
+            _uriValidator.Validate(uri);
+        }
+
+        using var request = new HttpRequestMessage(httpMethod, uri);
+        request.Content = httpContent;
+
+        try
+        {
+            AddCorrelationIdIfNeeded(request, uri);
+            return await _httpClient.SendAsync(request, cancellationToken);
+        }
+        finally
+        {
+            request.Content = null;
+        }
+    }
+
+    private void AddCorrelationIdIfNeeded(
+        HttpRequestMessage request,
+        string uri)
+    {
+        var correlationId =
+            _httpContextAccessor.HttpContext?.Request.GetCorrelationId()
+            ?? JobCorrelationContext.GetCorrelationId();
+        if (correlationId.HasValue)
+        {
+            request.Headers.Add(
+                Constants.CorrelationIdHeader,
+                correlationId.Value.ToString("D"));
+        }
+        else
+        {
+            var fullUrl = !string.IsNullOrEmpty(uri) && _httpClient.BaseAddress != null
+                ? new Uri(_httpClient.BaseAddress, uri).ToString()
+                : uri;
+
+            _logger.LogError(
+                "Идентификатор корреляции запроса не найден для исходящего запроса {ClientType} {Url}",
+                _typeName,
+                fullUrl);
+        }
     }
 }
