@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="NlogDependencyInjection.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjectionExtensions.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ---------------------------------------------------------------------------------------------
@@ -20,14 +20,14 @@ namespace Shared.Infrastructure.Logging.Extensions;
 /// <summary>
 ///  Содержит методы расширения <see cref="IServiceCollection"/>.
 /// </summary>
-public static class NlogDependencyInjection
+public static class DependencyInjectionExtensions
 {
     /// <summary>
     /// Добавление логгера Nlog.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
-    /// <param name="configuration"><see cref="IServiceCollection"/>.</param>
-    /// <returns>Коллекция сервисов <see cref="IConfiguration"/>.</returns>
+    /// <param name="configuration">Конфигурация приложения <see cref="IConfiguration"/>.</param>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection AddNlog(
         this IServiceCollection serviceCollection,
         IConfiguration configuration)
@@ -71,7 +71,9 @@ public static class NlogDependencyInjection
                 loggerBuilder.AddNLog(nlogConfig);
 
                 if (settings is not null)
+                {
                     loggerBuilder.SetMinimumLevel(settings.LogLevel);
+                }
             });
     }
 }

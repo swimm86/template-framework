@@ -18,7 +18,7 @@ public static class AssemblyHelper
     /// </summary>
     /// <param name="entryAssembly">Сборка для получения имени модуля. Если не указана, используется сборка точки входа в приложение.</param>
     /// <returns>Имя сборки, которая была определена как точка входа в приложение.</returns>
-    public static string GetModuleName(Assembly? entryAssembly = default) =>
+    public static string GetModuleName(Assembly? entryAssembly = null) =>
         (entryAssembly ?? Assembly.GetEntryAssembly())!.GetName().Name!;
 
     /// <summary>
@@ -28,8 +28,8 @@ public static class AssemblyHelper
     /// <param name="prefix">Префикс имени сборки, который используется для фильтрации сборок. Если не указан, используется первая часть имени сборки точки входа, разделённая точкой.</param>
     /// <returns>Перечисление сборок, соответствующих заданному префиксу.</returns>
     public static IEnumerable<Assembly> GetAssembliesByPrefix(
-        Assembly? entryAssembly = default,
-        string? prefix = default)
+        Assembly? entryAssembly = null,
+        string? prefix = null)
     {
         entryAssembly ??= Assembly.GetEntryAssembly()!;
         prefix ??= entryAssembly.GetName().Name!.Split('.').First();
@@ -45,7 +45,7 @@ public static class AssemblyHelper
     /// <returns>Перечисление сборок, содержащих типы, производные от указанного обобщенного базового типа.</returns>
     public static IEnumerable<Assembly> GetAssembliesContainingDerivedGenericTypes(
         Type type,
-        Assembly? entryAssembly = default)
+        Assembly? entryAssembly = null)
     {
         // Получаем все сборки по заданному префиксу
         var assemblies = GetAssembliesByPrefix(entryAssembly);
@@ -53,7 +53,7 @@ public static class AssemblyHelper
         // Фильтруем сборки, содержащие типы, наследующиеся от указанного обобщенного типа
         return assemblies
             .Where(assembly =>
-                assembly.GetTypes().Any(t =>
+                GetLoadableTypes(assembly).Any(t =>
                     t.BaseType is { IsGenericType: true } &&
                     t.BaseType.GetGenericTypeDefinition() == type));
     }
@@ -65,7 +65,7 @@ public static class AssemblyHelper
     /// <param name="entryAssembly">Сборка, относительно которой происходит поиск. Если не указана, используется текущая сборка.</param>
     /// <returns>Перечисление атрибутов указанного типа из всех найденных сборок.</returns>
     public static IEnumerable<TAttribute> GetAttributesFromAssemblies<TAttribute>(
-        Assembly? entryAssembly = default)
+        Assembly? entryAssembly = null)
         where TAttribute : Attribute
     {
         var assemblies = GetAssembliesByPrefix(entryAssembly);
@@ -80,8 +80,8 @@ public static class AssemblyHelper
     /// <param name="excludedAttributesTypes">Список типов аттрибутов, которые не должны содержать целевые типы.</param>
     /// <returns>Перечисление производных типов.</returns>
     public static IEnumerable<Type> GetDerivedTypesFromAssemblies<TType>(
-        Type[]? includedAttributesTypes = default,
-        Type[]? excludedAttributesTypes = default)
+        Type[]? includedAttributesTypes = null,
+        Type[]? excludedAttributesTypes = null)
     {
         return GetDerivedTypesFromAssemblies(
             typeof(TType),
@@ -98,11 +98,11 @@ public static class AssemblyHelper
     /// <returns>Перечисление производных типов.</returns>
     public static IEnumerable<Type> GetDerivedTypesFromAssemblies(
         Type baseType,
-        Type[]? includedAttributesTypes = default,
-        Type[]? excludedAttributesTypes = default)
+        Type[]? includedAttributesTypes = null,
+        Type[]? excludedAttributesTypes = null)
     {
         return AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
+            .SelectMany(GetLoadableTypes)
             .Where(type =>
             {
                 if (type is not { IsClass: true, IsAbstract: false })
@@ -144,4 +144,25 @@ public static class AssemblyHelper
         => appDomain
             .GetAssemblies()
             .SingleOrDefault(assembly => assembly.GetName().Name == assemblyName);
+
+    /// <summary>
+    /// Безопасно получает типы из сборки, защищая от <see cref="ReflectionTypeLoadException"/>
+    /// при частично загружаемых сборках (например, с неразрешёнными зависимостями).
+    /// </summary>
+    /// <param name="assembly">Сборка, из которой необходимо получить типы.</param>
+    /// <returns>
+    /// Перечисление успешно загруженных типов из указанной сборки.
+    /// Если сборка частично загружается, возвращаются только не-<see langword="null"/> типы.
+    /// </returns>
+    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(t => t is not null)!;
+        }
+    }
 }

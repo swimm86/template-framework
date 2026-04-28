@@ -10,6 +10,5 @@ namespace Shared.Application.Core.DependencyInjection.Attributes;
 /// Атрибут, наличие которого обозначает, что класс должен быть сконфигурирован вручную.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class ManualConfigurationAttribute : Attribute
-{
-}
+public class ManualConfigurationAttribute
+    : Attribute;

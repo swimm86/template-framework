@@ -10,15 +10,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Shared.Application.Core.Json;
 
 /// <summary>
-/// Содержит методы расширения <see cref="IServiceCollection"/>.
+/// Содержит методы расширения для настройки JSON-сериализации.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Конфигурация сериализатора JSON.
+    /// Настраивает JSON-сериализацию для Minimal API, Http-клиентов и MVC-контроллеров.
     /// </summary>
     /// <param name="services">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
-    /// <returns>Коллекция сервисов <see cref="IServiceCollection"/>.</returns>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection ConfigureJsonSerializer(this IServiceCollection services)
     {
         // For minimal API

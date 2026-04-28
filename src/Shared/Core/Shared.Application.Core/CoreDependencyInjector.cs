@@ -10,7 +10,7 @@ using Shared.Application.Core.ApiClient.Interfaces;
 using Shared.Application.Core.ApiClient.Validators;
 using Shared.Application.Core.Cache;
 using Shared.Application.Core.Dal.DbSeeder.Extensions;
-using Shared.Application.Core.Dal.Extensions;
+using Shared.Application.Core.Dal.Repository.Extensions;
 using Shared.Application.Core.DependencyInjection;
 using Shared.Application.Core.Json;
 using Shared.Domain.Core.Cache.Interfaces;

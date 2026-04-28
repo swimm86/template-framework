@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ExceptionsDependencyInjection.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjectionExtensions.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -13,15 +13,15 @@ using Shared.Presentation.Core.Exceptions.Interfaces;
 namespace Shared.Presentation.Core.Exceptions.Extensions;
 
 /// <summary>
-///  Содержит методы расширения <see cref="IServiceCollection"/>.
+/// Методы расширения для регистрации обработчиков ошибок в <see cref="IServiceCollection"/>.
 /// </summary>
-public static class ExceptionsDependencyInjection
+public static class DependencyInjectionExtensions
 {
     /// <summary>
-    /// Добавление обработчиков ошибок.
+    /// Регистрирует обработчик исключений и связанные с ним зависимости.
     /// </summary>
-    /// <param name="services"> Коллекция сервисов <see cref="IServiceCollection"/>. </param>
-    /// <returns> Коллекция сервисов <see cref="IServiceCollection"/>. </returns>
+    /// <param name="services">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection AddExceptionHandling(
         this IServiceCollection services)
     {

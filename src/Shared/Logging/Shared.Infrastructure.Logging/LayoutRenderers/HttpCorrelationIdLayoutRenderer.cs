@@ -25,13 +25,7 @@ public class HttpCorrelationIdLayoutRenderer
         LogEventInfo logEvent)
     {
         var httpContext = HttpContextAccessor?.HttpContext;
-        if (httpContext == null)
-        {
-            return;
-        }
-
-        var correlationId = httpContext.Request.GetCorrelationId();
-
+        var correlationId = httpContext?.Request.GetCorrelationId();
         if (correlationId.HasValue)
         {
             builder.Append(correlationId.Value.ToString());

@@ -23,6 +23,6 @@ public class CqrsDependencyInjector(
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
         return serviceCollection
-            .AddMediatr();
+            .AddMediatR();
     }
 }

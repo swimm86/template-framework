@@ -66,7 +66,7 @@ public static class ConfigurationExtensions
         var moduleName = AssemblyHelper.GetModuleName();
         var parts = moduleName.Split('.').ToList();
         var results = new List<TOptions>();
-        IConfigurationSection? entrySection = default;
+        IConfigurationSection? entrySection = null;
 
         foreach (var part in parts)
         {

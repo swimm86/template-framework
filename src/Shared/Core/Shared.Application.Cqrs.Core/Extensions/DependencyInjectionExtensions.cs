@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------------------------
-// <copyright file="DependencyInjection.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjectionExtensions.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -12,16 +12,17 @@ using Shared.Common.Helpers;
 namespace Shared.Application.Cqrs.Core.Extensions;
 
 /// <summary>
-/// Добавление зависимостей в DI
+/// Методы расширения для регистрации CQRS-зависимостей в <see cref="IServiceCollection"/>.
 /// </summary>
-public static class DependencyInjection
+public static class DependencyInjectionExtensions
 {
     /// <summary>
-    /// Регистрация MediatR
+    /// Регистрирует MediatR и pipeline-поведения.
     /// </summary>
-    /// <param name="services"><see cref="IServiceCollection"/>.</param>
-    /// <returns><see cref="IServiceCollection"/>.</returns>
-    public static IServiceCollection AddMediatr(this IServiceCollection services)
+    /// <param name="services">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
+    public static IServiceCollection AddMediatR(
+        this IServiceCollection services)
     {
         return services
             .AddMediatR(opt => opt.RegisterServicesFromAssemblies(AssemblyHelper.GetAssembliesByPrefix().ToArray()))
@@ -29,10 +30,10 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Регистрация пайплайнов MediatR
+    /// Регистрирует pipeline-поведения MediatR.
     /// </summary>
-    /// <param name="services"><see cref="IServiceCollection"/>.</param>
-    /// <returns><see cref="IServiceCollection"/>.</returns>
+    /// <param name="services">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     private static IServiceCollection AddPipelineBehaviours(this IServiceCollection services)
     {
         return services

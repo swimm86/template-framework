@@ -18,18 +18,18 @@ using Shared.Infrastructure.Dal.EFCore.Settings;
 namespace Shared.Infrastructure.Dal.EFCore.Extensions;
 
 /// <summary>
-/// Методы расширения для <see cref="IServiceCollection"/>.
+/// Содержит методы расширения для регистрации EF Core зависимостей.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Метод расширения для IServiceCollection, который добавляет Postgres DbContext.
+    /// Регистрирует DbContext, фабрику контекста, репозитории и Unit of Work.
     /// </summary>
-    /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
-    /// <param name="migrationAssemblyName">Название сборки, в которой хранятся миграции.</param>
     /// <typeparam name="TSettings">Тип настроек для базы данных.</typeparam>
     /// <typeparam name="TContext">Тип контекста данных.</typeparam>
-    /// <returns>Измененная коллекция сервисов с добавленным Postgres DbContext.</returns>
+    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
+    /// <param name="migrationAssemblyName">Имя сборки, в которой расположены миграции.</param>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection AddDbContext<TSettings, TContext>(
         this IServiceCollection serviceCollection,
         string migrationAssemblyName)
@@ -58,10 +58,10 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Метод расширения для регистрации всех производных DbContext в IServiceCollection.
+    /// Регистрирует все производные <see cref="DbContextBase"/> и соответствующие настройки.
     /// </summary>
-    /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
-    /// <returns>Измененная коллекция сервисов с добавленными контекстами данных.</returns>
+    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection AddDbContexts(
         this IServiceCollection serviceCollection)
     {

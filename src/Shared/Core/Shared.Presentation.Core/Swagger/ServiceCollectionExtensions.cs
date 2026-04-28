@@ -16,17 +16,19 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 namespace Shared.Presentation.Core.Swagger;
 
 /// <summary>
-/// Содержит методы расширения <see cref="IServiceCollection"/>.
+/// Содержит методы расширения для регистрации и настройки Swagger.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Добавление генерации Swagger.
+    /// Добавляет сервисы генерации Swagger.
     /// </summary>
     /// <param name="services">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <param name="assemblyNamePrefix">Префикс имени проекта, по которому грузить xml файлы. </param>
-    /// <returns>Коллекция сервисов <see cref="IServiceCollection"/>.</returns>
-    public static IServiceCollection AddSwagger(this IServiceCollection services, string? assemblyNamePrefix = null)
+    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
+    public static IServiceCollection AddSwagger(
+        this IServiceCollection services,
+        string? assemblyNamePrefix = null)
     {
         return services
             .AddSwaggerGen(options => ConfigureSwaggerGenOptions(options, assemblyNamePrefix))
@@ -35,11 +37,11 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Использование генерации Swagger.
+    /// Подключает middleware Swagger и настраивает Swagger UI.
     /// </summary>
-    /// <param name="app"><see cref="IApplicationBuilder"/>.</param>
-    /// <param name="setupUiAction">Делегат для настройки <see cref="SwaggerUIOptions"/></param>
-    /// <returns><see cref="IApplicationBuilder"/>.</returns>
+    /// <param name="app">Конвейер приложения <see cref="IApplicationBuilder"/>.</param>
+    /// <param name="setupUiAction">Делегат для настройки <see cref="SwaggerUIOptions"/>.</param>
+    /// <returns>Текущий конвейер приложения <see cref="IApplicationBuilder"/>.</returns>
     public static IApplicationBuilder UseSwaggerConfigured(
         this IApplicationBuilder app,
         Action<SwaggerUIOptions>? setupUiAction = null)
@@ -57,9 +59,9 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Настройка генерации Swagger.
+    /// Настраивает параметры генерации Swagger.
     /// </summary>
-    /// <param name="options">Настройки генерации Swagger.</param>
+    /// <param name="options">Параметры генерации Swagger.</param>
     /// <param name="assemblyNamePrefix">Префикс имени проекта, по которому грузить xml файлы.</param>
     private static void ConfigureSwaggerGenOptions(SwaggerGenOptions options, string? assemblyNamePrefix = null)
     {
