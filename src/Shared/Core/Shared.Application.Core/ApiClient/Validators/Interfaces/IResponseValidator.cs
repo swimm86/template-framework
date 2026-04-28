@@ -6,7 +6,7 @@
 
 using Shared.Application.Core.Exceptions.Models;
 
-namespace Shared.Application.Core.ApiClient.Interfaces;
+namespace Shared.Application.Core.ApiClient.Validators.Interfaces;
 
 /// <summary>
 /// Валидатор HTTP-ответов.

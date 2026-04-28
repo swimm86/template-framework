@@ -6,7 +6,7 @@
 
 using System.Security;
 
-namespace Shared.Application.Core.ApiClient.Interfaces;
+namespace Shared.Application.Core.ApiClient.Validators.Interfaces;
 
 /// <summary>
 /// Валидатор URI для HTTP-запросов.

@@ -4,34 +4,31 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Bff.Application.HttpClients.Settings;
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient;
-using Shared.Application.Core.ApiClient.Interfaces;
+using Shared.Application.Core.ApiClient.Attributes;
+using Shared.Application.Core.ApiClient.Validators.Interfaces;
 using Shared.Domain.Core.Utils.Interfaces;
 
 namespace Gpn.Template.Bff.Application.HttpClients;
 
 /// <summary>
-/// Http клиент Getter.
+/// API-клиент Getter-а.
 /// </summary>
+[ApiClientRegistration(typeof(GetterApiClientSettings), typeof(IGetterClient))]
 public sealed class GetterClient(
     IHttpClientFactory httpClientFactory,
     IUriValidator uriValidator,
     IResponseValidator responseValidator,
-    IPropertyGetter propertyGetter,
-    IHttpContextAccessor httpContextAccessor,
-    ILogger<GetterClient> logger)
+    IPropertyGetter propertyGetter)
     : ApiClient(
         httpClientFactory,
         uriValidator,
         responseValidator,
-        propertyGetter,
-        httpContextAccessor,
-        logger), IGetterClient
+        propertyGetter), IGetterClient
 {
     /// <inheritdoc />
     public Task<PersonListResponse> GetPersonsAsync(

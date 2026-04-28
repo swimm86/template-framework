@@ -51,7 +51,7 @@ public static class HttpRequestExtensions
     /// </summary>
     /// <param name="request">HTTP запрос.</param>
     /// <returns><c>true</c>, если идентификатор корреляции присутствует в заголовках запроса, иначе <c>false</c>.</returns>
-    public static bool HasValidCorrelationId(this HttpRequest? request)
+    private static bool HasValidCorrelationId(this HttpRequest? request)
     {
         return request?.Headers.TryGetValue(Constants.CorrelationIdHeader, out var correlationId) == true &&
                Guid.TryParse(correlationId, out _);

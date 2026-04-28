@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Security;
-using Shared.Application.Core.ApiClient.Interfaces;
+using Shared.Application.Core.ApiClient.Validators.Interfaces;
 
 namespace Shared.Application.Core.ApiClient.Validators;
 

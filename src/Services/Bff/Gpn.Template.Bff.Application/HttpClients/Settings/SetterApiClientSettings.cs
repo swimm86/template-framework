@@ -9,9 +9,7 @@ using Shared.Application.Core.ApiClient.Settings.Base;
 namespace Gpn.Template.Bff.Application.HttpClients.Settings;
 
 /// <summary>
-/// Настройки клиента Setter.
+/// Настройки API-клиента Setter-а.
 /// </summary>
 public sealed class SetterApiClientSettings
-    : ApiClientSettingsBase<SetterClient>
-{
-}
+    : ApiClientSettingsBase;

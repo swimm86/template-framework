@@ -7,8 +7,6 @@
 namespace Gpn.Template.Bff.Application.Interfaces.HttpClients;
 
 /// <summary>
-/// Интерфейс клиента Setter
+/// Интерфейс API-клиента Setter-а.
 /// </summary>
-public interface ISetterClient
-{
-}
+public interface ISetterClient;

@@ -7,14 +7,13 @@
 namespace Shared.Application.Core.ApiClient.Settings.Base;
 
 /// <summary>
-/// Базовые настройки api-клиента.
+/// Базовые настройки API-клиента.
 /// </summary>
-/// <typeparam name="TApiClient">Тип API-клиента.</typeparam>
-public abstract class ApiClientSettingsBase<TApiClient>
-    where TApiClient : ApiClient
+public abstract class ApiClientSettingsBase
 {
     /// <summary>
-    /// Таймаут HTTP-запроса по умолчанию (100 секунд).
+    /// Значение таймаута HTTP-запроса по умолчанию (в секундах), используемое для инициализации
+    /// <see cref="Timeout"/>, если в конфигурации не задано иное.
     /// </summary>
     private const int DefaultTimeoutSec = 100;
 
@@ -25,7 +24,8 @@ public abstract class ApiClientSettingsBase<TApiClient>
 
     /// <summary>
     /// Таймаут HTTP-запроса.
-    /// Переопределите в конфигурации для изменения значения по умолчанию.
+    /// Значение по умолчанию — <see cref="DefaultTimeoutSec"/> секунд;
+    /// переопределяется через конфигурацию сервиса.
     /// </summary>
     public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(DefaultTimeoutSec);
 }

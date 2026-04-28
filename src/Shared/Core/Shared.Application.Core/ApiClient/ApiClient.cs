@@ -9,10 +9,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Shared.Application.Core.ApiClient.Interfaces;
-using Shared.Application.Core.CorrelationId;
-using Shared.Application.Core.CorrelationId.Extensions;
+using Shared.Application.Core.ApiClient.Validators.Interfaces;
 using Shared.Application.Core.Dto.Interfaces;
 using Shared.Domain.Core.Utils.Interfaces;
 
@@ -32,8 +29,6 @@ public abstract partial class ApiClient
     private readonly IUriValidator _uriValidator;
     private readonly IResponseValidator _responseValidator;
     private readonly IPropertyGetter _propertyGetter;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly ILogger _logger;
 
     /// <summary>
     /// Инициализирует новый экземпляр <see cref="ApiClient"/>.
@@ -42,23 +37,17 @@ public abstract partial class ApiClient
     /// <param name="uriValidator"><see cref="IUriValidator"/>.</param>
     /// <param name="responseValidator"><see cref="IResponseValidator"/>.</param>
     /// <param name="propertyGetter">Извлекает значения свойств для multipart-запросов.</param>
-    /// <param name="httpContextAccessor"><see cref="IHttpContextAccessor"/>.</param>
-    /// <param name="logger">Логгер.</param>
     protected ApiClient(
         IHttpClientFactory clientFactory,
         IUriValidator uriValidator,
         IResponseValidator responseValidator,
-        IPropertyGetter propertyGetter,
-        IHttpContextAccessor httpContextAccessor,
-        ILogger logger)
+        IPropertyGetter propertyGetter)
     {
-        _typeName = GetType().Name;
+        _typeName = GetType().FullName!;
         _httpClient = clientFactory.CreateClient(_typeName);
         _uriValidator = uriValidator;
         _responseValidator = responseValidator;
         _propertyGetter = propertyGetter;
-        _httpContextAccessor = httpContextAccessor;
-        _logger = logger;
     }
 
     /// <summary>
@@ -329,38 +318,11 @@ public abstract partial class ApiClient
 
         try
         {
-            AddCorrelationIdIfNeeded(request, uri);
             return await _httpClient.SendAsync(request, cancellationToken);
         }
         finally
         {
             request.Content = null;
-        }
-    }
-
-    private void AddCorrelationIdIfNeeded(
-        HttpRequestMessage request,
-        string uri)
-    {
-        var correlationId =
-            _httpContextAccessor.HttpContext?.Request.GetCorrelationId()
-            ?? JobCorrelationContext.GetCorrelationId();
-        if (correlationId.HasValue)
-        {
-            request.Headers.Add(
-                Constants.CorrelationIdHeader,
-                correlationId.Value.ToString("D"));
-        }
-        else
-        {
-            var fullUrl = !string.IsNullOrEmpty(uri) && _httpClient.BaseAddress != null
-                ? new Uri(_httpClient.BaseAddress, uri).ToString()
-                : uri;
-
-            _logger.LogError(
-                "Идентификатор корреляции запроса не найден для исходящего запроса {ClientType} {Url}",
-                _typeName,
-                fullUrl);
         }
     }
 }

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gpn.Template.Bff.Application.Interfaces.HttpClients;
 
 /// <summary>
-/// Интерфейс клиента Getter
+/// Интерфейс API-клиента Getter-а.
 /// </summary>
 public interface IGetterClient
 {
