@@ -65,8 +65,8 @@ internal static class LoggingConfigurationExtensions
     }
 
     /// <summary>
-    /// Регистрирует layout renderer-ы для идентификатора корреляции.
-    /// Регистрирует два renderer-а с разными ключами:
+    /// Регистрирует layout-рендереры для идентификатора корреляции.
+    /// Регистрирует два рендерера с разными ключами:
     /// 1. HttpCorrelationIdLayoutRenderer - для HTTP запросов
     /// 2. JobCorrelationIdLayoutRenderer - для фоновых задач
     /// </summary>

@@ -12,7 +12,7 @@ using Shared.Infrastructure.Core;
 using Shared.Presentation.Core.Conventions;
 using Shared.Presentation.Core.Exceptions.Extensions;
 using Shared.Presentation.Core.RequestLogging.Filters;
-using Shared.Presentation.Core.Swagger;
+using Shared.Presentation.Core.Swagger.Extensions;
 
 namespace Shared.Presentation.Core.Extensions;
 

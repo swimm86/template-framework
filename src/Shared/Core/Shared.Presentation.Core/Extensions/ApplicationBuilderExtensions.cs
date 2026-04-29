@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Shared.Common.Logging;
 using Shared.Presentation.Core.CorrelationId.Extensions;
-using Shared.Presentation.Core.Swagger;
+using Shared.Presentation.Core.Swagger.Extensions;
 
 namespace Shared.Presentation.Core.Extensions;
 
