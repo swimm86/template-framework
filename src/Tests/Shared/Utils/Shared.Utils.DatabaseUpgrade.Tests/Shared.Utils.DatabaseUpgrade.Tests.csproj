@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Shared.Utils.DatabaseUpgrade\Shared.Utils.DatabaseUpgrade.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Utils\Shared.Utils.DatabaseUpgrade\Shared.Utils.DatabaseUpgrade.csproj" />
   </ItemGroup>
 
 </Project>
