@@ -7,22 +7,23 @@ namespace Shared.Utils.DatabaseUpgrade.Tests;
 /// <summary>
 /// Тест для <see cref="DbUtils"/>.
 /// </summary>
-public class DbUtilsTests : IAsyncLifetime
+public class DbUtilsTests
+    : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
             .WithDatabase($"epps_{nameof(DbUtilsTests)}")
             .Build();
 
     /// <inheritdoc/>
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        return _container.DisposeAsync().AsTask();
+        return _container.DisposeAsync();
     }
 
     /// <inheritdoc/>
-    public Task InitializeAsync()
+    public ValueTask InitializeAsync()
     {
-        return _container.StartAsync();
+        return new ValueTask(_container.StartAsync());
     }
 
     /// <summary>

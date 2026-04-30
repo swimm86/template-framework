@@ -7,7 +7,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi;
 using Shared.Common.Extensions;
 using Shared.Presentation.Core.Swagger.SchemaFilters;
 using Swashbuckle.AspNetCore.SwaggerGen;

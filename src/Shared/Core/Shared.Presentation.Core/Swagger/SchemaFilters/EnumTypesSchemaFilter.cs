@@ -32,7 +32,7 @@ public class EnumTypesSchemaFilter(
     /// <summary>
     /// Добавляет HTML-список enum-значений в описание схемы.
     /// </summary>
-    /// <param name="schema"><see cref="OpenApiSchema"/>.</param>
+    /// <param name="schema"><see cref="IOpenApiSchema"/>.</param>
     /// <param name="context"><see cref="SchemaFilterContext"/>.</param>
     public void Apply(
         IOpenApiSchema schema,

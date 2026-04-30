@@ -29,7 +29,7 @@ public class PersonsService(
         PersonListRequest request,
         CancellationToken cancellationToken)
     {
-        var skip = request.PageSize * request.PageNumber;
+        var skip = request.PageSize * (request.PageNumber - 1);
         var take = request.PageSize;
         var personsTask = request.DalPattern switch
         {
