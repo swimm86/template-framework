@@ -22,9 +22,4 @@
     <AdditionalFiles Include="..\..\..\stylecop.json" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Dto\Responses\" />
-    <Folder Include="Dto\Requests\" />
-  </ItemGroup>
-
 </Project>

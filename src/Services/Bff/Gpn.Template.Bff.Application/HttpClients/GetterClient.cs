@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Bff.Application.HttpClients.Enums;
 using Gpn.Template.Bff.Application.HttpClients.Settings;
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
@@ -33,21 +34,18 @@ public sealed class GetterClient(
     /// <inheritdoc />
     public Task<PersonListResponse> GetPersonsAsync(
         PersonListRequest request,
+        GetPersonsPattern pattern,
         CancellationToken cancellationToken = default)
     {
-        return PostAsync<PersonListResponse>(
-            "persons/list",
-            request,
-            cancellationToken)!;
-    }
+        var requestPart = pattern switch
+        {
+            GetPersonsPattern.Cqrs => "cqrs",
+            GetPersonsPattern.Services => "services",
+            _ => throw new ArgumentException("Неизвестное значение GetPersonsPattern.", nameof(pattern))
+        };
 
-    /// <inheritdoc />
-    public Task<PersonListResponse> GetPersonsCqrsAsync(
-        PersonListRequest request,
-        CancellationToken cancellationToken = default)
-    {
         return PostAsync<PersonListResponse>(
-            "persons-cqrs/list",
+            $"persons/{requestPart}/list",
             request,
             cancellationToken)!;
     }

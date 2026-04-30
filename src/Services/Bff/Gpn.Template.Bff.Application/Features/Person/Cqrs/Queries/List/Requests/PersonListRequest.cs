@@ -6,7 +6,7 @@
 
 using Gpn.Template.Getter.Application.Abstractions.Enums;
 
-namespace Gpn.Template.Bff.Application.Dto.Requests;
+namespace Gpn.Template.Bff.Application.Features.Person.Cqrs.Queries.List.Requests;
 
 /// <summary>
 /// Request-Dto для получения всех 'Person-ов'.

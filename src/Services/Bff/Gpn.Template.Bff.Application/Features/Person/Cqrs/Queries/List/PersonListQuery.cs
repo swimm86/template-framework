@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Bff.Application.Dto.Requests;
+using Gpn.Template.Bff.Application.Features.Person.Cqrs.Queries.List.Requests;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Queries;
 

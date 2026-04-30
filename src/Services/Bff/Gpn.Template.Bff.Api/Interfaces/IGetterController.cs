@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Bff.Application.Dto.Requests;
+using Gpn.Template.Bff.Application.Features.Person.Cqrs.Queries.List.Requests;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gpn.Template.Bff.Api.Interfaces;

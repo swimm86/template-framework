@@ -177,17 +177,30 @@ SortOptions = new List<string>
 
 ## Реализация в контроллерах
 
-### Пример контроллера
+### Пример: Getter, два входа для одного ресурса Person
+
+Базовый шаблон маршрута см. в `Shared.Presentation.Core` (`api/[appName]/[controllerType]/v1/[controller]`).
+Для `PersonsController` в Getter заданы два POST с **одинаковым телом** `PersonListRequest`:
+
+| Относительный путь | Обработка |
+|--------------------|-----------|
+| `persons/services/list` | Слой приложения (`IPersonsService.GetPersonsAsync`) |
+| `persons/cqrs/list` | CQRS через MediatR (`PersonReadListQuery`) |
+
+BFF выбирает ветку через перечисление `GetPersonsPattern` при вызове `IGetterClient.GetPersonsAsync`.
+
 ```csharp
-[HttpPost("list")]
-public Task<IActionResult> GetPersonsAsync(
+[HttpPost("services/list")]
+public Task<IActionResult> GetPersonsByServicesAsync(
     [FromBody] PersonListRequest request,
-    CancellationToken cancellationToken = default)
-{
-    return Process(
-        () => sender.Send(new PersonReadListQuery(request), cancellationToken),
-        cancellationToken);
-}
+    CancellationToken cancellationToken = default) =>
+    Process(() => personsService.GetPersonsAsync(request, cancellationToken));
+
+[HttpPost("cqrs/list")]
+public Task<IActionResult> GetPersonsByCqrsAsync(
+    [FromBody] PersonListRequest request,
+    CancellationToken cancellationToken = default) =>
+    Process(() => sender.Send(new PersonReadListQuery(request), cancellationToken));
 ```
 
 ## Примеры JSON запросов

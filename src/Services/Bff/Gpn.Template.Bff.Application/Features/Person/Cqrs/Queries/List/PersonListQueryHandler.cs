@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Bff.Application.HttpClients.Enums;
 using Gpn.Template.Bff.Application.Interfaces.HttpClients;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
@@ -23,8 +24,9 @@ public class PersonListQueryHandler(
         PersonListQuery request,
         CancellationToken cancellationToken)
     {
-        return request.Request.UseCqrs
-            ? getterClient.GetPersonsCqrsAsync(request.Request, cancellationToken)
-            : getterClient.GetPersonsAsync(request.Request, cancellationToken);
+        return getterClient.GetPersonsAsync(
+            request.Request,
+            request.Request.UseCqrs ? GetPersonsPattern.Cqrs : GetPersonsPattern.Services,
+            cancellationToken);
     }
 }

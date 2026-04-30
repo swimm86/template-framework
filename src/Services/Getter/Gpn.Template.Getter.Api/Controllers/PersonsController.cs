@@ -6,27 +6,45 @@
 
 using Gpn.Template.Getter.Api.Controllers.Base;
 using Gpn.Template.Getter.Application.Abstractions.Dto.Person.Requests;
+using Gpn.Template.Getter.Application.Features.PersonFeature.Cqrs.Queries;
 using Gpn.Template.Getter.Application.Interfaces;
+using MediatR;
 
 namespace Gpn.Template.Getter.Api.Controllers;
 
 /// <summary>
-/// Person контроллер.
+/// Контроллер для взаимодействия с сущностями "Person".
 /// </summary>
 public sealed class PersonsController(
     IPersonsService personsService,
+    ISender sender,
     ILogger<PersonsController> logger)
     : GetterControllerBase(logger)
 {
     /// <summary>
-    /// Возвращает список всех 'Person'-ов.
+    /// Возвращает коллекцию сущностей 'Person' через слой приложения (без CQRS).
     /// </summary>
-    /// <param name="dto">DTO.</param>
+    /// <param name="request">Тело запроса.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
-    /// <returns>Список всех 'Person'-ов</returns>
-    [HttpPost("list")]
-    public Task<IActionResult> GetPersonsAsync(
-        [FromBody] PersonListRequest dto,
+    /// <returns>Коллекция сущностей 'Person'.</returns>
+    [HttpPost("services/list")]
+    public Task<IActionResult> GetPersonsByServicesAsync(
+        [FromBody] PersonListRequest request,
         CancellationToken cancellationToken = default) =>
-        Process(() => personsService.GetPersonsAsync(dto, cancellationToken));
+        Process(() => personsService.GetPersonsAsync(request, cancellationToken));
+
+    /// <summary>
+    /// Возвращает коллекцию сущностей 'Person' через CQRS (MediatR).
+    /// </summary>
+    /// <param name="request">Тело запроса.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <returns>Коллекция сущностей 'Person'.</returns>
+    [HttpPost("cqrs/list")]
+    public Task<IActionResult> GetPersonsByCqrsAsync(
+        [FromBody] PersonListRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return Process(
+            () => sender.Send(new PersonReadListQuery(request), cancellationToken));
+    }
 }
