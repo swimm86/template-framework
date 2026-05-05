@@ -35,7 +35,7 @@ public static class LinqExtension
     /// <summary>
     /// Асинхронная версия <see cref="ForEach{T}"/> для <see cref="IEnumerable{T}"/>.
     /// </summary>
-    /// <typeparam name="T">ип перечисления.</typeparam>
+    /// <typeparam name="T">Тип перечисления.</typeparam>
     /// <param name="source">Перечисление.</param>
     /// <param name="func">Операция.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
@@ -60,7 +60,7 @@ public static class LinqExtension
     /// <summary>
     /// Асинхронная версия <see cref="ForEach{T}"/> для <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
-    /// <typeparam name="T">ип перечисления.</typeparam>
+    /// <typeparam name="T">Тип перечисления.</typeparam>
     /// <param name="source">Перечисление.</param>
     /// <param name="func">Операция.</param>
     /// <param name="cancellationToken">Токен отмены.</param>

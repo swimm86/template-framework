@@ -1,100 +1,62 @@
-﻿using System.Data.Common;
-using Npgsql;
-using Testcontainers.PostgreSql;
+﻿using Shared.Utils.DatabaseUpgrade.Tests.Support;
 
 namespace Shared.Utils.DatabaseUpgrade.Tests;
 
 /// <summary>
-/// Тест для <see cref="DbUtils"/>.
+/// Модульные тесты <see cref="DbUtils"/> без базы данных и Docker.
 /// </summary>
-public class DbUtilsTests
-    : IAsyncLifetime
+/// <remarks>
+/// Скрипты и PostgreSQL — см. <see cref="DbUtilsScriptIntegrationTests"/>.
+/// </remarks>
+public sealed class DbUtilsTests
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-            .WithDatabase($"epps_{nameof(DbUtilsTests)}")
-            .Build();
-
-    /// <inheritdoc/>
-    public ValueTask DisposeAsync()
+    /// <summary>
+    /// Пустая или отсутствующая строка подключения при отсутствии конфигурации в рабочей директории —
+    /// <see cref="ArgumentException"/>.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Upgrade_WhenConnectionStringUnresolved_ThrowsArgumentException(string? connectionString)
     {
-        return _container.DisposeAsync();
-    }
-
-    /// <inheritdoc/>
-    public ValueTask InitializeAsync()
-    {
-        return new ValueTask(_container.StartAsync());
+        DbUtilsTestSupport.RunInEmptyWorkingDirectory(() =>
+        {
+            var ex = Assert.Throws<ArgumentException>(() => DbUtils.Upgrade(connectionString: connectionString));
+            Assert.Contains("строк", ex.Message, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     /// <summary>
-    /// Тест обновления бд при некорректных параметрах.
+    /// Указан ключ строки подключения, но в конфигурации значения нет —
+    /// <see cref="ArgumentException"/>.
     /// </summary>
     [Fact]
-    public void Upgrade_MigrationNotApplied_WhenInvalidParameters()
+    public void Upgrade_WhenConnectionStringKeyHasNoConfigurationValue_ThrowsArgumentException()
     {
-        Assert.Throws<ArgumentException>(() => DbUtils.Upgrade(connectionString: string.Empty));
-
-        Assert.Throws<ArgumentException>(() => DbUtils.Upgrade(connectionStringKey: "SomeConnectionStringKey"));
-
-        Assert.Throws<InvalidOperationException>(() => DbUtils.Upgrade(
-            connectionString: _container.GetConnectionString(),
-            scriptsPath: string.Join(".", "DatabaseUpgrade", "InvalidScripts")));
+        DbUtilsTestSupport.RunInEmptyWorkingDirectory(() =>
+        {
+            var ex = Assert.Throws<ArgumentException>(
+                () => DbUtils.Upgrade(connectionStringKey: "NonexistentConnectionStringKeyForUnitTests_9f3a2c1e"));
+            Assert.Contains("строк", ex.Message, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     /// <summary>
-    /// Тест обновления бд и проверки корректности примененной миграции при корректных параметрах.
+    /// Режим с аргументами командной строки без путей к скриптам — <see cref="ArgumentException"/>.
     /// </summary>
     [Fact]
-    public void Upgrade_MigrationApplied_WhenCorrectParameters()
+    public void Upgrade_WhenArgsWithoutScriptPaths_ThrowsArgumentException()
     {
-        Assert.Null(
-            Record.Exception(() => DbUtils.Upgrade(
-                connectionString: _container.GetConnectionString(),
-                scriptsPath: string.Join(".", "DatabaseUpgrade", "Scripts"))));
-
-        Assert.True(CountMigrationApplied(_container.GetConnectionString()) == 1);
-
-        Assert.True(CheckTestTableExists(_container.GetConnectionString()));
-    }
-
-    private static int CountMigrationApplied(string connectionString)
-    {
-        using DbConnection connection = new NpgsqlConnection(connectionString);
-        using DbCommand command = new NpgsqlCommand();
-
-        connection.Open();
-        command.Connection = connection;
-        command.CommandText = $"SELECT COUNT(*) FROM public.schemaversions WHERE scriptname LIKE '%001.epps.ddl_create_test_table.sql';";
-
-        var reader = command.ExecuteReader();
-        var migrationAppliedCount = 0;
-        while (reader.Read())
+        var previousScriptPaths = Environment.GetEnvironmentVariable("ScriptPaths");
+        try
         {
-            _ = int.TryParse(reader["count"].ToString(), out migrationAppliedCount);
-            break;
+            Environment.SetEnvironmentVariable("ScriptPaths", null);
+            var ex = Assert.Throws<ArgumentException>(() => DbUtils.Upgrade(Array.Empty<string>()));
+            Assert.Contains("скрипт", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
-
-        return migrationAppliedCount;
-    }
-
-    private static bool CheckTestTableExists(string connectionString)
-    {
-        using DbConnection connection = new NpgsqlConnection(connectionString);
-        using DbCommand command = new NpgsqlCommand();
-
-        connection.Open();
-        command.Connection = connection;
-        command.CommandText = $"SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'test');";
-
-        var tableExists = false;
-        var reader = command.ExecuteReader();
-        while (reader.Read())
+        finally
         {
-            _ = bool.TryParse(reader["exists"].ToString(), out tableExists);
-            break;
+            Environment.SetEnvironmentVariable("ScriptPaths", previousScriptPaths);
         }
-        connection.Close();
-
-        return tableExists;
     }
 }

@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Common.Batch;
 using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Models;
@@ -21,14 +22,18 @@ public abstract record PageableRequest
     public const char ValueDelimiter = '.';
 
     /// <summary>
-    /// Номер страницы.
+    /// Номер страницы (нумерация с единицы).
     /// </summary>
-    public int PageNumber { get; set; }
+    /// <remarks>
+    /// Значение по умолчанию для свойства — <c>1</c>: при отсутствии поля в теле JSON десериализатор использует это значение вместо неявного <c>0</c> для типа <see cref="int"/>.
+    /// Это согласовано с постраничными методами расширения, которые отклоняют <c>PageNumber &lt; 1</c>.
+    /// </remarks>
+    public int PageNumber { get; set; } = 1;
 
     /// <summary>
     /// Размер страницы.
     /// </summary>
-    public int PageSize { get; set; }
+    public int PageSize { get; set; } = Constants.DefaultBatchSize;
 
     /// <summary>
     /// Настройки сортировки.

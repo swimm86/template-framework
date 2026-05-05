@@ -1,4 +1,3 @@
-﻿CREATE TABLE public.test (
-    id integer NOT NULL,
-    name character varying(255) NOT NULL
+﻿CREATE TABLE IF NOT EXISTS public.test (
+    id SERIAL PRIMARY KEY
 );

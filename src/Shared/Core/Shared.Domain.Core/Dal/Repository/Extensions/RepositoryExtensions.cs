@@ -5,9 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using Shared.Common.Constants;
+using Shared.Common.Batch;
 using Shared.Common.Extensions;
-using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Exceptions.Models;
@@ -282,7 +281,7 @@ public static class RepositoryExtensions
     public static Task ProcessBatchesAsync<TEntity>(
         this IRepository<TEntity> repository,
         QueryOptions<TEntity> options,
-        int batchSize = BatchConstants.DefaultBatchSize,
+        int batchSize = Constants.DefaultBatchSize,
         Func<ICollection<TEntity>, Task>? processBatchAction = null,
         CancellationToken cancellationToken = default)
         where TEntity : class, IEntity

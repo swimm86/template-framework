@@ -30,4 +30,8 @@
     <ProjectReference Include="..\Shared.Domain.Core\Shared.Domain.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Shared.Application.Core.Tests" />
+  </ItemGroup>
+
 </Project>
