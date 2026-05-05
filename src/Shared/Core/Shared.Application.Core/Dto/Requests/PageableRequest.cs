@@ -33,6 +33,7 @@ public abstract record PageableRequest
     /// <summary>
     /// Размер страницы.
     /// </summary>
+    /// <remarks>По умолчанию: 100 (<see cref="Constants.DefaultBatchSize"/>).</remarks>
     public int PageSize { get; set; } = Constants.DefaultBatchSize;
 
     /// <summary>
