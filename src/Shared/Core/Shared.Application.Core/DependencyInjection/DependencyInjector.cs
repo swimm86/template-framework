@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="CoreDependencyInjector.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -11,20 +11,21 @@ using Shared.Application.Core.ApiClient.Validators.Interfaces;
 using Shared.Application.Core.Cache;
 using Shared.Application.Core.Dal.DbSeeder.Extensions;
 using Shared.Application.Core.Dal.Repository.Extensions;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 using Shared.Application.Core.Json;
 using Shared.Domain.Core.Cache.Interfaces;
 using Shared.Domain.Core.Utils.Extensions;
 
-namespace Shared.Application.Core;
+namespace Shared.Application.Core.DependencyInjection;
 
 /// <summary>
-/// Класс для внедрения зависимостей Application.Core-слоя.
+/// Регистрация DI-зависимостей слоя: <c>Shared.Application.Core</c>.
 /// </summary>
-/// <param name="logger">Логгер.</param>
-public class CoreDependencyInjector(
-    ILogger<CoreDependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
+public class DependencyInjector(
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
     protected override IServiceCollection Process(

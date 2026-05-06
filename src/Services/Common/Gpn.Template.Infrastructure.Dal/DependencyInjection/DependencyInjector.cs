@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DalDependencyInjector.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -10,20 +10,24 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dal.Settings.Models.Base;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 
-namespace Gpn.Template.Infrastructure.Dal;
+namespace Gpn.Template.Infrastructure.Dal.DependencyInjection;
 
 /// <summary>
-/// Внедрение зависимостей для DAL-слоя.
+/// Регистрация DI-зависимостей слоя: <c>Common.Infrastructure.Dal</c>.
 /// </summary>
-public class DalDependencyInjector(
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="configuration">Конфигурация приложения (<see cref="IConfiguration"/>).</param>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
+public class DependencyInjector(
     IConfiguration configuration,
-    ILogger<DalDependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
-    protected override IServiceCollection Process(IServiceCollection serviceCollection)
+    protected override IServiceCollection Process(
+        IServiceCollection serviceCollection)
     {
         return serviceCollection
             .AddSingleton<DbSettingsBase, DbSettings>(_ =>

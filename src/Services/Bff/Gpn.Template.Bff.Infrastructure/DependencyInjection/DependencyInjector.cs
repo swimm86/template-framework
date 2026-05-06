@@ -6,16 +6,18 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 
-namespace Gpn.Template.Application;
+namespace Gpn.Template.Bff.Infrastructure.DependencyInjection;
 
 /// <summary>
-/// Внедрение зависимостей для Application-слоя.
+/// Регистрация DI-зависимостей слоя: <c>Bff.Infrastructure</c>.
 /// </summary>
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
 public class DependencyInjector(
-    ILogger<DependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
     protected override IServiceCollection Process(

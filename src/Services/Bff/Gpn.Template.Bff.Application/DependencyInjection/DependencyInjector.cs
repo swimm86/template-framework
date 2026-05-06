@@ -4,25 +4,25 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Gpn.Template.Presentation.Swagger.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 
-namespace Gpn.Template.Presentation;
+namespace Gpn.Template.Bff.Application.DependencyInjection;
 
 /// <summary>
-/// Внедрение зависимостей для Presentation-слоя.
+/// Регистрация DI-зависимостей слоя: <c>Bff.Application</c>.
 /// </summary>
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
 public class DependencyInjector(
-    ILogger<DependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
     protected override IServiceCollection Process(
         IServiceCollection serviceCollection)
     {
-        return serviceCollection
-            .ConfigureSwaggerAuth();
+        return serviceCollection;
     }
 }

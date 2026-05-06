@@ -17,6 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Common\Gpn.Template.Application\Gpn.Template.Application.csproj" />
+    <ProjectReference Include="..\..\Setter\Abstractions\Gpn.Template.Setter.Application.Abstractions\Gpn.Template.Setter.Application.Abstractions.csproj" />
     <ProjectReference Include="..\Abstractions\Gpn.Template.Getter.Application.Abstractions\Gpn.Template.Getter.Application.Abstractions.csproj" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
       <PrivateAssets>all</PrivateAssets>

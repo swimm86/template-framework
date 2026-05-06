@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Common\Gpn.Template.Application\Gpn.Template.Application.csproj" />
+    <ProjectReference Include="..\..\Getter\Abstractions\Gpn.Template.Getter.Application.Abstractions\Gpn.Template.Getter.Application.Abstractions.csproj" />
     <ProjectReference Include="..\Abstractions\Gpn.Template.Setter.Application.Abstractions\Gpn.Template.Setter.Application.Abstractions.csproj" />
   </ItemGroup>
 

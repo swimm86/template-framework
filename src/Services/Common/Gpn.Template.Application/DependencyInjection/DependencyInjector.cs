@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="ApplicationDependencyInjector.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -7,16 +7,18 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 
-namespace Gpn.Template.Bff.Application;
+namespace Gpn.Template.Application.DependencyInjection;
 
 /// <summary>
-/// Класс для внедрения зависимостей Application-слоя в Bff
+/// Регистрация DI-зависимостей слоя: <c>Common.Application</c>.
 /// </summary>
-/// <param name="logger">Логгер.</param>
-public class ApplicationDependencyInjector(
-    ILogger<ApplicationDependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
+public class DependencyInjector(
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
     protected override IServiceCollection Process(

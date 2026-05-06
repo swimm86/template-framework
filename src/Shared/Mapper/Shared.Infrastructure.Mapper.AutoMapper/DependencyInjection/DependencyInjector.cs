@@ -1,5 +1,5 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="AutoMapperDependencyInjector.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -7,24 +7,23 @@
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 using IMapper = Shared.Domain.Core.Mapping.Interfaces.IMapper;
 
-namespace Shared.Infrastructure.Mapper.AutoMapper;
+namespace Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection;
 
 /// <summary>
-/// Класс, предназначенный для интеграции Automapper в DI через <see cref="IServiceCollection"/>.
+/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Mapper.AutoMapper</c>.
 /// </summary>
-public class AutoMapperDependencyInjector(
-    ILogger<AutoMapperDependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
+public class DependencyInjector(
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
-    /// <summary>
-    /// Инициализирует зависимости для маппера (вызывается неявно).
-    /// </summary>
-    /// <param name="serviceCollection"><see cref="IServiceCollection"/>.</param>
-    /// <returns><see cref="IServiceCollection"/>.</returns>
-    protected override IServiceCollection Process(IServiceCollection serviceCollection)
+    /// <inheritdoc />
+    protected override IServiceCollection Process(
+        IServiceCollection serviceCollection)
     {
         var profileType = typeof(Profile);
         var mapperProfilesTypes = AppDomain.CurrentDomain.GetAssemblies()

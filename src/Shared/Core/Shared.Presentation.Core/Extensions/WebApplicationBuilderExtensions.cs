@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.Configuration.Extensions;
-using Shared.Infrastructure.Core;
+using Shared.Infrastructure.Core.DependencyInjection.Extensions;
 using Shared.Presentation.Core.Conventions;
 using Shared.Presentation.Core.Exceptions.Extensions;
 using Shared.Presentation.Core.RequestLogging.Filters;
@@ -17,15 +17,17 @@ using Shared.Presentation.Core.Swagger.Extensions;
 namespace Shared.Presentation.Core.Extensions;
 
 /// <summary>
-/// Класс для внедрения зависимостей. Внедряет динамически все подключенные к проекту зависимости.
+/// Методы расширения для настройки <see cref="WebApplicationBuilder"/> с использованием компонентов Shared.Presentation.Core.
 /// </summary>
 public static class WebApplicationBuilderExtensions
 {
     /// <summary>
-    /// Метод для конфигурования <see cref="WebApplicationBuilder"/>.
+    /// Подключает контроллеры и соглашения маршрутов, Swagger, CORS, журналирование запросов,
+    /// обработку исключений, FluentValidation и регистрацию зависимостей из ссылочных сборок
+    /// (<see cref="Infrastructure.Core.DependencyInjection.Extensions.ServiceCollectionExtensions"/>).
     /// </summary>
-    /// <param name="builder"><see cref="WebApplicationBuilder"/>.</param>
-    /// <returns><see cref="WebApplicationBuilder"/>.</returns>
+    /// <param name="builder">Построитель веб-приложения ASP.NET Core.</param>
+    /// <returns>Текущий <paramref name="builder"/> для цепочечных вызовов.</returns>
     public static WebApplicationBuilder AddSharedPresentationCore(this WebApplicationBuilder builder)
     {
         builder.Configuration.InitializeConfiguration(builder.Environment);
@@ -39,7 +41,7 @@ public static class WebApplicationBuilderExtensions
             }).Services
             .AddEndpointsApiExplorer()
             .AddSwagger()
-            .ImplementReferencedInfrastructures()
+            .AddReferencedDependencyInjectors()
             .AddFluentValidation()
             .AddCors(options =>
             {

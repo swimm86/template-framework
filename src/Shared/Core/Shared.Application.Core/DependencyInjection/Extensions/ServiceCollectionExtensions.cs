@@ -1,12 +1,11 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DependencyInjectionExtensions.cs" company="swimm86@yandex.ru">
+// <copyright file="ServiceCollectionExtensions.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.DependencyInjection.Attributes;
-using Shared.Common.Extensions;
 using Shared.Common.Helpers;
 
 namespace Shared.Application.Core.DependencyInjection.Extensions;
@@ -14,7 +13,7 @@ namespace Shared.Application.Core.DependencyInjection.Extensions;
 /// <summary>
 /// Методы расширения для регистрации зависимостей в <see cref="IServiceCollection"/>.
 /// </summary>
-public static class DependencyInjectionExtensions
+public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Регистрирует один производный тип, найденный по <typeparamref name="TBaseType"/>.
@@ -148,7 +147,7 @@ public static class DependencyInjectionExtensions
     {
         if (!services.Remove(services.First(d => d.ServiceType == typeof(TService))))
         {
-            throw new InvalidOperationException($"Не удалось удалить сервис: {typeof(TService).Name}.");
+            throw new InvalidOperationException($"Could not remove service registration: {typeof(TService).Name}.");
         }
 
         services.Add(new ServiceDescriptor(typeof(TService), implementation, lifetime));
@@ -172,7 +171,7 @@ public static class DependencyInjectionExtensions
             candidateTypes.Length > 1)
         {
             throw new InvalidOperationException(
-                $"Для сервиса с типом '{baseType.Name}' должен быть только один производный тип.");
+                $"Only one derived type is allowed for service type '{baseType.Name}'.");
         }
 
         foreach (var type in candidateTypes)

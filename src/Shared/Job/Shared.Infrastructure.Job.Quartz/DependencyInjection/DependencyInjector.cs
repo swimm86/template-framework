@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------------------------
-// <copyright file="QuartzDependencyInjector.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -7,17 +7,18 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 
-namespace Shared.Infrastructure.Job.Quartz;
+namespace Shared.Infrastructure.Job.Quartz.DependencyInjection;
 
 /// <summary>
-/// Класс для внедрения зависимостей Quartz.
+/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Job.Quartz</c>.
 /// </summary>
-/// <param name="logger">Экземпляр <see cref="ILogger{QuartzDependencyInjector}"/> для работы с логированием.</param>
-public class QuartzDependencyInjector(
-    ILogger<QuartzDependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
+public class DependencyInjector(
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
     protected override IServiceCollection Process(IServiceCollection serviceCollection)

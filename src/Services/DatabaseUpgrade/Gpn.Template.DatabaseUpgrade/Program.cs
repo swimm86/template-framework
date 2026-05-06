@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dal.DbUpdater.Interfaces;
-using Shared.Infrastructure.Core;
+using Shared.Infrastructure.Core.DependencyInjection.Extensions;
 using Shared.Infrastructure.Dal.EFCore.Attributes;
 
 [assembly: MigrationAssembly]
@@ -30,5 +30,5 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((_, services) =>
         {
             services
-                .ImplementReferencedInfrastructures();
+                .AddReferencedDependencyInjectors();
         });

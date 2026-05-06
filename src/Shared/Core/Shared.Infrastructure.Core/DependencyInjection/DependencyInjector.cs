@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------------------------
-// <copyright file="InfrastructureDependencyInjector.cs" company="swimm86@yandex.ru">
+// <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -8,18 +8,21 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient.Configurators.BuilderConfigurator;
-using Shared.Application.Core.DependencyInjection;
+using Shared.Application.Core.DependencyInjection.Base;
 using Shared.Infrastructure.Core.ApiClient.Extensions;
 
-namespace Shared.Infrastructure.Core;
+namespace Shared.Infrastructure.Core.DependencyInjection;
 
 /// <summary>
-/// Класс для внедрения зависимостей Application.Core-слоя.
+/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Core</c>.
 /// </summary>
-public class InfrastructureDependencyInjector(
+/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="configuration">Конфигурация приложения (<see cref="IConfiguration"/>).</param>
+/// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
+public class DependencyInjector(
     IConfiguration configuration,
-    ILogger<InfrastructureDependencyInjector> logger)
-    : DependencyInjectorBase(logger)
+    ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
     /// <inheritdoc />
     protected override IServiceCollection Process(

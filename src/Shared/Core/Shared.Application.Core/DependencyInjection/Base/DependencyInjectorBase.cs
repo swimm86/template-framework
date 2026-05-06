@@ -7,31 +7,47 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Shared.Application.Core.DependencyInjection
+namespace Shared.Application.Core.DependencyInjection.Base
 {
-    /// /// <summary>
-    /// Абстрактный базовый класс для реализации внедрения зависимостей.
+    /// <summary>
+    /// Абстрактный базовый класс для реализации внедрения зависимостей слоя, внутри которого он реализован.
     /// Предоставляет шаблонный метод для внедрения зависимостей в коллекцию сервисов.
     /// </summary>
-    /// /// <param name="logger">Логгер</param>
-    public abstract class DependencyInjectorBase(ILogger logger)
+    /// <remarks>
+    /// Зависимости, которые предоставляют наследники этого класса внедряются автоматически.
+    /// </remarks>
+    public abstract class DependencyInjectorBase
     {
         /// <summary>
-        /// Обертка для внедрения зависимостей
+        /// Логгер.
+        /// </summary>
+        protected readonly ILogger Logger;
+
+        /// <inheritdoc cref="DependencyInjectorBase"/>
+        /// <param name="loggerFactory">Фабрика логгеров.</param>
+        protected DependencyInjectorBase(
+            ILoggerFactory loggerFactory)
+        {
+            Logger = loggerFactory.CreateLogger(GetType());
+        }
+
+        /// <summary>
+        /// Обертка для внедрения зависимостей.
         /// </summary>
         /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
         /// <returns>Коллекция сервисов <see cref="IServiceCollection"/>.</returns>
-        public IServiceCollection Inject(IServiceCollection serviceCollection)
+        public IServiceCollection Inject(
+            IServiceCollection serviceCollection)
         {
             try
             {
                 var result = Process(serviceCollection);
-                logger.LogInformation("Зависимость внедрена");
+                Logger.LogInformation("Dependencies injected.");
                 return result;
             }
-            catch
+            catch (Exception ex)
             {
-                logger.LogError("Не удалось внедрить зависимость");
+                Logger.LogError(ex, "Dependencies not injected.");
                 throw;
             }
         }
@@ -41,6 +57,7 @@ namespace Shared.Application.Core.DependencyInjection
         /// </summary>
         /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
         /// <returns>Коллекция сервисов <see cref="IServiceCollection"/>.</returns>
-        protected abstract IServiceCollection Process(IServiceCollection serviceCollection);
+        protected abstract IServiceCollection Process(
+            IServiceCollection serviceCollection);
     }
 }
