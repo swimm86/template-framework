@@ -1,48 +1,23 @@
-// ----------------------------------------------------------------------------------------------
-// <copyright file="ApiClientHandlerMetadataAttribute.cs" company="swimm86@yandex.ru">
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ApiClientHandlerMetadataAttributeBase.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Application.Core.ApiClient.Handlers.Attributes;
+namespace Shared.Application.Core.ApiClient.Handlers.Attributes.Base;
 
 /// <summary>
-/// Задает метаданные обработчика исходящих HTTP-запросов для пайплайна API-клиента.
+/// Базовый абстрактный класс для аттрибутов, которые задают метаданные обработчиков исходящих HTTP-запросов для пайплайна API-клиента.
 /// </summary>
-/// <param name="order">
-/// Порядок регистрации обработчика в конвейере.
-/// Меньшее значение означает более раннее выполнение.
-/// </param>
 /// <param name="clientTypes">
 /// Ограничение по типам API-клиентов.
 /// Если массив пуст, обработчик применяется ко всем API-клиентам.
 /// </param>
-/// <remarks>
-/// Зарезервированные значения для <see cref="DelegatingHandler"/>:
-/// 100 — установка корреляционного идентификатора.
-/// </remarks>
-/// <example>
-/// <code>
-/// [ApiClientHandlerMetadataAttribute(100, typeof(MyApiClient))]
-/// public sealed class CorrelationIdDelegatingHandler : DelegatingHandler
-/// {
-/// }
-/// </code>
-/// </example>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class ApiClientHandlerMetadataAttribute(
-    int order,
+public abstract class ApiClientHandlerMetadataAttributeBase(
     params Type[] clientTypes)
     : Attribute
 {
-    /// <summary>
-    /// Порядок регистрации обработчика в конвейере.
-    /// </summary>
-    /// <value>
-    /// Целочисленный приоритет: меньшие значения регистрируются раньше.
-    /// </value>
-    public int Order { get; } = order;
-
     /// <summary>
     /// Типы API-клиентов, к которым применяется обработчик.
     /// </summary>

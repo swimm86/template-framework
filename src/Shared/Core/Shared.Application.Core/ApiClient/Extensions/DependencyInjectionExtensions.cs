@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.ApiClient.Configurators.BuilderConfigurator;
 using Shared.Application.Core.ApiClient.Handlers.Attributes;
-using Shared.Application.Core.ApiClient.Handlers.Base;
+using Shared.Application.Core.ApiClient.Handlers.Attributes.Base;
 using Shared.Application.Core.ApiClient.Settings.Base;
 using Shared.Application.Core.Configuration.Extensions;
 using Shared.Common.Extensions;
@@ -56,6 +56,7 @@ public static class DependencyInjectionExtensions
         where TIClient : class
         where TClient : ApiClient, TIClient
     {
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         var clientType = typeof(TClient);
         var clientInterfaceType = typeof(TIClient);
@@ -88,7 +89,8 @@ public static class DependencyInjectionExtensions
         IServiceProvider serviceProvider,
         Type clientType)
     {
-        var primaryHandlerType = GetOrderedHandlerTypes<PrimaryHttpMessageHandlerBase>(clientType)
+        var primaryHandlerType = GetOrderedHandlerTypes<HttpClientHandler, ApiClientPrimaryHttpHandlerMetadataAttribute>(
+                clientType)
             .SingleOrDefault();
         return primaryHandlerType is null
             ? new HttpClientHandler()
@@ -99,25 +101,34 @@ public static class DependencyInjectionExtensions
         this IHttpClientBuilder builder,
         Type clientType)
     {
-        GetOrderedHandlerTypes<DelegatingHandlerBase>(clientType)
+        GetOrderedHandlerTypes<DelegatingHandler, ApiClientDelegatingHandleMetadataAttribute>(
+                clientType,
+                x => x.Order)
             .ForEach(type => builder.AddHttpMessageHandler(
                 serviceProvider => (DelegatingHandler)serviceProvider.GetRequiredService(type)));
         return builder;
     }
 
-    private static IEnumerable<Type> GetOrderedHandlerTypes<THandler>(
-        Type clientType)
+    private static IEnumerable<Type> GetOrderedHandlerTypes<THandler, TAttribute>(
+        Type clientType,
+        Func<TAttribute, int>? orderFunc = null)
+        where TAttribute : ApiClientHandlerMetadataAttributeBase
     {
         var handlerTypes = AssemblyHelper.GetDerivedTypesFromAssemblies<THandler>(
-            includedAttributesTypes: [typeof(ApiClientHandlerMetadataAttribute)]);
-        var result = handlerTypes
+            includedAttributesTypes: [typeof(TAttribute)]);
+        var enumerableData = handlerTypes
             .Select(type => new
             {
                 Type = type,
-                Metadata = type.GetCustomAttribute<ApiClientHandlerMetadataAttribute>()!,
+                Metadata = type.GetCustomAttribute<TAttribute>()!,
             })
-            .Where(x => x.Metadata.AppliesTo(clientType))
-            .OrderBy(x => x.Metadata.Order)
+            .Where(x => x.Metadata.AppliesTo(clientType));
+        if (orderFunc != null)
+        {
+            enumerableData = enumerableData.OrderBy(x => orderFunc(x.Metadata));
+        }
+
+        var result = enumerableData
             .Select(x => x.Type)
             .ToArray();
         return result;

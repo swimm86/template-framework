@@ -4,6 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Microsoft.Extensions.Options;
+
 namespace Shared.Application.Core.ApiClient.Settings.Base;
 
 /// <summary>
@@ -28,4 +30,30 @@ public abstract class ApiClientSettingsBase
     /// переопределяется через конфигурацию сервиса.
     /// </summary>
     public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(DefaultTimeoutSec);
+
+    /// <summary>
+    /// Проверяет корректность базовых настроек API-клиента.
+    /// </summary>
+    /// <remarks>
+    /// На текущий момент проверяется только обязательность поля <see cref="ApiClientSettingsBase.BaseUrl"/>.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    /// Исключение, выбрасываемое, если переданный экземпляр настроек равен null.
+    /// </exception>
+    /// <exception cref="OptionsValidationException">
+    /// Исключение, выбрасываемое, если поле <see cref="ApiClientSettingsBase.BaseUrl"/> не заполнено или содержит пустое значение.
+    /// </exception>
+    public void Validate()
+    {
+        var optionsType = GetType();
+        var optionsName = optionsType.Name;
+
+        if (string.IsNullOrWhiteSpace(BaseUrl))
+        {
+            throw new OptionsValidationException(
+                optionsName,
+                optionsType,
+                [$"The '{nameof(BaseUrl)}' field must be not null or empty."]);
+        }
+    }
 }

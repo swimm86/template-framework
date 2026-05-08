@@ -19,87 +19,75 @@ public static class ServiceCollectionExtensions
     /// Регистрирует один производный тип, найденный по <typeparamref name="TBaseType"/>.
     /// </summary>
     /// <typeparam name="TBaseType">Тип сервиса, для которого необходимо найти и зарегистрировать производные типы.</typeparam>
-    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
-    /// <param name="serviceTypeAsInterface">
-    /// Если <see langword="true"/>, регистрация выполняется как <c>интерфейс -> реализация</c>;
-    /// иначе как <c>реализация -> реализация</c>.
-    /// </param>
-    /// <param name="lifetime"><see cref="ServiceLifetime"/>.</param>
-    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
-    /// <remarks>
-    /// Метод проходит по сборкам текущего домена приложения, находит типы, производные от базового типа,
-    /// и регистрирует их с указанным временем жизни. Типы с атрибутом
-    /// <see cref="ManualConfigurationAttribute"/> исключаются.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// Выбрасывается, если найдено более одного производного типа для не-обобщённого базового типа
-    /// либо если не найден соответствующий интерфейс при <paramref name="serviceTypeAsInterface"/> = <see langword="true"/>.
-    /// </exception>
+    /// <inheritdoc cref="RegisterDerivedTypeDependencies"/>
+    /// <param name="serviceCollection"/><param name="serviceTypeAsInterface"/><param name="lifetime"/>
+    /// <param name="includedAttributesTypes"/><param name="excludedAttributesTypes"/>
+    /// <returns/>
     public static IServiceCollection RegisterDerivedTypeDependency<TBaseType>(
         this IServiceCollection serviceCollection,
         bool serviceTypeAsInterface,
-        ServiceLifetime lifetime)
+        ServiceLifetime lifetime,
+        Type[]? includedAttributesTypes = null,
+        Type[]? excludedAttributesTypes = null)
     {
         var baseType = typeof(TBaseType);
-        return serviceCollection.RegisterDerivedTypeDependenciesInternal(baseType, serviceTypeAsInterface, lifetime, true);
+        return serviceCollection.RegisterDerivedTypeDependenciesInternal(
+            baseType,
+            serviceTypeAsInterface,
+            lifetime,
+            requireSingleImplementation: true,
+            includedAttributesTypes,
+            excludedAttributesTypes);
     }
 
     /// <summary>
     /// Регистрирует все производные типы, найденные по <typeparamref name="TBaseType"/>.
     /// </summary>
     /// <typeparam name="TBaseType">Тип сервиса, для которого необходимо найти и зарегистрировать производные типы.</typeparam>
-    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
-    /// <param name="serviceTypeAsInterface">
-    /// Если <see langword="true"/>, регистрация выполняется как <c>интерфейс -> реализация</c>;
-    /// иначе как <c>реализация -> реализация</c>.
-    /// </param>
-    /// <param name="lifetime"><see cref="ServiceLifetime"/>.</param>
-    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
-    /// <remarks>
-    /// Метод проходит по сборкам текущего домена приложения, находит типы, производные от базового типа,
-    /// и регистрирует их с указанным временем жизни. Типы с атрибутом
-    /// <see cref="ManualConfigurationAttribute"/> исключаются.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// Выбрасывается, если не найден соответствующий интерфейс при
-    /// <paramref name="serviceTypeAsInterface"/> = <see langword="true"/>.
-    /// </exception>
+    /// <inheritdoc cref="RegisterDerivedTypeDependencies"/>
+    /// <param name="serviceCollection"/><param name="serviceTypeAsInterface"/><param name="lifetime"/>
+    /// <param name="includedAttributesTypes"/><param name="excludedAttributesTypes"/>
+    /// <returns/>
     public static IServiceCollection RegisterDerivedTypeDependencies<TBaseType>(
         this IServiceCollection serviceCollection,
         bool serviceTypeAsInterface,
-        ServiceLifetime lifetime)
+        ServiceLifetime lifetime,
+        Type[]? includedAttributesTypes = null,
+        Type[]? excludedAttributesTypes = null)
     {
         var baseType = typeof(TBaseType);
-        return serviceCollection.RegisterDerivedTypeDependenciesInternal(baseType, serviceTypeAsInterface, lifetime, false);
+        return serviceCollection.RegisterDerivedTypeDependenciesInternal(
+            baseType,
+            serviceTypeAsInterface,
+            lifetime,
+            requireSingleImplementation: false,
+            includedAttributesTypes,
+            excludedAttributesTypes);
     }
 
     /// <summary>
     /// Регистрирует один производный тип, найденный по <paramref name="baseType"/>.
     /// </summary>
-    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <param name="baseType">Тип сервиса, для которого необходимо найти и зарегистрировать производные типы.</param>
-    /// <param name="serviceTypeAsInterface">
-    /// Если <see langword="true"/>, регистрация выполняется как <c>интерфейс -> реализация</c>;
-    /// иначе как <c>реализация -> реализация</c>.
-    /// </param>
-    /// <param name="lifetime"><see cref="ServiceLifetime"/>.</param>
-    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
-    /// <remarks>
-    /// Метод проходит по сборкам текущего домена приложения, находит типы, производные от базового типа,
-    /// и регистрирует их с указанным временем жизни. Типы с атрибутом
-    /// <see cref="ManualConfigurationAttribute"/> исключаются.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// Выбрасывается, если найдено более одного производного типа для не-обобщённого базового типа
-    /// либо если не найден соответствующий интерфейс при <paramref name="serviceTypeAsInterface"/> = <see langword="true"/>.
-    /// </exception>
+    /// <inheritdoc cref="RegisterDerivedTypeDependencies"/>
+    /// <param name="serviceCollection"/><param name="serviceTypeAsInterface"/><param name="lifetime"/>
+    /// <param name="includedAttributesTypes"/><param name="excludedAttributesTypes"/>
+    /// <returns/>
     public static IServiceCollection RegisterDerivedTypeDependency(
         this IServiceCollection serviceCollection,
         Type baseType,
         bool serviceTypeAsInterface,
-        ServiceLifetime lifetime)
+        ServiceLifetime lifetime,
+        Type[]? includedAttributesTypes = null,
+        Type[]? excludedAttributesTypes = null)
     {
-        return serviceCollection.RegisterDerivedTypeDependenciesInternal(baseType, serviceTypeAsInterface, lifetime, true);
+        return serviceCollection.RegisterDerivedTypeDependenciesInternal(
+            baseType,
+            serviceTypeAsInterface,
+            lifetime,
+            requireSingleImplementation: true,
+            includedAttributesTypes,
+            excludedAttributesTypes);
     }
 
     /// <summary>
@@ -112,6 +100,8 @@ public static class ServiceCollectionExtensions
     /// иначе как <c>реализация -> реализация</c>.
     /// </param>
     /// <param name="lifetime"><see cref="ServiceLifetime"/>.</param>
+    /// <param name="includedAttributesTypes">Список типов атрибутов, которые должны содержать целевые типы.</param>
+    /// <param name="excludedAttributesTypes">Список типов атрибутов, которые не должны содержать целевые типы.</param>
     /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     /// <remarks>
     /// Метод проходит по сборкам текущего домена приложения, находит типы, производные от базового типа,
@@ -126,9 +116,17 @@ public static class ServiceCollectionExtensions
         this IServiceCollection serviceCollection,
         Type baseType,
         bool serviceTypeAsInterface,
-        ServiceLifetime lifetime)
+        ServiceLifetime lifetime,
+        Type[]? includedAttributesTypes = null,
+        Type[]? excludedAttributesTypes = null)
     {
-        return serviceCollection.RegisterDerivedTypeDependenciesInternal(baseType, serviceTypeAsInterface, lifetime, false);
+        return serviceCollection.RegisterDerivedTypeDependenciesInternal(
+            baseType,
+            serviceTypeAsInterface,
+            lifetime,
+            requireSingleImplementation: false,
+            includedAttributesTypes,
+            excludedAttributesTypes);
     }
 
     /// <summary>
@@ -159,10 +157,18 @@ public static class ServiceCollectionExtensions
         Type baseType,
         bool serviceTypeAsInterface,
         ServiceLifetime lifetime,
-        bool requireSingleImplementation)
+        bool requireSingleImplementation,
+        Type[]? includedAttributesTypes,
+        Type[]? excludedAttributesTypes)
     {
+        excludedAttributesTypes =
+            excludedAttributesTypes?.Append(typeof(ManualConfigurationAttribute)).ToArray() ??
+            [typeof(ManualConfigurationAttribute)];
         var candidateTypes = AssemblyHelper
-            .GetDerivedTypesFromAssemblies(baseType, excludedAttributesTypes: [typeof(ManualConfigurationAttribute)])
+            .GetDerivedTypesFromAssemblies(
+                baseType,
+                includedAttributesTypes: includedAttributesTypes,
+                excludedAttributesTypes: excludedAttributesTypes)
             .Where(type => !type.IsGenericTypeDefinition)
             .ToArray();
 

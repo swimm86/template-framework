@@ -7,7 +7,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient.Handlers.Attributes;
-using Shared.Application.Core.ApiClient.Handlers.Base;
 using Shared.Application.Core.CorrelationId;
 using Shared.Application.Core.CorrelationId.Extensions;
 
@@ -16,11 +15,11 @@ namespace Shared.Infrastructure.Core.ApiClient.Handlers;
 /// <summary>
 /// Добавляет идентификатор корреляции в исходящие HTTP-запросы, если он не задан.
 /// </summary>
-[ApiClientHandlerMetadata(order: 100)]
+[ApiClientDelegatingHandleMetadata(order: 100)]
 public sealed class CorrelationIdHeaderDelegatingHandler(
     IHttpContextAccessor httpContextAccessor,
     ILogger<CorrelationIdHeaderDelegatingHandler> logger)
-    : DelegatingHandlerBase
+    : DelegatingHandler
 {
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.ApiClient.Attributes;
 using Shared.Application.Core.ApiClient.Handlers.Attributes;
-using Shared.Application.Core.ApiClient.Handlers.Base;
+using Shared.Application.Core.ApiClient.Handlers.Attributes.Base;
 using Shared.Application.Core.DependencyInjection.Extensions;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
@@ -54,50 +54,58 @@ public static class DependencyInjectionExtensions
     }
 
     /// <summary>
-    /// Регистрирует все наследники <see cref="DelegatingHandlerBase"/> в контейнере зависимостей.
+    /// Регистрирует все наследники <see cref="DelegatingHandler"/> помеченные атрибутом
+    /// <see cref="ApiClientDelegatingHandleMetadataAttribute"/> в контейнере зависимостей.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     internal static IServiceCollection AddDelegatingHandlers(
         this IServiceCollection serviceCollection)
     {
-        ValidateHandlers<DelegatingHandlerBase>();
-        return serviceCollection.RegisterDerivedTypeDependencies<DelegatingHandlerBase>(
+        var handlersData = ValidateHandlers<DelegatingHandler, ApiClientDelegatingHandleMetadataAttribute>();
+        ValidateDelegatingHandlersCollisions(handlersData);
+        return serviceCollection.RegisterDerivedTypeDependencies<DelegatingHandler>(
             serviceTypeAsInterface: false,
-            lifetime: ServiceLifetime.Transient);
+            lifetime: ServiceLifetime.Transient,
+            [typeof(ApiClientDelegatingHandleMetadataAttribute)]);
     }
 
     /// <summary>
-    /// Регистрирует все наследники <see cref="PrimaryHttpMessageHandlerBase"/> в контейнере зависимостей.
+    /// Регистрирует все наследники <see cref="HttpClientHandler"/> помеченные атрибутом
+    /// <see cref="ApiClientPrimaryHttpHandlerMetadataAttribute"/> в контейнере зависимостей.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     internal static IServiceCollection AddPrimaryHttpMessageHandlers(
         this IServiceCollection serviceCollection)
     {
-        var handlersData = ValidateHandlers<PrimaryHttpMessageHandlerBase>();
+        var handlersData = ValidateHandlers<HttpClientHandler, ApiClientPrimaryHttpHandlerMetadataAttribute>();
         ValidatePrimaryHandlersUniqueness(handlersData);
-        return serviceCollection.RegisterDerivedTypeDependencies<PrimaryHttpMessageHandlerBase>(
+        return serviceCollection.RegisterDerivedTypeDependencies<HttpClientHandler>(
             serviceTypeAsInterface: false,
-            lifetime: ServiceLifetime.Transient);
+            lifetime: ServiceLifetime.Transient,
+            [typeof(ApiClientPrimaryHttpHandlerMetadataAttribute)]);
     }
 
-    private static (Type type, ApiClientHandlerMetadataAttribute metadata)[] ValidateHandlers<THandler>()
+    private static (Type type, TAttribute metadata)[] ValidateHandlers<
+        THandler,
+        TAttribute>()
+        where TAttribute : ApiClientHandlerMetadataAttributeBase
     {
-        var handlersData = AssemblyHelper.GetDerivedTypesFromAssemblies<THandler>()
-            .Select(type => (type, type.GetCustomAttribute<ApiClientHandlerMetadataAttribute>()))
+        var handlersData = AssemblyHelper.GetDerivedTypesFromAssemblies<THandler>(
+                includedAttributesTypes: [typeof(TAttribute)])
+            .Select(type => (type, type.GetCustomAttribute<TAttribute>()))
             .ToArray();
         ValidateHandlersMetadata(handlersData);
-        ValidateHandlersCollisions<THandler>(handlersData!);
         return handlersData!;
     }
 
     /// <summary>
-    /// Гарантирует, что для каждого API-клиента применим не более одного primary-handler'а,
-    /// независимо от <see cref="ApiClientHandlerMetadataAttribute.Order"/>.
+    /// Гарантирует, что для каждого API-клиента применим не более одного primary-handler-а,
+    /// независимо от <see cref="ApiClientDelegatingHandleMetadataAttribute.Order"/>.
     /// </summary>
     private static void ValidatePrimaryHandlersUniqueness(
-        (Type type, ApiClientHandlerMetadataAttribute metadata)[] data)
+        (Type type, ApiClientPrimaryHttpHandlerMetadataAttribute metadata)[] data)
     {
         if (data.Length <= 1)
         {
@@ -127,15 +135,16 @@ public static class DependencyInjectionExtensions
         }
 
         throw new InvalidOperationException(
-            $"Multiple {nameof(PrimaryHttpMessageHandlerBase)} were found for the same API client. " +
+            $"Multiple {nameof(HttpClientHandler)} were found for the same API client. " +
             $"Only one primary handler per client is allowed. " +
             string.Join(
                 " | ",
                 overlaps.Select(x => $"{x.clientType.Name}: {string.Join(", ", x.applicable)}")));
     }
 
-    private static void ValidateHandlersMetadata(
-        IReadOnlyCollection<(Type type, ApiClientHandlerMetadataAttribute? attribute)> data)
+    private static void ValidateHandlersMetadata<TAttribute>(
+        IReadOnlyCollection<(Type type, TAttribute? attribute)> data)
+        where TAttribute : ApiClientHandlerMetadataAttributeBase
     {
         var invalidData = data
             .Where(x => x.attribute is null)
@@ -143,13 +152,13 @@ public static class DependencyInjectionExtensions
         if (invalidData.Any())
         {
             throw new InvalidOperationException(
-                $"API client handlers missing {nameof(ApiClientHandlerMetadataAttribute)}:{Environment.NewLine}" +
+                $"API client handlers missing {typeof(TAttribute).Name}:{Environment.NewLine}" +
                 string.Join(", ", invalidData.Select(x => x.type.FullName)));
         }
     }
 
-    private static void ValidateHandlersCollisions<THandler>(
-        (Type type, ApiClientHandlerMetadataAttribute metadata)[] data)
+    private static void ValidateDelegatingHandlersCollisions(
+        (Type type, ApiClientDelegatingHandleMetadataAttribute metadata)[] data)
     {
         if (data.Length <= 1)
         {
@@ -185,7 +194,7 @@ public static class DependencyInjectionExtensions
                 }
 
                 collisions.Add(
-                    $"[{typeof(THandler).Name}] order={first.metadata.Order}: " +
+                    $"[{nameof(DelegatingHandler)}] order={first.metadata.Order}: " +
                     $"{first.type.FullName} and {second.type.FullName}; " +
                     $"API clients: {string.Join(", ", overlappingClients)}");
             }
@@ -197,9 +206,9 @@ public static class DependencyInjectionExtensions
         }
 
         throw new InvalidOperationException(
-            $"{nameof(ApiClientHandlerMetadataAttribute)} collisions were detected. " +
-            $"For a single handler type, the same {nameof(ApiClientHandlerMetadataAttribute.Order)} is not allowed " +
-            $"when {nameof(ApiClientHandlerMetadataAttribute.ClientTypes)} overlap. " +
+            $"{nameof(ApiClientDelegatingHandleMetadataAttribute)} collisions were detected. " +
+            $"For a single handler type, the same {nameof(ApiClientDelegatingHandleMetadataAttribute.Order)} is not allowed " +
+            $"when {nameof(ApiClientDelegatingHandleMetadataAttribute.ClientTypes)} overlap. " +
             string.Join(" | ", collisions));
     }
 

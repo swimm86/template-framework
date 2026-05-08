@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Application.Core.ApiClient.Handlers.Attributes;
-using Shared.Application.Core.ApiClient.Handlers.Base;
 
 namespace Gpn.Template.Infrastructure.ApiClient.Handlers;
 
@@ -17,9 +16,9 @@ namespace Gpn.Template.Infrastructure.ApiClient.Handlers;
 /// Стенд работает в закрытом контуре, где TLS-терминация и контроль сетевого трафика
 /// обеспечиваются на внешнем периметре (nginx, silium).
 /// </remarks>
-[ApiClientHandlerMetadata(order: 0)]
+[ApiClientPrimaryHttpHandlerMetadata]
 public sealed class DefaultPrimaryHttpMessageHandler
-    : PrimaryHttpMessageHandlerBase
+    : HttpClientHandler
 {
     /// <summary>
     /// Инициализирует новый экземпляр класса <see cref="DefaultPrimaryHttpMessageHandler"/>.
