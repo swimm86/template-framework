@@ -13,6 +13,7 @@ using NLog.Extensions.Logging;
 using Shared.Application.Core.Configuration.Extensions;
 using Shared.Common.Extensions;
 using Shared.Infrastructure.Logging.Settings;
+
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Shared.Infrastructure.Logging.Extensions;

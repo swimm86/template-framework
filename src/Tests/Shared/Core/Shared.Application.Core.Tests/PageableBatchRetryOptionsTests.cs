@@ -1,7 +1,7 @@
 ﻿using System.Net;
+using Shared.Application.Core.Batch.Http.RetryPolicy;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Extensions;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
-using Shared.Application.Core.Batch.Http.RetryPolicy;
 
 namespace Shared.Application.Core.Tests;
 

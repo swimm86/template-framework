@@ -3,8 +3,8 @@ using Shared.Application.Core.Batch.Http.RetryPolicy;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Core.Tests.Support;
-using Shared.Common.Extensions;
 using static Shared.Application.Core.Tests.Support.PageableHttpBatchTestSupport;
+using Shared.Common.Extensions;
 
 namespace Shared.Application.Core.Tests;
 

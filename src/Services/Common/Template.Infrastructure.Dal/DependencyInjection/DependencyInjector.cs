@@ -4,21 +4,24 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using AutoMapper;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shared.Application.Core.Configuration.Extensions;
+using Shared.Application.Core.Dal.Settings.Models.Base;
 using Shared.Application.Core.DependencyInjection.Base;
+using Template.Infrastructure.Dal.Settings;
 
-using IMapper = Shared.Domain.Core.Mapping.Interfaces.IMapper;
-
-namespace Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection;
+namespace Template.Infrastructure.Dal.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Mapper.AutoMapper</c>.
+/// Регистрация DI-зависимостей слоя: <c>Common.Infrastructure.Dal</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <param name="configuration">Конфигурация приложения (<see cref="IConfiguration"/>).</param>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
 public class DependencyInjector(
+    IConfiguration configuration,
     ILoggerFactory loggerFactory)
     : DependencyInjectorBase(loggerFactory)
 {
@@ -26,12 +29,11 @@ public class DependencyInjector(
     protected override IServiceCollection Process(
         IServiceCollection serviceCollection)
     {
-        var profileType = typeof(Profile);
-        var mapperProfilesTypes = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
-            .Where(type => profileType.IsAssignableFrom(type) && !type.IsAbstract).ToArray();
         return serviceCollection
-            .AddAutoMapper(mapperProfilesTypes)
-            .AddSingleton<IMapper, Mapper>();
+            .AddSingleton<DbSettingsBase, DbSettings>(_ =>
+            {
+                var result = configuration.GetOptions<DbSettings>()!;
+                return result;
+            });
     }
 }

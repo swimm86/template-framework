@@ -6,6 +6,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Shared.Application.Core.CorrelationId.Extensions;
+
 using CorrelationIdConstants = Shared.Application.Core.CorrelationId.Constants;
 
 namespace Shared.Presentation.Core.CorrelationId.Middlewares;
