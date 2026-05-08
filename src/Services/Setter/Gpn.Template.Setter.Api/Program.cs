@@ -4,12 +4,13 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Gpn.Template.Presentation.Extensions;
 using Shared.Presentation.Core.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddSharedPresentationCore();
+builder.ImplementDependencies();
 
 var app = builder.Build();
-app.ConfigurePresentationCore();
+app.UseCommonPresentation();
 
 app.Run();

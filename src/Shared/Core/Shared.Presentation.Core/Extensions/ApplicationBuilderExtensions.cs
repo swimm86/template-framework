@@ -1,4 +1,4 @@
-﻿// ----------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------
 // <copyright file="ApplicationBuilderExtensions.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -20,9 +20,14 @@ public static class ApplicationBuilderExtensions
     /// <summary>
     /// Конфигурирует <see cref="IApplicationBuilder"/>.
     /// </summary>
+    /// <remarks>
+    /// Метод настраивает пайплайн обработки HTTP-запросов: логирование, Correlation ID,
+    /// Swagger (для среды разработки), обработку исключений, авторизацию и маппинг контроллеров.
+    /// </remarks>
     /// <param name="app"><see cref="WebApplication"/>.</param>
     /// <returns><see cref="IApplicationBuilder"/>.</returns>
-    public static IApplicationBuilder ConfigurePresentationCore(this WebApplication app)
+    public static IApplicationBuilder UsePresentationCore(
+        this WebApplication app)
     {
         LoggingServiceAccessor.Configure(app.Services);
 
@@ -38,7 +43,6 @@ public static class ApplicationBuilderExtensions
         app.UseAuthorization();
         app.MapControllers();
 
-        app.UseCors(Constants.CorsDefaultPolicyName);
         return app;
     }
 }

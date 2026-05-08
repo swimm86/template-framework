@@ -15,4 +15,9 @@ public static class Constants
     /// Наименование текущего приложения.
     /// </summary>
     public const string AppName = "Template";
+
+    /// <summary>
+    /// Имя политики, которая используется в Cors.
+    /// </summary>
+    public const string CorsDefaultPolicyName = nameof(CorsDefaultPolicyName);
 }

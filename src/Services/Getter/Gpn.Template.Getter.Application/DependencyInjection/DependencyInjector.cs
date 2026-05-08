@@ -26,6 +26,6 @@ public class DependencyInjector(
         IServiceCollection serviceCollection)
     {
         return serviceCollection
-            .AddTransient<IPersonsService, PersonsService>();
+            .AddScoped<IPersonsService, PersonsService>();
     }
 }

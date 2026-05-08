@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Gpn.Template.Presentation.Swagger.Extensions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.DependencyInjection.Base;
@@ -17,6 +18,7 @@ namespace Gpn.Template.Presentation.DependencyInjection;
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
 public class DependencyInjector(
+    IConfiguration configuration,
     ILoggerFactory loggerFactory)
     : DependencyInjectorBase(loggerFactory)
 {
@@ -24,7 +26,19 @@ public class DependencyInjector(
     protected override IServiceCollection Process(
         IServiceCollection serviceCollection)
     {
+        var allowedOrigins = configuration.GetValue<string>("AllowedOrigins");
         return serviceCollection
-            .ConfigureSwaggerAuth();
+            .ConfigureSwaggerAuth()
+            .AddCors(options =>
+            {
+                options.AddPolicy(
+                    name: Constants.CorsDefaultPolicyName,
+                    policy =>
+                    {
+                        policy.WithOrigins(allowedOrigins ?? "*");
+                        policy.AllowAnyHeader();
+                        policy.AllowAnyMethod();
+                    });
+            });
     }
 }

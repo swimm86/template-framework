@@ -4,27 +4,25 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.ApiClient.Configurators.BuilderConfigurator;
 using Shared.Application.Core.DependencyInjection.Base;
-using Shared.Infrastructure.Core.ApiClient.Extensions;
+using Shared.Presentation.Core.Exceptions.Extensions;
+using Shared.Presentation.Core.Extensions;
+using Shared.Presentation.Core.Swagger.Extensions;
 
-namespace Shared.Infrastructure.Core.DependencyInjection;
+namespace Shared.Presentation.Core.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Core</c>.
+/// Регистрация DI-зависимостей слоя: <c>Shared.Presentation.Core</c>.
 /// </summary>
 /// <remarks>
-/// Данный инжектор инициализирует конфигураторы ApiClient и регистрирует инфраструктурные сервисы
-/// для выполнения HTTP-запросов: делегирующие обработчики и типизированные HTTP-клиенты.
+/// Данный инжектор регистрирует основные сервисы слоя представления: Swagger, FluentValidation,
+/// обработку исключений и средства исследования эндпоинтов.
 /// <para><inheritdoc cref="DependencyInjectorBase" path="/remarks"/></para>
 /// </remarks>
-/// <param name="configuration">Конфигурация приложения (<see cref="IConfiguration"/>).</param>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
 public class DependencyInjector(
-    IConfiguration configuration,
     ILoggerFactory loggerFactory)
     : DependencyInjectorBase(loggerFactory)
 {
@@ -32,10 +30,10 @@ public class DependencyInjector(
     protected override IServiceCollection Process(
         IServiceCollection serviceCollection)
     {
-        ApiClientBuilderConfiguratorContext.InitializeApiClientBuilderConfiguratorsMap();
         return serviceCollection
-            .AddDelegatingHandlers()
-            .AddPrimaryHttpMessageHandlers()
-            .AddHttpClients(configuration);
+            .AddEndpointsApiExplorer()
+            .AddSwagger()
+            .AddFluentValidation()
+            .AddExceptionHandling();
     }
 }

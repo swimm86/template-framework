@@ -1,4 +1,4 @@
-﻿// ----------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------
 // <copyright file="DependencyInjector.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -21,7 +21,11 @@ namespace Shared.Application.Core.DependencyInjection;
 /// <summary>
 /// Регистрация DI-зависимостей слоя: <c>Shared.Application.Core</c>.
 /// </summary>
-/// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
+/// <remarks>
+/// Данный инжектор регистрирует системные сервисы: аксессор HTTP-контекста, сериализатор JSON,
+/// репозитории, средства наполнения БД (DbSeeder), утилиты свойств и кэширование.
+/// <para><inheritdoc cref="DependencyInjectorBase" path="/remarks"/></para>
+/// </remarks>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
 public class DependencyInjector(
     ILoggerFactory loggerFactory)
