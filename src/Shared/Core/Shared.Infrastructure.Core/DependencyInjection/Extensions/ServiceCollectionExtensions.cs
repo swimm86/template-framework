@@ -6,9 +6,11 @@
 
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyModel;
 using Shared.Application.Core.DependencyInjection.Base;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
+using Shared.Infrastructure.Core.DependencyInjection.Constants;
 
 namespace Shared.Infrastructure.Core.DependencyInjection.Extensions;
 
@@ -27,7 +29,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddReferencedDependencyInjectors(
         this IServiceCollection services)
     {
-        LoadReferencedInfrastructureAssemblies();
+        LoadReferencedProjects();
 
         using var provider = services.BuildServiceProvider();
 
@@ -46,23 +48,19 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Дополнительно загружает из каталога приложения сборки инфраструктуры, ещё не загруженные в домен.
+    /// Загружает project-сборки решения через <see cref="DependencyContext"/>.
+    /// Пакеты NuGet пропускаются: рантайм загружает их самостоятельно по требованию.
     /// </summary>
-    private static void LoadReferencedInfrastructureAssemblies()
+    private static void LoadReferencedProjects()
     {
-        var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-        var loadedPaths = loadedAssemblies.Select(a => a.Location).ToArray();
-
-        var referencedPaths = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.dll");
-        var toLoad = referencedPaths
-            .Where(r =>
-                !loadedPaths.Contains(r, StringComparer.InvariantCultureIgnoreCase) &&
-                r.Contains(nameof(Infrastructure)))
+        var context =
+            DependencyContext.Default ?? throw new InvalidOperationException("DependencyContext not available.");
+        var assemblyNamesToLoad = context
+            .RuntimeLibraries
+            .Where(lib => lib.Type == LibraryType.Project)
+            .SelectMany(lib => lib.GetDefaultAssemblyNames(context))
             .ToArray();
-
-        Parallel.ForEach(
-            toLoad,
-            path => AppDomain.CurrentDomain.Load(AssemblyName.GetAssemblyName(path)));
+        assemblyNamesToLoad.ForEach(assemblyName => Assembly.Load(assemblyName));
     }
 
     /// <summary>
