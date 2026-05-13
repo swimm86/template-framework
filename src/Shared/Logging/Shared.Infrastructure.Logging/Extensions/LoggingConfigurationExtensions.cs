@@ -8,6 +8,7 @@ using NLog;
 using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
+using Shared.Infrastructure.Logging.Constants;
 using Shared.Infrastructure.Logging.LayoutRenderers;
 
 namespace Shared.Infrastructure.Logging.Extensions;
@@ -18,8 +19,8 @@ namespace Shared.Infrastructure.Logging.Extensions;
 internal static class LoggingConfigurationExtensions
 {
     private const string MessagePattern = "msg=${message";
-    private const string HttpCorrelationIdLayout = $"${{{Constants.HttpCorrelationIdScopePropertyKey}}}";
-    private const string JobCorrelationIdLayout = $"${{{Constants.JobCorrelationIdScopePropertyKey}}}";
+    private const string HttpCorrelationIdLayout = $"${{{CorrelationIdScopePropertyKeys.Http}}}";
+    private const string JobCorrelationIdLayout = $"${{{CorrelationIdScopePropertyKeys.Job}}}";
     private const string CorrelationIdBlock =
         $"${{when:when='{HttpCorrelationIdLayout}'!=''" +
         $":inner= corId={HttpCorrelationIdLayout}}}" +
@@ -82,10 +83,10 @@ internal static class LoggingConfigurationExtensions
             LogManager.Setup().SetupExtensions(ext =>
             {
                 ext.RegisterLayoutRenderer(
-                    Constants.HttpCorrelationIdScopePropertyKey,
+                    CorrelationIdScopePropertyKeys.Http,
                     typeof(HttpCorrelationIdLayoutRenderer));
                 ext.RegisterLayoutRenderer(
-                    Constants.JobCorrelationIdScopePropertyKey,
+                    CorrelationIdScopePropertyKeys.Job,
                     typeof(JobCorrelationIdLayoutRenderer));
             });
 

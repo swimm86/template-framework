@@ -8,13 +8,14 @@ using System.Text;
 using NLog;
 using NLog.LayoutRenderers;
 using Shared.Application.Core.CorrelationId;
+using Shared.Infrastructure.Logging.Constants;
 
 namespace Shared.Infrastructure.Logging.LayoutRenderers;
 
 /// <summary>
 /// Layout renderer для вывода идентификатора корреляции фоновых задач из JobCorrelationContext.
 /// </summary>
-[LayoutRenderer(Constants.JobCorrelationIdScopePropertyKey)]
+[LayoutRenderer(CorrelationIdScopePropertyKeys.Job)]
 public class JobCorrelationIdLayoutRenderer
     : LayoutRenderer
 {
