@@ -1,92 +1,284 @@
-# gpn-template-backend
+# Shared — Unified .NET Application Framework
 
+**Shared** — это унифицированный фреймворк для создания .NET приложений с готовой архитектурой, реализующий лучшие практики enterprise-разработки.
 
+## 📋 Содержание
 
-## Getting started
+- [О проекте](#о-проекте)
+- [Архитектурные паттерны](#архитектурные-паттерны)
+- [Структура репозитория](#структура-репозитория)
+- [Компоненты Shared](#компоненты-shared)
+- [Services — примеры использования](#services--примеры-использования)
+- [Начало работы](#начало-работы)
+- [Документация](#документация)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 📖 О проекте
 
-## Add your files
+Данный проект предоставляет:
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+- **Shared** — производственный фреймворк с реализацией паттернов Repository, Unit of Work, Specification, CQRS
+- **Services** — референсные реализации микросервисов (BFF, Getter, Setter) демонстрирующие best practices
+
+Фреймворк следует принципам **Clean Architecture** и **Domain-Driven Design**, обеспечивая:
+- Разделение ответственности между слоями
+- Тестируемость через абстракции
+- Масштабируемость за счет модульности
+- Консистентность кодовой базы
+
+---
+
+## 🏛 Архитектурные паттерны
+
+Фреймворк реализует следующие паттерны (подробная документация в [`docs/`](docs/)):
+
+| Паттерн | Описание | Документация |
+|---------|----------|--------------|
+| **Repository** | Централизованный доступ к данным через `IRepository<TEntity>` | [docs/repository.md](docs/repository.md) |
+| **Unit of Work** | Координация транзакций и доменных событий | [docs/unit-of-work.md](docs/unit-of-work.md) |
+| **Specification** | Инкапсуляция бизнес-критериев выборки | [docs/specification.md](docs/specification.md) |
+| **CQRS** | Разделение операций чтения и записи | См. ниже |
+| **Auto-Registration** | Автоматическая регистрация зависимостей | См. ниже |
+| **Pipeline Behaviors** | Cross-cutting concerns через MediatR | См. ниже |
+| **Exception Mapping** | Преобразование исключений в Problem Details | См. ниже |
+
+### Краткий обзор паттернов
+
+#### CQRS Pattern
+Разделение операций чтения и записи через MediatR:
+
+- `ICommand<TResponse>` / `IQuery<TResponse>` — команды и запросы
+- `ICommandHandler<>` / `IQueryHandler<>` — обработчики
+- Готовые обработчики: Create, Update, Delete, Clone, Read, ReadList
+
+#### Auto-Registration Pattern
+Автоматическая регистрация зависимостей через reflection:
+
+```csharp
+services.RegisterDerivedTypeDependencies<IValidator>(
+    serviceTypeAsInterface: true,
+    lifetime: ServiceLifetime.Scoped);
+```
+
+#### Pipeline Behaviors
+Cross-cutting concerns: Logging → Validation → Handler
+
+#### Exception Mapping
+Типобезопасное преобразование исключений в Problem Details (RFC 7807)
+
+---
+
+## 🗂 Структура репозитория
 
 ```
-cd existing_repo
-git remote add origin https://bitbucket.inlinegroup.ru/contour/gpn-template/gpn-template-backend.git
-git branch -M master
-git push -uf origin master
+src/
+├── Shared/                          # Унифицированный фреймворк
+│   ├── Core/                        # Базовые компоненты ядра
+│   │   ├── Shared.Common            # Общие утилиты и расширения
+│   │   ├── Shared.Domain.Core       # Базовые доменные модели
+│   │   ├── Shared.Application.Core  # Базовые сервисы приложения
+│   │   ├── Shared.Application.Cqrs.Core  # CQRS инфраструктура
+│   │   ├── Shared.Infrastructure.Core    # Базовая инфраструктура
+│   │   └── Shared.Presentation.Core      # Базовые компоненты presentation-слоя
+│   ├── Dal/                         # Слой доступа к данным
+│   │   ├── Shared.Infrastructure.Dal.EFCore
+│   │   └── Shared.Infrastructure.Dal.EFCore.Postgres
+│   ├── Logging/                     # Логирование
+│   ├── Mapper/                      # Маппинг (AutoMapper)
+│   ├── Job/                         # Фоновые задачи (Quartz)
+│   └── Utils/                       # Утилиты
+│
+├── Services/                        # Примеры микросервисов
+│   ├── Bff/                         # BFF (Backend For Frontend)
+│   ├── Getter/                      # Сервис получения данных
+│   ├── Setter/                      # Сервис записи данных
+│   ├── Common/                      # Общие компоненты сервисов
+│   └── DatabaseUpgrade/             # Миграции БД
+│
+├── Tests/                           # Тесты
+└── Template.sln                     # Решение Visual Studio
 ```
 
-## Integrate with your tools
+---
 
-- [ ] [Set up project integrations](https://bitbucket.inlinegroup.ru/contour/gpn-template/gpn-template-backend/-/settings/integrations)
+## 🔧 Компоненты Shared
 
-## Collaborate with your team
+**Shared** — это набор библиотек, которые можно использовать в любом .NET приложении.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+### Core
+| Компонент | Описание |
+|-----------|----------|
+| `Shared.Common` | Общие утилиты, расширения LINQ, работа со строками, Enum, JSON, пагинация, batch-обработка |
+| `Shared.Domain.Core` | Базовые доменные сущности и интерфейсы |
+| `Shared.Application.Core` | Базовые сервисы приложения, валидация, **авто-регистрация зависимостей**, конфигурация (.env + appsettings) |
+| `Shared.Application.Cqrs.Core` | CQRS паттерны (команды, запросы, обработчики), MediatR pipeline behaviors |
+| `Shared.Infrastructure.Core` | Базовая инфраструктура, общие сервисы, API Client pipeline |
+| `Shared.Presentation.Core` | Базовые контроллеры, DTO, фильтры, Swagger, обработка исключений |
 
-## Test and Deploy
+### Data Access
+| Компонент | Описание |
+|-----------|----------|
+| `Shared.Infrastructure.Dal.EFCore` | Базовая реализация репозиториев на EF Core, Unit of Work |
+| `Shared.Infrastructure.Dal.EFCore.Postgres` | Расширения для работы с PostgreSQL |
 
-Use the built-in continuous integration in GitLab.
+### Инфраструктура
+| Компонент | Описание |
+|-----------|----------|
+| `Shared.Infrastructure.Logging` | Централизованное логирование |
+| `Shared.Infrastructure.Mapper.AutoMapper` | Настройка AutoMapper |
+| `Shared.Infrastructure.Job.Quartz` | Планировщик задач Quartz.NET |
+| `Shared.Utils.DatabaseUpgrade` | Утилиты для миграции БД |
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+---
 
-***
+## 🚀 Services — примеры использования
 
-# Editing this README
+В директории **Services** представлены примеры реализации микросервисов на основе Shared:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Архитектура микросервисов
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  BFF API    │────▶│  Getter API │────▶│  Setter API │
+│  (Frontend) │     │   (Read)    │     │  (Write)    │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
 
-## Name
-Choose a self-explaining name for your project.
+### Сервисы
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+| Сервис | Назначение |
+|--------|------------|
+| **Bff** (Backend For Frontend) | Агрегация данных от других сервисов, адаптация под нужды фронтенда |
+| **Getter** | Сервис чтения данных (CQRS Query side) |
+| **Setter** | Сервис записи данных (CQRS Command side) |
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+> **Примечание:** Services — это примеры для разработчиков, демонстрирующие best practices использования Shared в микросервисной архитектуре.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Структура каждого сервиса
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Каждый микросервис следует единой структуре:
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```
+Service/
+├── Api/                  # Web API слой (Controllers, Middleware)
+├── Application/          # Бизнес-логика (Use Cases, Handlers)
+├── Infrastructure/       # Инфраструктурные реализации
+└── Abstractions/         # Интерфейсы и контракты (опционально)
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Common компоненты
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+В `Services/Common` находятся переиспользуемые компоненты:
+- `Template.Domain` — доменные модели
+- `Template.Application` — общие сервисы приложения
+- `Template.Infrastructure` — общая инфраструктура
+- `Template.Infrastructure.Dal` — доступ к данным
+- `Template.Infrastructure.Mapping` — конфигурация маппинга
+- `Template.Presentation` — общие DTO и презентационные компоненты
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+---
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## 🛠 Начало работы
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+### Требования
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+- .NET 8+ (или актуальная версия из `Directory.Build.props`)
+- Visual Studio 2022 / JetBrains Rider
+- PostgreSQL (для работы с БД)
 
-## License
-For open source projects, say how it is licensed.
+### Сборка проекта
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```bash
+cd src
+dotnet restore
+dotnet build
+```
+
+### Запуск сервисов
+
+```bash
+# Запуск BFF
+dotnet run --project Services/Bff/Template.Bff.Api
+
+# Запуск Getter
+dotnet run --project Services/Getter/Template.Getter.Api
+
+# Запуск Setter
+dotnet run --project Services/Setter/Template.Setter.Api
+```
+
+### Конфигурация
+
+Фреймворк поддерживает два способа хранения конфигурации:
+
+1. **appsettings.json** — стандартный способ .NET
+2. **.env файлы** — централизованное хранение настроек (рекомендуется для Services)
+
+Пример `.env`:
+```env
+ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=template;Username=postgres;Password=yourpassword
+Logging__LogLevel__Default=Information
+```
+
+Приоритет конфигурации:
+1. Переменные окружения OS
+2. `.env.{EnvironmentName}` (например, `.env.Development`)
+3. `.env` (базовый файл)
+4. `appsettings.json`
+
+### Миграции БД
+
+Для применения миграций используйте проект `Template.DatabaseUpgrade`:
+
+```bash
+dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
+```
+
+---
+
+## 📚 Документация
+
+Дополнительная документация доступна в директории [`docs/`](docs/):
+
+### Паттерны
+- [Repository Pattern](docs/repository.md) — доступ к данным через репозиторий
+- [Unit of Work Pattern](docs/unit-of-work.md) — координация транзакций
+- [Specification Pattern](docs/specification.md) — инкапсуляция критериев выборки
+
+### Руководства
+- [Batch Helper](docs/batch-helper.md) — пакетная обработка данных
+- [Batch Request](docs/batch-request.md) — массовые запросы к API
+- [Filtering & Sorting](docs/filtering-sorting-guide.md) — фильтрация и сортировка
+- [Logging](docs/logging.md) — руководство по логированию
+
+---
+
+## 🤝 Для разработчиков
+
+Этот репозиторий предназначен в первую очередь для внутренней разработки и служит:
+
+1. **Шаблоном** для создания новых микросервисов
+2. **Библиотекой** готовых компонентов (Shared)
+3. **Примером** правильной архитектуры (Services)
+
+### Создание нового сервиса
+
+1. Скопируйте структуру одного из существующих сервисов (Getter/Setter)
+2. Обновите namespace'ы и имена проектов
+3. Добавьте ссылки на необходимые компоненты Shared
+4. Реализуйте бизнес-логику в слое Application
+5. Настройте инфраструктуру (БД, внешние сервисы)
+6. Создайте `.env` файл для конфигурации
+
+---
+
+## 📄 Лицензия
+
+[Укажите лицензию вашего проекта]
+
+---
+
+## 📞 Поддержка
+
+По вопросам обращайтесь к команде разработки или создавайте Issues в репозитории.

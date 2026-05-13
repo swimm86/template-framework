@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-12a03bba-5ed3-47bb-b75a-7ac43bc7992f"
+      ]
+    }
+  },
+  "$version": 3,
+  "permissions": {
+    "allow": [
+      "Bash(dotnet *)"
+    ]
+  }
+}
