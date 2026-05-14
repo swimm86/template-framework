@@ -6,6 +6,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Shared.Common.Extensions;
+using Shared.Common.Helpers;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
@@ -29,17 +30,19 @@ public class PersonsService(
         PersonListRequest request,
         CancellationToken cancellationToken)
     {
-        var skip = request.PageSize * (request.PageNumber - 1);
-        var take = request.PageSize;
+        var (skip, take) = PaginationHelper.CalculatePagination(request.PageNumber, request.PageSize);
         var personsTask = request.DalPattern switch
         {
-            DalPattern.UnitOfWork => GetPersonsUnitOfWorkAsync(request, skip, take, cancellationToken),
-            DalPattern.Repository => GetPersonsRepositoryAsync(request, skip, take, cancellationToken),
-            DalPattern.Specification => GetPersonsSpecificationAsync(request, skip, take, cancellationToken),
-            _ => throw new ArgumentOutOfRangeException()
+            DalPattern.UnitOfWork => GetPersonsUnitOfWorkAsync(request, skip!.Value, take!.Value, cancellationToken),
+            DalPattern.Repository => GetPersonsRepositoryAsync(request, skip!.Value, take!.Value, cancellationToken),
+            DalPattern.Specification => GetPersonsSpecificationAsync(request, skip!.Value, take!.Value, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(request),
+                request.DalPattern,
+                $"Unsupported DAL pattern: {request.DalPattern}"),
         };
         var result = await personsTask;
-        var totalPages = request.PageSize == 0 ? 0 : result.totalCount / request.PageSize;
+        var totalPages = PaginationHelper.GetTotalPages(result.totalCount, request.PageSize);
         var status = result.totalCount > 0 ? StatusCodes.Status200OK : StatusCodes.Status204NoContent;
         return new PersonListResponse
         {
