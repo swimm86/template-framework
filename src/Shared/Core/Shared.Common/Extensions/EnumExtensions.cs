@@ -21,37 +21,52 @@ public static class EnumExtensions
     /// <returns>Значение атрибута <see cref="DescriptionAttribute"/>.</returns>
     public static string Description(this Enum value) =>
         value.GetType().GetField(value.ToString())!.GetCustomAttributes<DescriptionAttribute>(false)
-            .FirstOrDefault()?.Description ??
-        Enum.GetName(value.GetType(), value)!;
+            .FirstOrDefault()?.Description ?? string.Empty;
 
     /// <summary>
-    /// Получить элемент enum по его описанию из <see cref="DescriptionAttribute"/>
+    /// Возвращает значение enum типа <see cref="enumType"/> по его описанию,
+    /// указанному в атрибуте <see cref="DescriptionAttribute"/>.
     /// </summary>
-    /// <param name="description">Описание.</param>
+    /// <param name="description">Описание значения enum.</param>
     /// <param name="enumType">Тип enum.</param>
-    /// <returns>Элемент enum.</returns>
-    public static Enum? GetEnumValueByDescription(this string description, Type enumType)
+    /// <param name="emptyValue">Значение по умолчанию. Если указано, то в случае не нахождения нужного значения, будет возвращено.</param>
+    /// <param name="contextSearch">Признак того, что необходимо осуществить поиск по частичному совпадению.</param>
+    /// <returns>Значение enum типа <see cref="enumType"/>.</returns>
+    public static Enum GetEnumValueByDescription(
+        this string? description,
+        Type enumType,
+        Enum? emptyValue = null,
+        bool contextSearch = false)
     {
-        ArgumentNullException.ThrowIfNull(description);
-
-        return Enum.GetValues(enumType)
-            .Cast<Enum>()
-            .FirstOrDefault(v => v.Description() == description);
+        return GetEnumValueByDescription(
+            description,
+            emptyValue,
+            enumType,
+            Enum.GetValues(enumType).Cast<Enum?>(),
+            contextSearch);
     }
 
     /// <summary>
-    /// Получить элементы enum по их частичному описанию из <see cref="DescriptionAttribute"/>
+    /// Возвращает значение перечисления типа <typeparamref name="TEnum"/> по его описанию,
+    /// указанному в атрибуте <see cref="DescriptionAttribute"/>.
     /// </summary>
-    /// <param name="description">Описание.</param>
-    /// <param name="enumType">Тип enum.</param>
-    /// <returns>Элемент enum.</returns>
-    public static IEnumerable<Enum> GetEnumValueByPartOfDescription(this string description, Type enumType)
+    /// <typeparam name="TEnum">Тип перечисления.</typeparam>
+    /// <param name="emptyValue">Значение по умолчанию. Если указано, то в случае не нахождения нужного значения, будет возвращено.</param>
+    /// <returns>Значение enum типа <typeparamref name="TEnum"/>.</returns>
+    /// <inheritdoc cref="GetEnumValueByDescription(string?, Type, Enum?, bool)"/>
+    /// <param name="description"/><param name="contextSearch"/>
+    public static TEnum? GetEnumValueByDescription<TEnum>(
+        this string? description,
+        TEnum? emptyValue = null,
+        bool contextSearch = false)
+        where TEnum : struct, Enum
     {
-        ArgumentNullException.ThrowIfNull(description);
-
-        return Enum.GetValues(enumType)
-            .Cast<Enum>()
-            .Where(v => v.Description().ToLower().Contains(description.ToLower()));
+        return GetEnumValueByDescription(
+            description,
+            emptyValue,
+            typeof(TEnum),
+            Enum.GetValues<TEnum>().OfType<Enum?>(),
+            contextSearch) as TEnum?;
     }
 
     /// <summary>
@@ -76,7 +91,7 @@ public static class EnumExtensions
     /// Возникает, если типы не совпадают между собой или не наследуют <see cref="Enum"/>.
     /// </exception>
     public static Enum Without(this Enum flags, Enum flagsToAdd) =>
-        flags.Combine(flagsToAdd, (value1, value2) => value1 ^ value2);
+        flags.Combine(flagsToAdd, (value1, value2) => value1 & ~value2);
 
     private static Enum Combine(this Enum flags, Enum flagsToAdd, Func<long, long, long> combineFunc)
     {
@@ -85,14 +100,14 @@ public static class EnumExtensions
 
         if (!type.IsEnum)
         {
-            throw new ArgumentException($"Тип {type.Name} должен наследовать {nameof(Enum)}.");
+            throw new ArgumentException($"Type '{type.Name}' must be an enumeration type.");
         }
 
         if (type != addValueType)
         {
             throw new ArgumentException(
-                $"Невозможно объединить значения {nameof(Enum)} разных тпиов " +
-                $"(типы '{type.Name}' и '{addValueType.Name}').");
+                $"Cannot combine {nameof(Enum)} values of different types " +
+                $"(types '{type.Name}' and '{addValueType.Name}').");
         }
 
         return (Enum)Enum.ToObject(
@@ -100,5 +115,30 @@ public static class EnumExtensions
             Convert.ChangeType(
                 combineFunc(Convert.ToInt64(flags), Convert.ToInt64(flagsToAdd)),
                 Enum.GetUnderlyingType(type)));
+    }
+
+    private static Enum GetEnumValueByDescription(
+        string? description,
+        Enum? emptyValue,
+        Type enumType,
+        IEnumerable<Enum?> enumValues,
+        bool contextSearch = false)
+    {
+        if (string.IsNullOrWhiteSpace(description?.Trim()))
+        {
+            return
+                 emptyValue ??
+                throw new ArgumentException($"'{nameof(description)}' must not be empty or whitespace.");
+        }
+
+        var result = enumValues.FirstOrDefault(x =>
+            contextSearch
+                ? x?.Description().Contains(description, StringComparison.OrdinalIgnoreCase) == true
+                : string.Equals(x?.Description(), description, StringComparison.OrdinalIgnoreCase));
+        return
+            result ??
+            emptyValue ??
+            throw new ArgumentException(
+                $"Enum value of type '{enumType.Name}' with '{nameof(DescriptionAttribute)}'='{description}' was not found.");
     }
 }

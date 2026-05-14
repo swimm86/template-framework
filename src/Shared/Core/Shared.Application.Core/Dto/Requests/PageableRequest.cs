@@ -4,8 +4,9 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using FluentValidation;
 using Shared.Common.Batch;
-using Shared.Common.Helpers;
+using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Models;
 
@@ -66,7 +67,8 @@ public abstract record PageableRequest
     }
 
     private static OrderDirectionType GetDirectionType(string? str) =>
-        EnumHelper.GetEnumByDescription(str?.ToLower(), OrderDirectionType.Ascending);
+        str.GetEnumValueByDescription<OrderDirectionType>() ??
+        throw new ValidationException($"Invalid sort direction: '{str}'");
 }
 
 /// <summary>
