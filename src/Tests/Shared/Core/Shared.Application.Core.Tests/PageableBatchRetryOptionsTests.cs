@@ -11,7 +11,7 @@ namespace Shared.Application.Core.Tests;
 public sealed class PageableBatchRetryOptionsTests
 {
     /// <summary>
-    /// Некорректные опции и ожидаемое имя параметра в <see cref="ArgumentOutOfRangeException.ParamName"/>.
+    /// Некорректные опции и ожидаемое имя параметра в исключении.
     /// </summary>
     public static TheoryData<RetryConfiguration, string> InvalidValidateCases { get; } = new()
     {
@@ -70,7 +70,7 @@ public sealed class PageableBatchRetryOptionsTests
     }
 
     /// <summary>
-    /// <see cref="RetryConfiguration.Validate"/> выбрасывает <see cref="ArgumentOutOfRangeException"/> с ожидаемым <see cref="ArgumentOutOfRangeException.ParamName"/>.
+    /// <see cref="RetryConfiguration.Validate"/> выбрасывает <see cref="ArgumentOutOfRangeException"/> с ожидаемым именем параметра.
     /// </summary>
     /// <param name="options">Невалидная конфигурация.</param>
     /// <param name="expectedParamName">Имя свойства, указанное в исключении.</param>
@@ -80,8 +80,9 @@ public sealed class PageableBatchRetryOptionsTests
         RetryConfiguration options,
         string expectedParamName)
     {
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
-        Assert.Equal(expectedParamName, ex.ParamName);
+        var act = options.Validate;
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .Where(ex => ex.ParamName == expectedParamName);
     }
 
     /// <summary>
@@ -101,7 +102,8 @@ public sealed class PageableBatchRetryOptionsTests
             },
         };
 
-        Assert.Null(Record.Exception(() => options.Validate()));
+        var act = () => options.Validate();
+        act.Should().NotThrow();
     }
 
     /// <summary>
@@ -118,7 +120,8 @@ public sealed class PageableBatchRetryOptionsTests
                 InitialDelay = TimeSpan.Zero,
             },
         };
-        Assert.Null(Record.Exception(() => options.Validate()));
+        var act = () => options.Validate();
+        act.Should().NotThrow();
     }
 
     /// <summary>
@@ -145,8 +148,8 @@ public sealed class PageableBatchRetryOptionsTests
             },
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(42, result);
-        Assert.Equal(1, calls);
+        result.Should().Be(42);
+        calls.Should().Be(1);
     }
 
     /// <summary>
@@ -190,8 +193,8 @@ public sealed class PageableBatchRetryOptionsTests
             },
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(expectedTotalCalls, attempt);
+        result.Should().Be(expectedResult);
+        attempt.Should().Be(expectedTotalCalls);
     }
 
     /// <summary>
@@ -215,16 +218,16 @@ public sealed class PageableBatchRetryOptionsTests
         await cts.CancelAsync();
 
         var policy = new DefaultHttpBatchRetryPolicy(options);
-        await Assert.ThrowsAsync<TaskCanceledException>(() =>
-            policy.ExecuteAsync(
+        var act = () => policy.ExecuteAsync(
                 _ =>
                 {
                     Interlocked.Increment(ref attempt);
                     throw new TaskCanceledException();
                 },
-                cts.Token));
+                cts.Token);
 
-        Assert.Equal(1, attempt);
+        await act.Should().ThrowAsync<TaskCanceledException>();
+        attempt.Should().Be(1);
     }
 
     /// <summary>
@@ -245,16 +248,16 @@ public sealed class PageableBatchRetryOptionsTests
         };
 
         var policy = new DefaultHttpBatchRetryPolicy(options);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            policy.ExecuteAsync(
+        var act = () => policy.ExecuteAsync(
                 _ =>
                 {
                     Interlocked.Increment(ref attempt);
                     throw new InvalidOperationException("no retry");
                 },
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, attempt);
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        attempt.Should().Be(1);
     }
 
     /// <summary>
@@ -275,16 +278,16 @@ public sealed class PageableBatchRetryOptionsTests
         };
 
         var policy = new DefaultHttpBatchRetryPolicy(options);
-        await Assert.ThrowsAsync<HttpRequestException>(() =>
-            policy.ExecuteAsync(
+        var act = () => policy.ExecuteAsync(
                 _ =>
                 {
                     Interlocked.Increment(ref attempt);
                     throw new HttpRequestException("nf", null, HttpStatusCode.NotFound);
                 },
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, attempt);
+        await act.Should().ThrowAsync<HttpRequestException>();
+        attempt.Should().Be(1);
     }
 
     /// <summary>
@@ -321,8 +324,8 @@ public sealed class PageableBatchRetryOptionsTests
             },
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(42, result);
-        Assert.Equal(2, attempt);
+        result.Should().Be(42);
+        attempt.Should().Be(2);
     }
 
     /// <summary>
@@ -349,7 +352,7 @@ public sealed class PageableBatchRetryOptionsTests
             TimeSpan.FromMilliseconds(initialMs),
             cap);
 
-        Assert.Equal(TimeSpan.FromMilliseconds(expectedMs), delay);
+        delay.Should().Be(TimeSpan.FromMilliseconds(expectedMs));
     }
 
     /// <summary>
@@ -370,16 +373,16 @@ public sealed class PageableBatchRetryOptionsTests
         };
 
         var policy = new DefaultHttpBatchRetryPolicy(options);
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            policy.ExecuteAsync(
+        var act = () => policy.ExecuteAsync(
                 _ =>
                 {
                     Interlocked.Increment(ref attempt);
                     throw new OperationCanceledException();
                 },
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, attempt);
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        attempt.Should().Be(1);
     }
 
     /// <summary>
@@ -399,8 +402,10 @@ public sealed class PageableBatchRetryOptionsTests
             },
         };
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => _ = new DefaultHttpBatchRetryPolicy(options));
-        Assert.Equal(nameof(BackoffConfiguration.InitialDelay), ex.ParamName);
+        var act = () => _ = new DefaultHttpBatchRetryPolicy(options);
+
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .Where(ex => ex.ParamName == nameof(BackoffConfiguration.InitialDelay));
     }
 
     /// <summary>
@@ -419,8 +424,10 @@ public sealed class PageableBatchRetryOptionsTests
             },
         };
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => options.Validate());
-        Assert.Equal(nameof(BackoffConfiguration.MaxDelay), ex.ParamName);
+        var act = () => options.Validate();
+
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .Where(ex => ex.ParamName == nameof(BackoffConfiguration.MaxDelay));
     }
 
     /// <summary>
@@ -446,7 +453,7 @@ public sealed class PageableBatchRetryOptionsTests
         };
 
         var hint = HttpBatchRetryHelper.TryGetRetryAfterMaxFromChain(outer);
-        Assert.Equal(TimeSpan.FromSeconds(30), hint);
+        hint.Should().Be(TimeSpan.FromSeconds(30));
     }
 
     /// <summary>
@@ -487,8 +494,8 @@ public sealed class PageableBatchRetryOptionsTests
             },
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(77, result);
-        Assert.Equal(2, attempt);
+        result.Should().Be(77);
+        attempt.Should().Be(2);
     }
 
     /// <summary>
@@ -511,8 +518,7 @@ public sealed class PageableBatchRetryOptionsTests
             }
         };
 
-        Assert.Equal(
-            TimeSpan.FromSeconds(expectedSeconds),
-            HttpBatchRetryHelper.TryGetRetryAfterMaxFromChain(ex));
+        HttpBatchRetryHelper.TryGetRetryAfterMaxFromChain(ex)
+            .Should().Be(TimeSpan.FromSeconds(expectedSeconds));
     }
 }

@@ -54,7 +54,7 @@ public sealed class ServiceProviderInfrastructureTests
             }
         });
 
-        Assert.Equal(expectedValue, provider.GetRequiredService<IProbe>().Value);
+        provider.GetRequiredService<IProbe>().Value.Should().Be(expectedValue);
     }
 
     /// <summary>
@@ -76,6 +76,6 @@ public sealed class ServiceProviderInfrastructureTests
         });
 
         var options = provider.GetRequiredService<RetryConfiguration>();
-        Assert.Equal(3, options.Backoff.MaxAttempts);
+        options.Backoff.MaxAttempts.Should().Be(3);
     }
 }

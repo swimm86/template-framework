@@ -62,7 +62,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     {
         var options = ConstructOptions(query);
         ApplySortOptions(query.Request.ConvertSortOptions(), options);
-        var (skip, take) = CalculatePagination(query.PageNumber, query.PageSize);
+        var (skip, take) = PaginationHelper.CalculatePagination(query.PageNumber, query.PageSize);
 
         var repository = unitOfWork.GetRepository<TEntity>();
         var dtoList = await GetPayloadAsync(repository, options, skip, take);
@@ -140,24 +140,5 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
         }
 
         return options;
-    }
-
-    /// <summary>
-    /// Расчет пагинации.
-    /// </summary>
-    /// <param name="pageNumber">Номер страницы.</param>
-    /// <param name="pageSize">Количество элементов на странице.</param>
-    /// <returns>Кортеж (кол-во элементов для пропуска, кол-во элементов для взятия)</returns>
-    protected virtual (int? skip, int? take) CalculatePagination(int? pageNumber, int? pageSize)
-    {
-        if (pageSize == null)
-        {
-            return (null, null);
-        }
-
-        const int minPageAmount = 1;
-        var skip = (pageNumber - minPageAmount) * pageSize;
-        var take = pageSize;
-        return (skip, take);
     }
 }

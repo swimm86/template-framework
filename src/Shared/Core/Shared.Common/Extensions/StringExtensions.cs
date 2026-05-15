@@ -69,6 +69,6 @@ public static class StringExtensions
     /// </summary>
     /// <param name="input">Исходная строка.</param>
     /// <returns>Строка без пробельных символов.</returns>
-    public static string RemoveWhiteSpaces(this string input)
-        => Regex.Replace(input, @"\s+", string.Empty);
+    public static string? RemoveWhiteSpaces(this string? input)
+        => string.IsNullOrWhiteSpace(input) ? input?.Trim() : Regex.Replace(input, @"\s+", string.Empty);
 }

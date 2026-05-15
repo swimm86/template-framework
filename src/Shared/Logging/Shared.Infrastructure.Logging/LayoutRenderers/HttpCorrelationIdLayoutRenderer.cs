@@ -9,13 +9,14 @@ using NLog;
 using NLog.LayoutRenderers;
 using NLog.Web.LayoutRenderers;
 using Shared.Application.Core.CorrelationId.Extensions;
+using Shared.Infrastructure.Logging.Constants;
 
 namespace Shared.Infrastructure.Logging.LayoutRenderers;
 
 /// <summary>
 /// Layout renderer для вывода идентификатора корреляции HTTP запросов из HttpContext.
 /// </summary>
-[LayoutRenderer(Constants.HttpCorrelationIdScopePropertyKey)]
+[LayoutRenderer(CorrelationIdScopePropertyKeys.Http)]
 public class HttpCorrelationIdLayoutRenderer
     : AspNetLayoutRendererBase
 {

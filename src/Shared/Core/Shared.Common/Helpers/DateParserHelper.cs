@@ -9,9 +9,9 @@ using System.Globalization;
 namespace Shared.Common.Helpers;
 
 /// <summary>
-/// Класс, который предназначен для парсинга дат.
+/// Вспомогательный класс для парсинга дат из строк в различных форматах.
 /// </summary>
-public class DateParserHelper
+public static class DateParserHelper
 {
     /// <summary>
     /// Возможные форматы Дат, которые приходят в string через пользовательский ввод.
@@ -93,13 +93,25 @@ public class DateParserHelper
 
     private static bool TryParseDateFromDouble(string inValue, out DateTime dateTime)
     {
+        dateTime = DateTime.MinValue;
+
         if (double.TryParse(inValue, out var doubleValue))
         {
-            dateTime = DateTime.FromOADate(doubleValue);
-            return true;
+            try
+            {
+                dateTime = DateTime.FromOADate(doubleValue);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
         }
 
-        dateTime = DateTime.MinValue;
         return false;
     }
 }

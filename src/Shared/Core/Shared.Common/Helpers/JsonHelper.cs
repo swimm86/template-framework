@@ -21,7 +21,11 @@ public static class JsonHelper
     /// <param name="result">При успешной десериализации — результирующий объект; иначе — <c>null</c>.</param>
     /// <param name="options">Настройки сериализации <see cref="JsonSerializerOptions"/>.
     /// Если <c>null</c>, используются настройки по умолчанию.</param>
-    /// <returns><c>true</c>, если десериализация прошла успешно; <c>false</c>, если не удалось десериализовать.</returns>
+    /// <returns>
+    /// <c>true</c>, если десериализация прошла успешно; <c>false</c>, если не удалось десериализовать.
+    /// Возвращает <c>false</c> также в случае, когда JSON корректен, но десериализованный объект равен <c>null</c>
+    /// (например, JSON-литерал <c>"null"</c>), так как <c>null</c>-результат не является полезным для вызывающего кода.
+    /// </returns>
     public static bool TryDeserialize<T>(
         string json,
         out T? result,
@@ -33,7 +37,7 @@ public static class JsonHelper
         try
         {
             result = JsonSerializer.Deserialize<T>(json, options);
-            isParsed = true;
+            isParsed = result != null;
         }
         catch (JsonException)
         {

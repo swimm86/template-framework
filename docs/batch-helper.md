@@ -116,4 +116,7 @@ await foreach (var batch in BatchHelper.BatchSelectAsync(
 
 ## См. также
 
-- [Гайд по постраничным HTTP-запросам и retry](batch-request.md)
+| Документ | Описание |
+|----------|----------|
+| [Batch Request](batch-request.md) | Постраничные HTTP-запросы и retry |
+| [Filtering & Sorting Guide](filtering-sorting-guide.md) | Фильтрация и сортировка в списках |

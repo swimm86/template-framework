@@ -560,6 +560,9 @@ public class ProcessableOrdersSpecification : ISpecification<Order>
 
 ## См. также
 
-- [Repository Pattern](repository.md) — использование спецификаций с репозиторием
-- [Unit of Work Pattern](unit-of-work.md) — координация операций
-- [Filtering & Sorting Guide](filtering-sorting-guide.md) — детальное руководство по фильтрации
+| Документ | Описание |
+|----------|----------|
+| [Repository Pattern](repository.md) | Использование спецификаций с репозиторием |
+| [Unit of Work](unit-of-work.md) | Координация транзакций и репозиториев |
+| [Filtering & Sorting Guide](filtering-sorting-guide.md) | Подробное руководство по фильтрации и сортировке |
+| [CQRS](cqrs.md) | Разделение команд и запросов
