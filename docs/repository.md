@@ -277,6 +277,9 @@ await repository.ProcessInBatchesAsync(
 
 ## См. также
 
-- [Unit of Work Pattern](unit-of-work.md) — координация транзакций и репозиториев
-- [Specification Pattern](specification.md) — инкапсуляция критериев выборки
-- [Filtering & Sorting Guide](filtering-sorting-guide.md) — подробное руководство по фильтрации
+| Документ | Описание |
+|----------|----------|
+| [Unit of Work](unit-of-work.md) | Координация транзакций и доменных событий |
+| [Specification Pattern](specification.md) | Инкапсуляция критериев выборки |
+| [Filtering & Sorting Guide](filtering-sorting-guide.md) | Подробное руководство по фильтрации и сортировке |
+| [CQRS](cqrs.md) | Разделение команд и запросов

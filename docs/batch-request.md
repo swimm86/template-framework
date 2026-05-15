@@ -195,10 +195,12 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 
 ---
 
-## Связанные документы
+## См. также
 
-- [Гайд по **`BatchHelper`**](batch-helper.md) — универсальная нарезка данных по `skip`/`take`, без привязки к `PageableRequest`.
-- [Фильтры и сортировка](filtering-sorting-guide.md) — модели `PageableRequest`, фильтры и сортировка в списках.
+| Документ | Описание |
+|----------|----------|
+| [Batch Helper](batch-helper.md) | Универсальная нарезка данных по skip/take |
+| [Filtering & Sorting Guide](filtering-sorting-guide.md) | Модели PageableRequest, фильтры и сортировка |
 
 ---
 

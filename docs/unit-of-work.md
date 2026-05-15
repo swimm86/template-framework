@@ -442,6 +442,8 @@ foreach (var batch in batches)
 
 ## См. также
 
-- [Repository Pattern](repository.md) — доступ к данным сущности
-- [Specification Pattern](specification.md) — критерии выборки
-- [CQRS Pattern](../README.md#cqrs-pattern) — разделение команд и запросов
+| Документ | Описание |
+|----------|----------|
+| [Repository Pattern](repository.md) | Доступ к данным через репозиторий |
+| [Specification Pattern](specification.md) | Инкапсуляция критериев выборки |
+| [CQRS](cqrs.md) | Разделение команд и запросов

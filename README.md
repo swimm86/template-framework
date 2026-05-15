@@ -38,34 +38,10 @@
 | **Repository** | Централизованный доступ к данным через `IRepository<TEntity>` | [docs/repository.md](docs/repository.md) |
 | **Unit of Work** | Координация транзакций и доменных событий | [docs/unit-of-work.md](docs/unit-of-work.md) |
 | **Specification** | Инкапсуляция бизнес-критериев выборки | [docs/specification.md](docs/specification.md) |
-| **CQRS** | Разделение операций чтения и записи | См. ниже |
-| **Auto-Registration** | Автоматическая регистрация зависимостей | См. ниже |
-| **Pipeline Behaviors** | Cross-cutting concerns через MediatR | См. ниже |
-| **Exception Mapping** | Преобразование исключений в Problem Details | См. ниже |
-
-### Краткий обзор паттернов
-
-#### CQRS Pattern
-Разделение операций чтения и записи через MediatR:
-
-- `ICommand<TResponse>` / `IQuery<TResponse>` — команды и запросы
-- `ICommandHandler<>` / `IQueryHandler<>` — обработчики
-- Готовые обработчики: Create, Update, Delete, Clone, Read, ReadList
-
-#### Auto-Registration Pattern
-Автоматическая регистрация зависимостей через reflection:
-
-```csharp
-services.RegisterDerivedTypeDependencies<IValidator>(
-    serviceTypeAsInterface: true,
-    lifetime: ServiceLifetime.Scoped);
-```
-
-#### Pipeline Behaviors
-Cross-cutting concerns: Logging → Validation → Handler
-
-#### Exception Mapping
-Типобезопасное преобразование исключений в Problem Details (RFC 7807)
+| **CQRS** | Разделение операций чтения и записи | [docs/cqrs.md](docs/cqrs.md) |
+| **Auto-Registration** | Автоматическая регистрация зависимостей | [docs/auto-registration.md](docs/auto-registration.md) |
+| **Pipeline Behaviors** | Cross-cutting concerns через MediatR | [docs/pipeline-behaviors.md](docs/pipeline-behaviors.md) |
+| **Exception Mapping** | Преобразование исключений в Problem Details | [docs/exception-mapping.md](docs/exception-mapping.md) |
 
 ---
 
@@ -73,31 +49,36 @@ Cross-cutting concerns: Logging → Validation → Handler
 
 ```
 src/
-├── Shared/                          # Унифицированный фреймворк
-│   ├── Core/                        # Базовые компоненты ядра
-│   │   ├── Shared.Common            # Общие утилиты и расширения
-│   │   ├── Shared.Domain.Core       # Базовые доменные модели
-│   │   ├── Shared.Application.Core  # Базовые сервисы приложения
-│   │   ├── Shared.Application.Cqrs.Core  # CQRS инфраструктура
-│   │   ├── Shared.Infrastructure.Core    # Базовая инфраструктура
-│   │   └── Shared.Presentation.Core      # Базовые компоненты presentation-слоя
-│   ├── Dal/                         # Слой доступа к данным
+├── Template.sln                         # Solution (34 projects)
+│
+├── Shared/                              # Унифицированный фреймворк
+│   ├── Core/                            # Базовые компоненты ядра (6 проектов)
+│   │   ├── Shared.Common
+│   │   ├── Shared.Domain.Core
+│   │   ├── Shared.Application.Core
+│   │   ├── Shared.Application.Cqrs.Core
+│   │   ├── Shared.Infrastructure.Core
+│   │   └── Shared.Presentation.Core
+│   ├── Dal/                             # Слой доступа к данным (2 проекта)
 │   │   ├── Shared.Infrastructure.Dal.EFCore
 │   │   └── Shared.Infrastructure.Dal.EFCore.Postgres
-│   ├── Logging/                     # Логирование
-│   ├── Mapper/                      # Маппинг (AutoMapper)
-│   ├── Job/                         # Фоновые задачи (Quartz)
-│   └── Utils/                       # Утилиты
+│   ├── Logging/                         # Логирование
+│   ├── Mapper/                          # Маппинг (AutoMapper)
+│   ├── Job/                             # Фоновые задачи (Quartz)
+│   └── Utils/                           # Утилиты
 │
-├── Services/                        # Примеры микросервисов
-│   ├── Bff/                         # BFF (Backend For Frontend)
-│   ├── Getter/                      # Сервис получения данных
-│   ├── Setter/                      # Сервис записи данных
-│   ├── Common/                      # Общие компоненты сервисов
-│   └── DatabaseUpgrade/             # Миграции БД
+├── Services/                            # Примеры микросервисов
+│   ├── Bff/                             # BFF (Backend For Frontend) — 3 проекта
+│   ├── Getter/                          # Сервис чтения данных — 4 проекта
+│   ├── Setter/                          # Сервис записи данных — 4 проекта
+│   ├── Common/                          # Общие компоненты сервисов — 5 проектов
+│   └── DatabaseUpgrade/                 # Миграции БД
 │
-├── Tests/                           # Тесты
-└── Template.sln                     # Решение Visual Studio
+└── Tests/                               # Тесты (4 проекта)
+    ├── Shared.Application.Core.Tests
+    ├── Shared.Common.Tests
+    ├── Shared.Testing
+    └── Shared.Utils.DatabaseUpgrade.Tests
 ```
 
 ---
@@ -147,11 +128,13 @@ src/
 
 ### Сервисы
 
-| Сервис | Назначение |
-|--------|------------|
-| **Bff** (Backend For Frontend) | Агрегация данных от других сервисов, адаптация под нужды фронтенда |
-| **Getter** | Сервис чтения данных (CQRS Query side) |
-| **Setter** | Сервис записи данных (CQRS Command side) |
+| Сервис | Проекты | Назначение |
+|--------|---------|------------|
+| **Bff** | 3 проекта | Backend For Frontend — агрегация данных, адаптация под фронтенд |
+| **Getter** | 4 проекта | Сервис чтения данных (CQRS Query side) |
+| **Setter** | 4 проекта | Сервис записи данных (CQRS Command side) |
+| **Common** | 5 проектов | Общие переиспользуемые компоненты всех сервисов |
+| **DatabaseUpgrade** | 1 проект | Миграции и обновление схемы БД |
 
 > **Примечание:** Services — это примеры для разработчиков, демонстрирующие best practices использования Shared в микросервисной архитектуре.
 
@@ -161,21 +144,65 @@ src/
 
 ```
 Service/
-├── Api/                  # Web API слой (Controllers, Middleware)
-├── Application/          # Бизнес-логика (Use Cases, Handlers)
-├── Infrastructure/       # Инфраструктурные реализации
+├── Api/                  # Web API слой (Controllers, Middleware, Program.cs)
+├── Application/          # Бизнес-логика (Commands, Queries, Handlers, Validators)
+├── Infrastructure/       # Инфраструктурные реализации (Repositories, External Services)
 └── Abstractions/         # Интерфейсы и контракты (опционально)
 ```
 
 ### Common компоненты
 
 В `Services/Common` находятся переиспользуемые компоненты:
-- `Template.Domain` — доменные модели
-- `Template.Application` — общие сервисы приложения
-- `Template.Infrastructure` — общая инфраструктура
-- `Template.Infrastructure.Dal` — доступ к данным
-- `Template.Infrastructure.Mapping` — конфигурация маппинга
-- `Template.Presentation` — общие DTO и презентационные компоненты
+
+| Проект | Описание |
+|--------|----------|
+| `Template.Domain` | Доменные модели (Entities, ValueObjects, Enums) |
+| `Template.Application` | Общие сервисы приложения, валидаторы, behaviors |
+| `Template.Infrastructure` | Общая инфраструктура, HTTP clients |
+| `Template.Infrastructure.Dal` | EF Core конфигурации, репозитории |
+| `Template.Infrastructure.Mapping` | AutoMapper profiles |
+| `Template.Presentation` | Общие DTO, Response models, Swagger config |
+
+---
+
+## 🧪 Тестирование
+
+Проект использует **xUnit** как основной фреймворк для тестирования.
+
+### Тестовые проекты
+
+| Проект | Описание |
+|--------|----------|
+| `Shared.Application.Core.Tests` | Unit-тесты для Application.Core (CQRS handlers, validators, behaviors) |
+| `Shared.Common.Tests` | Unit-тесты для Common (утилиты, расширения, helpers) |
+| `Shared.Testing` | Инфраструктура тестирования (базовые классы, фикстуры, helpers) |
+| `Shared.Utils.DatabaseUpgrade.Tests` | Тесты для DatabaseUpgrade утилит |
+
+### Запуск тестов
+
+```bash
+# Все тесты
+dotnet test src/Template.sln
+
+# Конкретный проект
+dotnet test src/Tests/Shared.Application.Core.Tests
+
+# С покрытием (требуется coverlet)
+dotnet test src/Template.sln --collect:"XPlat Code Coverage"
+
+# Фильтрация по имени
+dotnet test src/Template.sln --filter "DisplayName~Cqrs"
+
+# Verbose output
+dotnet test src/Template.sln -v n
+```
+
+### Соглашения по тестам
+
+- **Naming:** `MethodUnderTest_State_ExpectedBehavior`
+- **Pattern:** AAA (Arrange-Act-Assert)
+- **Фреймворки:** xUnit, FluentAssertions, Moq, AutoFixture
+- **Shared.Testing** предоставляет базовые классы и фикстуры для переиспользования
 
 ---
 
@@ -241,17 +268,86 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 
 Дополнительная документация доступна в директории [`docs/`](docs/):
 
-### Паттерны
+### Архитектура и паттерны
 - [Repository Pattern](docs/repository.md) — доступ к данным через репозиторий
 - [Unit of Work Pattern](docs/unit-of-work.md) — координация транзакций
 - [Specification Pattern](docs/specification.md) — инкапсуляция критериев выборки
+- [CQRS](docs/cqrs.md) — разделение команд и запросов через MediatR
+- [Auto-Registration](docs/auto-registration.md) — автоматическая регистрация DI зависимостей
+- [Pipeline Behaviors](docs/pipeline-behaviors.md) — cross-cutting concerns (logging, validation)
+- [Exception Mapping](docs/exception-mapping.md) — преобразование исключений в Problem Details
+
+### Domain Layer
+- [Domain Modeling](docs/domain-modeling.md) — BaseEntity, исключения, атрибуты сущностей
+- [Domain Events](docs/domain-events.md) — CustomDomainEvent, TypeDomainEvent, event settings
+- [Entity Interfaces](docs/entity-interfaces.md) — IEntity, audit interfaces, soft delete
+
+### Data Access
+- [EF Core Internals](docs/efcore-internals.md) — DbContextBase, EntityConfigurationBase, EfQueryEvaluator
+- [Db Seeder](docs/db-seeder.md) — [Seed] атрибут, ISeed, DbSeeder
+- [Database Upgrade](docs/database-upgrade.md) — DbUp SQL migration runner
+
+### Presentation Layer
+- [Controllers](docs/controllers.md) — ControllerBase, routing conventions, app configuration
+- [Response Types](docs/response-types.md) — Response<T>, PageableResponse, ErrorResponse
+- [Swagger](docs/swagger.md) — OpenAPI schema filters, nullability sync
+- [Request Logging](docs/request-logging.md) — RequestLoggingFilter, [DoNotLog] attribute
+
+### Infrastructure
+- [Api Client](docs/api-client.md) — HTTP-клиент, валидаторы, delegating handlers, AdditionalData flow
+- [Cache](docs/cache.md) — CacheService<T>, ScopedMemoryCache, thundering herd prevention
+- [Configuration](docs/configuration.md) — .env support, GetOptions<TOptions>(), module-based resolution
+- [Correlation ID](docs/correlation-id.md) — distributed tracing, JobCorrelationContext
+- [Mapping](docs/mapping.md) — IMapper abstraction, AutoMapper, ConfigureCollection diff-merge
+- [Quartz Jobs](docs/quartz-jobs.md) — фоновые задачи, CRON, JobTriggerFlags
+- [Logging](docs/logging.md) — LogTask, [LogMethod] attribute, Fody weaving
+- [NLog Configuration](docs/nlog-configuration.md) — NlogSettings, correlation layout renderers
+- [FluentValidation Integration](docs/fluent-validation-integration.md) — auto-discovery, pipeline validation
 
 ### Руководства
 - [Batch Helper](docs/batch-helper.md) — пакетная обработка данных
 - [Batch Request](docs/batch-request.md) — массовые запросы к API
 - [Filtering & Sorting](docs/filtering-sorting-guide.md) — фильтрация и сортировка
-- [Logging](docs/logging.md) — руководство по логированию
-- [Testing](docs/testing.md) — руководство по тестированию
+- [Testing](docs/testing.md) — стек, соглашения и команды тестирования
+- [Common Extensions](docs/common-extensions.md) — LINQ, Expression, String, Enum extensions
+- [Property Reflection](docs/property-reflection.md) — compiled expression cache, IPropertyGetter
+
+### Таблица перекрёстных ссылок
+
+| Документ | Описание | Связанные |
+|----------|----------|-----------|
+| [Repository](docs/repository.md) | IRepository<T>, базовые CRUD | [Unit of Work](docs/unit-of-work.md), [Specification](docs/specification.md), [EF Core](docs/efcore-internals.md) |
+| [Unit of Work](docs/unit-of-work.md) | IUnitOfWork, транзакции | [Repository](docs/repository.md), [Domain Events](docs/domain-events.md) |
+| [Specification](docs/specification.md) | SpecificationBase, Include, Where | [Repository](docs/repository.md), [Filtering](docs/filtering-sorting-guide.md) |
+| [CQRS](docs/cqrs.md) | ICommand, IQuery, handlers | [Pipeline Behaviors](docs/pipeline-behaviors.md), [Exception Mapping](docs/exception-mapping.md), [FluentValidation](docs/fluent-validation-integration.md) |
+| [Auto-Registration](docs/auto-registration.md) | RegisterDerivedTypeDependencies | [CQRS](docs/cqrs.md), [Controllers](docs/controllers.md) |
+| [Pipeline Behaviors](docs/pipeline-behaviors.md) | Logging, Validation pipeline | [CQRS](docs/cqrs.md), [Logging](docs/logging.md) |
+| [Exception Mapping](docs/exception-mapping.md) | IExceptionMapper, Problem Details | [CQRS](docs/cqrs.md), [Response Types](docs/response-types.md) |
+| [Domain Modeling](docs/domain-modeling.md) | BaseEntity, исключения | [Domain Events](docs/domain-events.md), [Entity Interfaces](docs/entity-interfaces.md) |
+| [Domain Events](docs/domain-events.md) | CustomDomainEvent, TypeDomainEvent | [Domain Modeling](docs/domain-modeling.md), [Unit of Work](docs/unit-of-work.md) |
+| [Entity Interfaces](docs/entity-interfaces.md) | IEntity, audit, soft delete | [Domain Modeling](docs/domain-modeling.md), [EF Core](docs/efcore-internals.md) |
+| [EF Core Internals](docs/efcore-internals.md) | DbContextBase, EfQueryEvaluator | [Repository](docs/repository.md), [Db Seeder](docs/db-seeder.md) |
+| [Db Seeder](docs/db-seeder.md) | [Seed], ISeed, DbSeeder | [EF Core](docs/efcore-internals.md), [Database Upgrade](docs/database-upgrade.md) |
+| [Controllers](docs/controllers.md) | ControllerBase, routing | [CQRS](docs/cqrs.md), [Swagger](docs/swagger.md), [Request Logging](docs/request-logging.md) |
+| [Response Types](docs/response-types.md) | Response<T>, ErrorResponse | [Controllers](docs/controllers.md), [Exception Mapping](docs/exception-mapping.md) |
+| [Swagger](docs/swagger.md) | OpenAPI schema filters | [Controllers](docs/controllers.md), [Response Types](docs/response-types.md) |
+| [Request Logging](docs/request-logging.md) | RequestLoggingFilter, [DoNotLog] | [Controllers](docs/controllers.md), [Logging](docs/logging.md) |
+| [Api Client](docs/api-client.md) | HTTP-клиент, handlers | [Correlation ID](docs/correlation-id.md), [Exception Mapping](docs/exception-mapping.md) |
+| [Cache](docs/cache.md) | CacheService<T>, ScopedMemoryCache | [Quartz Jobs](docs/quartz-jobs.md), [CQRS](docs/cqrs.md) |
+| [Configuration](docs/configuration.md) | .env, GetOptions<TOptions> | [Api Client](docs/api-client.md), [Controllers](docs/controllers.md) |
+| [Correlation ID](docs/correlation-id.md) | distributed tracing | [Api Client](docs/api-client.md), [Logging](docs/logging.md), [Quartz Jobs](docs/quartz-jobs.md) |
+| [Mapping](docs/mapping.md) | IMapper, ConfigureCollection | [CQRS](docs/cqrs.md), [EF Core](docs/efcore-internals.md) |
+| [Quartz Jobs](docs/quartz-jobs.md) | фоновые задачи, CRON | [Cache](docs/cache.md), [Correlation ID](docs/correlation-id.md) |
+| [Logging](docs/logging.md) | LogTask, [LogMethod] | [Pipeline Behaviors](docs/pipeline-behaviors.md), [NLog](docs/nlog-configuration.md) |
+| [NLog Configuration](docs/nlog-configuration.md) | NlogSettings, layout renderers | [Logging](docs/logging.md), [Correlation ID](docs/correlation-id.md) |
+| [FluentValidation](docs/fluent-validation-integration.md) — auto-discovery, pipeline | [CQRS](docs/cqrs.md), [Pipeline Behaviors](docs/pipeline-behaviors.md) |
+| [Batch Helper](docs/batch-helper.md) | пакетная обработка | [Batch Request](docs/batch-request.md), [Common Extensions](docs/common-extensions.md) |
+| [Batch Request](docs/batch-request.md) | массовые API запросы | [Batch Helper](docs/batch-helper.md), [Filtering](docs/filtering-sorting-guide.md) |
+| [Filtering & Sorting](docs/filtering-sorting-guide.md) | фильтрация, сортировка | [Specification](docs/specification.md), [Batch Request](docs/batch-request.md) |
+| [Testing](docs/testing.md) | xUnit, покрытие, PR gate | [CQRS](docs/cqrs.md), [FluentValidation](docs/fluent-validation-integration.md) |
+| [Common Extensions](docs/common-extensions.md) | LINQ, Expression, String | [Specification](docs/specification.md), [Batch Helper](docs/batch-helper.md) |
+| [Property Reflection](docs/property-reflection.md) | compiled expression cache | [Api Client](docs/api-client.md), [Common Extensions](docs/common-extensions.md) |
+| [Database Upgrade](docs/database-upgrade.md) | DbUp SQL migrations | [EF Core](docs/efcore-internals.md), [Db Seeder](docs/db-seeder.md) |
 
 ---
 
@@ -265,12 +361,39 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 
 ### Создание нового сервиса
 
-1. Скопируйте структуру одного из существующих сервисов (Getter/Setter)
-2. Обновите namespace'ы и имена проектов
-3. Добавьте ссылки на необходимые компоненты Shared
-4. Реализуйте бизнес-логику в слое Application
-5. Настройте инфраструктуру (БД, внешние сервисы)
-6. Создайте `.env` файл для конфигурации
+1. **Скопируйте структуру** из `Services/Common` как основу:
+   ```
+   Services/MyNewService/
+   ├── Template.MyNewService.Api/           # Presentation layer
+   ├── Template.MyNewService.Application/   # Application layer (CQRS)
+   ├── Template.MyNewService.Infrastructure/ # Infrastructure layer
+   └── Template.MyNewService.Domain/        # Domain layer (если нужен)
+   ```
+
+2. **Обновите namespace'ы** — замените `Template.MyNewService` на ваш namespace
+
+3. **Добавьте ссылки** на необходимые Shared компоненты:
+   - `Shared.Application.Core` — базовые сервисы, auto-registration
+   - `Shared.Application.Cqrs.Core` — CQRS инфраструктура
+   - `Shared.Infrastructure.Dal.EFCore` — репозитории, Unit of Work
+   - `Shared.Presentation.Core` — базовые контроллеры, Swagger
+
+4. **Реализуйте бизнес-логику** в слое Application:
+   - Commands/Queries в `Application/Commands/` и `Application/Queries/`
+   - Handlers с `ICommandHandler<T>` / `IQueryHandler<T>`
+   - Validators с FluentValidation
+
+5. **Настройте инфраструктуру**:
+   - DbContext в `Infrastructure/Persistence/`
+   - Repositories (наследуются от `RepositoryBase<T>`)
+   - External HTTP clients
+
+6. **Создайте `.env` файл** для конфигурации
+
+7. **Добавьте проект в solution**:
+   ```bash
+   dotnet sln src/Template.sln add Services/MyNewService/Template.MyNewService.Api/Template.MyNewService.Api.csproj
+   ```
 
 ---
 

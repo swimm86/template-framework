@@ -55,3 +55,14 @@ dotnet test src/Tests/Shared/Utils/Shared.Utils.DatabaseUpgrade.Tests/Shared.Uti
 - `dotnet test --settings src/Tests/test.runsettings --collect:"XPlat Code Coverage"`
 - Порог покрытия для изменённого/общего кода, а не слепая цель в 100% на весь репозиторий.
 - Мутационное тестирование с помощью Stryker.NET для библиотек общего пользования с высоким риском, когда качество тестов важнее, чем сырое покрытие строк.
+
+---
+
+## См. также
+
+| Документ | Описание |
+|----------|----------|
+| [CQRS](cqrs.md) | Тестирование команд и запросов, pipeline behaviors |
+| [Pipeline Behaviors](pipeline-behaviors.md) | ValidationBehavior — ключевой объект для unit-тестов |
+| [Exception Mapping](exception-mapping.md) | Тестирование мапперов исключений |
+| [Logging](logging.md) | Тестирование LogTask и [LogMethod] |
