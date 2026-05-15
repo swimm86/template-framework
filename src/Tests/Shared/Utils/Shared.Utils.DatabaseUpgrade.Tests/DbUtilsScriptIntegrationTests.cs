@@ -9,6 +9,7 @@ namespace Shared.Utils.DatabaseUpgrade.Tests;
 /// <remarks>
 /// Инфраструктура: <see cref="DbUtilsTestSupport"/>. Модульные сценарии — <see cref="DbUtilsTests"/>.
 /// </remarks>
+[Trait("Category", "Integration")]
 public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
 {
     private const string ValidScriptFileName = "001.epps.ddl_create_test_table.sql";
@@ -28,9 +29,11 @@ public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
     [Fact]
     public void Upgrade_ThrowsInvalidOperation_WhenScriptHasSqlError()
     {
-        Assert.Throws<InvalidOperationException>(() => DbUtils.Upgrade(
+        var act = () => DbUtils.Upgrade(
             connectionString: _container.GetConnectionString(),
-            scriptsPath: DbUtilsTestSupport.InvalidScriptsResourcePath));
+            scriptsPath: DbUtilsTestSupport.InvalidScriptsResourcePath);
+
+        act.Should().Throw<InvalidOperationException>();
     }
 
     /// <summary>
@@ -41,14 +44,13 @@ public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
     {
         var cs = _container.GetConnectionString();
 
-        Assert.Null(
-            Record.Exception(() => DbUtils.Upgrade(
-                connectionString: cs,
-                scriptsPath: DbUtilsTestSupport.ScriptsResourcePath)));
+        var act = () => DbUtils.Upgrade(
+            connectionString: cs,
+            scriptsPath: DbUtilsTestSupport.ScriptsResourcePath);
 
-        Assert.Equal(
-            1,
-            DbUtilsTestSupport.CountMigrationAppliedForScriptFile(cs, ValidScriptFileName));
-        Assert.True(DbUtilsTestSupport.TableExistsInPublic(cs, "test"));
+        act.Should().NotThrow();
+        DbUtilsTestSupport.CountMigrationAppliedForScriptFile(cs, ValidScriptFileName)
+            .Should().Be(1);
+        DbUtilsTestSupport.TableExistsInPublic(cs, "test").Should().BeTrue();
     }
 }

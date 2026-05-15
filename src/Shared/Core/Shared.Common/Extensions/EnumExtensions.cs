@@ -19,9 +19,12 @@ public static class EnumExtensions
     /// </summary>
     /// <param name="value">Значение <see cref="Enum"/>, для которого необходимо получить описание.</param>
     /// <returns>Значение атрибута <see cref="DescriptionAttribute"/>.</returns>
-    public static string Description(this Enum value) =>
-        value.GetType().GetField(value.ToString())!.GetCustomAttributes<DescriptionAttribute>(false)
+    public static string Description(this Enum value)
+    {
+        var field = value.GetType().GetField(value.ToString());
+        return field?.GetCustomAttributes<DescriptionAttribute>(false)
             .FirstOrDefault()?.Description ?? string.Empty;
+    }
 
     /// <summary>
     /// Возвращает значение enum типа <see cref="enumType"/> по его описанию,
@@ -30,43 +33,55 @@ public static class EnumExtensions
     /// <param name="description">Описание значения enum.</param>
     /// <param name="enumType">Тип enum.</param>
     /// <param name="emptyValue">Значение по умолчанию. Если указано, то в случае не нахождения нужного значения, будет возвращено.</param>
-    /// <param name="contextSearch">Признак того, что необходимо осуществить поиск по частичному совпадению.</param>
     /// <returns>Значение enum типа <see cref="enumType"/>.</returns>
     public static Enum GetEnumValueByDescription(
         this string? description,
         Type enumType,
-        Enum? emptyValue = null,
-        bool contextSearch = false)
+        Enum? emptyValue = null)
     {
         return GetEnumValueByDescription(
             description,
             emptyValue,
             enumType,
-            Enum.GetValues(enumType).Cast<Enum?>(),
-            contextSearch);
+            Enum.GetValues(enumType).Cast<Enum?>());
     }
 
     /// <summary>
     /// Возвращает значение перечисления типа <typeparamref name="TEnum"/> по его описанию,
     /// указанному в атрибуте <see cref="DescriptionAttribute"/>.
     /// </summary>
-    /// <typeparam name="TEnum">Тип перечисления.</typeparam>
+    /// <typeparam name="TEnum">Тип enum.</typeparam>
     /// <param name="emptyValue">Значение по умолчанию. Если указано, то в случае не нахождения нужного значения, будет возвращено.</param>
     /// <returns>Значение enum типа <typeparamref name="TEnum"/>.</returns>
-    /// <inheritdoc cref="GetEnumValueByDescription(string?, Type, Enum?, bool)"/>
-    /// <param name="description"/><param name="contextSearch"/>
+    /// <inheritdoc cref="GetEnumValueByDescription(string?, Type, Enum?)"/>
+    /// <param name="description"/>
     public static TEnum? GetEnumValueByDescription<TEnum>(
         this string? description,
-        TEnum? emptyValue = null,
-        bool contextSearch = false)
+        TEnum? emptyValue = null)
         where TEnum : struct, Enum
     {
         return GetEnumValueByDescription(
             description,
             emptyValue,
             typeof(TEnum),
-            Enum.GetValues<TEnum>().OfType<Enum?>(),
-            contextSearch) as TEnum?;
+            Enum.GetValues<TEnum>().OfType<Enum?>()) as TEnum?;
+    }
+
+    /// <summary>
+    /// Получить элементы enum по их частичному описанию из <see cref="DescriptionAttribute"/>
+    /// </summary>
+    /// <param name="description">Описание значения enum.</param>
+    /// <param name="enumType">Тип enum.</param>
+    /// <returns>Элемент enum.</returns>
+    public static IEnumerable<Enum> GetEnumValueByPartOfDescription(
+        this string? description,
+        Type enumType)
+    {
+        ArgumentNullException.ThrowIfNull(description);
+
+        return Enum.GetValues(enumType)
+            .Cast<Enum>()
+            .Where(v => v.Description().Contains(description, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -121,10 +136,9 @@ public static class EnumExtensions
         string? description,
         Enum? emptyValue,
         Type enumType,
-        IEnumerable<Enum?> enumValues,
-        bool contextSearch = false)
+        IEnumerable<Enum?> enumValues)
     {
-        if (string.IsNullOrWhiteSpace(description?.Trim()))
+        if (string.IsNullOrWhiteSpace(description))
         {
             return
                  emptyValue ??
@@ -132,9 +146,7 @@ public static class EnumExtensions
         }
 
         var result = enumValues.FirstOrDefault(x =>
-            contextSearch
-                ? x?.Description().Contains(description, StringComparison.OrdinalIgnoreCase) == true
-                : string.Equals(x?.Description(), description, StringComparison.OrdinalIgnoreCase));
+            string.Equals(x?.Description(), description, StringComparison.OrdinalIgnoreCase));
         return
             result ??
             emptyValue ??

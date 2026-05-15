@@ -251,6 +251,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 - [Batch Request](docs/batch-request.md) — массовые запросы к API
 - [Filtering & Sorting](docs/filtering-sorting-guide.md) — фильтрация и сортировка
 - [Logging](docs/logging.md) — руководство по логированию
+- [Testing](docs/testing.md) — руководство по тестированию
 
 ---
 

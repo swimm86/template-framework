@@ -45,10 +45,8 @@ public sealed class BatchHelperTests
             batchSize: 2,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Collection(
-            processedBatches,
-            batch => Assert.Equal(2, batch.Count),
-            batch => Assert.Single(batch));
+        processedBatches.Select(batch => batch.Count)
+            .Should().Equal(2, 1);
     }
 
     /// <summary>
@@ -74,11 +72,7 @@ public sealed class BatchHelperTests
             processedBatches.Add(batch.ToArray());
         }
 
-        Assert.Equal(expectedChunks.Length, processedBatches.Count);
-        for (var i = 0; i < expectedChunks.Length; i++)
-        {
-            Assert.Equal(expectedChunks[i], processedBatches[i]);
-        }
+        processedBatches.Should().Equal(expectedChunks, (actual, expected) => actual.SequenceEqual(expected));
     }
 
     private static Func<int, int, Task<IReadOnlyCollection<int>>> BuildBatchFunc(IReadOnlyCollection<int> source)

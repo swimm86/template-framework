@@ -61,7 +61,7 @@ public sealed class PaginationHelperTests
         var result = PaginationHelper.GetTotalPages(totalCount, pageSize);
 
         // Assert
-        Assert.Equal(expectedPages, result);
+        result.Should().Be(expectedPages);
     }
 
     /// <summary>
@@ -74,11 +74,11 @@ public sealed class PaginationHelperTests
         const int totalCount = 250;
 
         // Act & Assert
-        Assert.Equal(25, PaginationHelper.GetTotalPages(totalCount, 10));
-        Assert.Equal(13, PaginationHelper.GetTotalPages(totalCount, 20));
-        Assert.Equal(9, PaginationHelper.GetTotalPages(totalCount, 30));
-        Assert.Equal(5, PaginationHelper.GetTotalPages(totalCount, 50));
-        Assert.Equal(3, PaginationHelper.GetTotalPages(totalCount, 100));
+        PaginationHelper.GetTotalPages(totalCount, 10).Should().Be(25);
+        PaginationHelper.GetTotalPages(totalCount, 20).Should().Be(13);
+        PaginationHelper.GetTotalPages(totalCount, 30).Should().Be(9);
+        PaginationHelper.GetTotalPages(totalCount, 50).Should().Be(5);
+        PaginationHelper.GetTotalPages(totalCount, 100).Should().Be(3);
     }
 
     /// <summary>
@@ -88,9 +88,9 @@ public sealed class PaginationHelperTests
     public void GetTotalPages_DivisionWithRemainder_RoundsUp()
     {
         // Arrange & Act & Assert
-        Assert.Equal(4, PaginationHelper.GetTotalPages(100, 33)); // 100/33 = 3.03 -> 4
-        Assert.Equal(2, PaginationHelper.GetTotalPages(10, 6));   // 10/6 = 1.67 -> 2
-        Assert.Equal(12, PaginationHelper.GetTotalPages(100, 9)); // 100/9 = 11.11 -> 12
+        PaginationHelper.GetTotalPages(100, 33).Should().Be(4); // 100/33 = 3.03 -> 4
+        PaginationHelper.GetTotalPages(10, 6).Should().Be(2);   // 10/6 = 1.67 -> 2
+        PaginationHelper.GetTotalPages(100, 9).Should().Be(12); // 100/9 = 11.11 -> 12
     }
 
     /// <summary>
@@ -129,8 +129,8 @@ public sealed class PaginationHelperTests
         Action act = () => PaginationHelper.GetTotalPages(totalCount, pageSize);
 
         // Assert
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
-        Assert.Contains(ex.ParamName, new[] { nameof(totalCount), nameof(pageSize) });
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .Where(ex => ex.ParamName == nameof(totalCount) || ex.ParamName == nameof(pageSize));
     }
 
     /// <summary>
@@ -175,8 +175,8 @@ public sealed class PaginationHelperTests
         var (skip, take) = PaginationHelper.CalculatePagination(pageNumber, pageSize);
 
         // Assert
-        Assert.Equal(expectedSkip, skip);
-        Assert.Equal(expectedTake, take);
+        skip.Should().Be(expectedSkip);
+        take.Should().Be(expectedTake);
     }
 
     /// <summary>
@@ -188,15 +188,15 @@ public sealed class PaginationHelperTests
         // Arrange & Act & Assert
         // Страница 1: skip = (1-1) * 10 = 0
         var (skip1, _) = PaginationHelper.CalculatePagination(1, 10);
-        Assert.Equal(0, skip1);
+        skip1.Should().Be(0);
 
         // Страница 5: skip = (5-1) * 10 = 40
         var (skip5, _) = PaginationHelper.CalculatePagination(5, 10);
-        Assert.Equal(40, skip5);
+        skip5.Should().Be(40);
 
         // Страница 100: skip = (100-1) * 50 = 4950
         var (skip100, _) = PaginationHelper.CalculatePagination(100, 50);
-        Assert.Equal(4950, skip100);
+        skip100.Should().Be(4950);
     }
 
     /// <summary>
@@ -207,13 +207,13 @@ public sealed class PaginationHelperTests
     {
         // Arrange & Act & Assert
         var (_, take1) = PaginationHelper.CalculatePagination(1, 10);
-        Assert.Equal(10, take1);
+        take1.Should().Be(10);
 
         var (_, take2) = PaginationHelper.CalculatePagination(5, 25);
-        Assert.Equal(25, take2);
+        take2.Should().Be(25);
 
         var (_, take3) = PaginationHelper.CalculatePagination(10, 100);
-        Assert.Equal(100, take3);
+        take3.Should().Be(100);
     }
 
     /// <summary>
@@ -253,8 +253,8 @@ public sealed class PaginationHelperTests
         Action act = () => PaginationHelper.CalculatePagination(pageNumber, pageSize);
 
         // Assert
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
-        Assert.Contains(ex.ParamName, new[] { nameof(pageNumber), nameof(pageSize) });
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .Where(ex => ex.ParamName == nameof(pageNumber) || ex.ParamName == nameof(pageSize));
     }
 
     /// <summary>
@@ -277,8 +277,8 @@ public sealed class PaginationHelperTests
         var (skip, take) = PaginationHelper.CalculatePagination(pageNumber, pageSize);
 
         // Assert
-        Assert.Null(skip);
-        Assert.Null(take);
+        skip.Should().BeNull();
+        take.Should().BeNull();
     }
 
     /// <summary>
@@ -298,9 +298,9 @@ public sealed class PaginationHelperTests
         var (skip, take) = PaginationHelper.CalculatePagination(currentPage, pageSize);
 
         // Assert
-        Assert.Equal(11, totalPages); // ceil(257/25) = 11
-        Assert.Equal(100, skip);      // (5-1) * 25 = 100
-        Assert.Equal(25, take);
+        totalPages.Should().Be(11); // ceil(257/25) = 11
+        skip.Should().Be(100);      // (5-1) * 25 = 100
+        take.Should().Be(25);
     }
 
     /// <summary>
@@ -316,7 +316,7 @@ public sealed class PaginationHelperTests
         var totalPages = PaginationHelper.GetTotalPages(257, 25);
 
         // Assert
-        Assert.Equal(11, totalPages);
+        totalPages.Should().Be(11);
 
         // Note: CalculatePagination не учитывает фактическое количество элементов
         // на последней странице, он просто возвращает pageSize.

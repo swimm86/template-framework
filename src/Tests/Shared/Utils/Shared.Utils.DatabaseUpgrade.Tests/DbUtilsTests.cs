@@ -21,8 +21,10 @@ public sealed class DbUtilsTests
     {
         DbUtilsTestSupport.RunInEmptyWorkingDirectory(() =>
         {
-            var ex = Assert.Throws<ArgumentException>(() => DbUtils.Upgrade(connectionString: connectionString));
-            Assert.Contains("строк", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var act = () => DbUtils.Upgrade(connectionString: connectionString);
+
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*строк*");
         });
     }
 
@@ -35,9 +37,10 @@ public sealed class DbUtilsTests
     {
         DbUtilsTestSupport.RunInEmptyWorkingDirectory(() =>
         {
-            var ex = Assert.Throws<ArgumentException>(
-                () => DbUtils.Upgrade(connectionStringKey: "NonexistentConnectionStringKeyForUnitTests_9f3a2c1e"));
-            Assert.Contains("строк", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var act = () => DbUtils.Upgrade(connectionStringKey: "NonexistentConnectionStringKeyForUnitTests_9f3a2c1e");
+
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*строк*");
         });
     }
 
@@ -51,8 +54,10 @@ public sealed class DbUtilsTests
         try
         {
             Environment.SetEnvironmentVariable("ScriptPaths", null);
-            var ex = Assert.Throws<ArgumentException>(() => DbUtils.Upgrade(Array.Empty<string>()));
-            Assert.Contains("скрипт", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var act = () => DbUtils.Upgrade(Array.Empty<string>());
+
+            act.Should().Throw<ArgumentException>()
+                .WithMessage("*скрипт*");
         }
         finally
         {
