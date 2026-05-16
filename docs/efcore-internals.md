@@ -624,6 +624,23 @@ query.OrderBy(x => x.Name.WrapWithCollate("und-x-icu"));
 
 ---
 
+### Базовый класс для DI-регистрации: EfCoreDependencyInjectorBase
+
+`EfCoreDependencyInjectorBase` — абстрактный базовый класс для DI-регистрации EF Core. Автоматически:
+- Обнаруживает `DbContextBase` в сборке
+- Обнаруживает `DbSettingsBase` для конфигурации подключения
+- Регистрирует репозитории через `AddRepositories()`
+- Регистрирует `IDbUpdater` для миграций
+
+### Специфичная конфигурация PostgreSQL
+
+`Shared.Infrastructure.Dal.EFCore.Postgres` предоставляет `DbContextOptionsBuilderInitializer` — настройку `DbContextOptionsBuilder` для PostgreSQL:
+- Npgsql типы данных (NpgsqlDate, NpgsqlInet и т.д.)
+- Стратегия команд (`CommandTimeout`)
+- Пулы подключений
+
+Используется при регистрации контекста в DI.
+
 ---
 
 ## См. также

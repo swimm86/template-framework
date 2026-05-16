@@ -321,6 +321,32 @@ public async Task<IReadOnlyList<User>> GetByIdsAsync(ICollection<Guid> ids, Canc
 
 ---
 
+### Интерфейс IWithFile
+
+`IWithFile` — маркерный интерфейс для DTO загрузки файлов:
+
+```csharp
+public interface IWithFile
+{
+    IFormFile? File { get; set; }
+}
+```
+
+Используется в `ApiClient.PostFilesAsync()` для автоматического формирования `multipart/form-data` запроса. Класс, реализующий `IWithFile`, может содержать дополнительные свойства — они будут добавлены в multipart-запрос как текстовые поля.
+
+### Интерфейс IWithIdsFilter
+
+`IWithIdsFilter` — интерфейс для фильтрации по коллекции идентификаторов:
+
+```csharp
+public interface IWithIdsFilter
+{
+    ICollection<Guid>? Ids { get; set; }
+}
+```
+
+Используется в batch-операциях для передачи списка ID.
+
 ---
 
 ## См. также

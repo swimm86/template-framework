@@ -583,6 +583,26 @@ public class PageableResponse<TPayload>
 4. **Validators** — FluentValidation, отдельный класс на каждый Request
 5. **Specifications** — для сложных QueryOptions (фильтры, includes)
 
+### Готовые CQRS-функции
+
+Помимо базовых абстракций (ICommand, IQuery), Framework предоставляет готовые функции:
+
+#### EntityRemoveCommand / EntityRemoveCommandHandler
+
+Универсальная команда удаления сущности с поддержкой soft delete и аудита через `IUserProvider`:
+
+```csharp
+// Использование — не нужно писать свой Handler
+var command = new EntityRemoveCommand<PersonRemoveRequest>(request);
+await sender.Send(command, cancellationToken);
+```
+
+Готовый обработчик `EntityRemoveCommandHandler`:
+- Извлекает сущность через `IUnitOfWork.GetRepository<TEntity>()`
+- Если сущность реализует `IWithDeleted` / `IWithDeleteAction` — выполняет soft delete
+- Иначе — hard delete
+- Заполняет аудит-поля через `IUserProvider`
+
 ---
 
 ## См. также

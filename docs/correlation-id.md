@@ -390,6 +390,18 @@ public class JobCorrelationIdLayoutRenderer : LayoutRenderer
 
 ---
 
+### Расширения HttpRequest
+
+`Shared.Application.Core` предоставляет расширения для работы с Correlation ID в HTTP-запросах:
+
+| Метод | Описание |
+|-------|----------|
+| `HttpRequestExtensions.GetCorrelationId(this HttpRequest)` | Извлекает `X-Correlation-Id` из заголовков запроса |
+| `HttpRequestExtensions.TryAddCorrelationId(this HttpRequest, Guid correlationId)` | Добавляет Correlation ID в заголовки запроса (для ApiClient) |
+| `HttpContextAccessorExtensions.GetCorrelationId(this IHttpContextAccessor)` | Удобный доступ к Correlation ID через `IHttpContextAccessor` |
+
+Константа `CorrelationIdHeader = "X-Correlation-Id"` используется как имя заголовка.
+
 ---
 
 ## См. также

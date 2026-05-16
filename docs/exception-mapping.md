@@ -481,6 +481,12 @@ public sealed class ConflictExceptionMapper(
 builder.Services.AddExceptionHandling();
 ```
 
+### Оптимизация производительности: пул StringBuilder
+
+`AppExceptionMapperBase` использует `ExceptionFormattingPool` — пул объектов `StringBuilder` (`DefaultObjectPool<StringBuilder>`) с политикой `StringBuilderPolicy`. Это снижает аллокации в hot path при форматировании исключений с глубоким стеком вызовов.
+
+Если вы создаёте собственный маппер с интенсивной работой со строками, используйте `DefaultObjectPoolExtensions.UsePool<T>()` / `UsePoolAsync<T>()` для аналогичной оптимизации.
+
 ---
 
 ## См. также

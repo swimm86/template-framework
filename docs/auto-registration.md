@@ -408,6 +408,16 @@ public sealed class ValidationExceptionMapper : IExceptionMapper<ValidationExcep
 | Забытый `[ManualConfiguration]` на типе с runtime-зависимостями | DI выбросит ошибку при резолве |
 | Регистрация одного и того же типа дважды | Second registration silently overwrites first |
 
+### AddRepositories
+
+`AddRepositories()` — специальный метод для автоматического обнаружения и регистрации всех реализаций `IRepository<>` через reflection. Вызывается внутри `Shared.Application.Core.DependencyInjection.DependencyInjector`:
+
+```csharp
+services.AddRepositories();
+```
+
+Принцип работы аналогичен `RegisterDerivedTypeDependencies<IRepository>()`, но оптимизирован для репозиториев — сканирует сборки, находит все `EfRepository<T>`, регистрирует их как `IRepository<T>`.
+
 ---
 
 ## См. также

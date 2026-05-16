@@ -390,6 +390,15 @@ request.TryAddCorrelationId();
 
 ---
 
+### Cookie-расширения HttpRequest
+
+`HttpRequestExtensions` в `Shared.Presentation.Core` предоставляет помощники для работы с cookies:
+
+| Метод | Описание |
+|-------|----------|
+| `ContainsCookie(this HttpRequest, string key)` | Проверяет наличие cookie по ключу |
+| `TryGetCookieValue(this HttpRequest, string key, out string? value)` | Безопасное извлечение значения cookie |
+
 ---
 
 ## См. также

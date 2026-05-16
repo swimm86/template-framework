@@ -352,6 +352,19 @@ public class LogMethodWithCorrelationAttribute(
 
 Это гарантирует: если вы перешли с `LogTask` на `[LogMethod]` или наоборот, в лог-аггрегаторе (Seq, Elastic, Loki) запросы по полю `process` или по тексту сообщения останутся работать без изменений.
 
+### Шаблоны сообщений
+
+Все шаблоны лог-сообщений определены в `LogMessages` (internal):
+
+| Константа | Шаблон |
+|-----------|--------|
+| `StartedMessage` | `{process} started.` |
+| `CompletedMessage` | `{process} completed.` |
+| `FailedMessage` | `{process} failed.` |
+| `ProcessedTimeMessage` | `{process} processed time: {time}ms.` |
+
+Имена свойств (`process`, `time`) можно использовать для фильтрации в log-агрегаторах (Seq, Elastic, Loki).
+
 ### Жизненный цикл [LogMethod] при AOP-вставке
 
 Fody вставляет вызовы аспекта на уровне IL. Для метода `GetPersonsAsync` реальное поведение эквивалентно:
