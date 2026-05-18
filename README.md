@@ -281,6 +281,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 - [Domain Modeling](docs/domain-modeling.md) — BaseEntity, исключения, атрибуты сущностей
 - [Domain Events](docs/domain-events.md) — CustomDomainEvent, TypeDomainEvent, event settings
 - [Entity Interfaces](docs/entity-interfaces.md) — IEntity, audit interfaces, soft delete
+- [Auth Provider](docs/auth-provider.md) — IUserProvider, аудит-поля, авто-заполнение CreatedBy/UpdatedBy
 
 ### Data Access
 - [EF Core Internals](docs/efcore-internals.md) — DbContextBase, EntityConfigurationBase, EfQueryEvaluator
@@ -305,6 +306,8 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 - [FluentValidation Integration](docs/fluent-validation-integration.md) — auto-discovery, pipeline validation
 
 ### Руководства
+- [Service Startup](docs/service-startup.md) — полный bootstrap-флоу, middleware pipeline, DependencyInjector
+- [Service Creation Guide](docs/service-creation-guide.md) — пошаговое руководство по созданию микросервиса
 - [Batch Helper](docs/batch-helper.md) — пакетная обработка данных
 - [Batch Request](docs/batch-request.md) — массовые запросы к API
 - [Filtering & Sorting](docs/filtering-sorting-guide.md) — фильтрация и сортировка
@@ -345,6 +348,9 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 | [Batch Request](docs/batch-request.md) | массовые API запросы | [Batch Helper](docs/batch-helper.md), [Filtering](docs/filtering-sorting-guide.md) |
 | [Filtering & Sorting](docs/filtering-sorting-guide.md) | фильтрация, сортировка | [Specification](docs/specification.md), [Batch Request](docs/batch-request.md) |
 | [Testing](docs/testing.md) | xUnit, покрытие, PR gate | [CQRS](docs/cqrs.md), [FluentValidation](docs/fluent-validation-integration.md) |
+| [Auth Provider](docs/auth-provider.md) | IUserProvider, аудит-поля | [Entity Interfaces](docs/entity-interfaces.md), [EF Core](docs/efcore-internals.md) |
+| [Service Startup](docs/service-startup.md) | bootstrap-флоу, middleware pipeline | [Auto-Registration](docs/auto-registration.md), [Configuration](docs/configuration.md), [Controllers](docs/controllers.md) |
+| [Service Creation](docs/service-creation-guide.md) | пошаговое руководство | [CQRS](docs/cqrs.md), [Entity Interfaces](docs/entity-interfaces.md), [EF Core](docs/efcore-internals.md) |
 | [Common Extensions](docs/common-extensions.md) | LINQ, Expression, String | [Specification](docs/specification.md), [Batch Helper](docs/batch-helper.md) |
 | [Property Reflection](docs/property-reflection.md) | compiled expression cache | [Api Client](docs/api-client.md), [Common Extensions](docs/common-extensions.md) |
 | [Database Upgrade](docs/database-upgrade.md) | DbUp SQL migrations | [EF Core](docs/efcore-internals.md), [Db Seeder](docs/db-seeder.md) |

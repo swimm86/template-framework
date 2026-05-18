@@ -296,6 +296,23 @@ public class ExternalApiQueryHandler(
 
 ---
 
+### InitializeConfiguration
+
+`InitializeConfiguration()` — полный pipeline конфигурации приложения, вызываемый в `DependencyInjector.Process()`:
+
+1. `LoadEnv()` — загружает `.env` файлы
+2. `.AddEnvironmentVariables()` — добавляет переменные окружения
+3. Конфигурация через `IConfiguration`
+
+```csharp
+// Внутри DependencyInjector.Process()
+services.InitializeConfiguration();
+```
+
+### Настройка JSON-сериализации
+
+`ConfigureJsonSerializer()` — регистрирует `JsonIgnoreCondition.WhenWritingNull` для Minimal API, HTTP-клиентов и MVC-контроллеров в одном вызове. Используется внутри `Shared.Application.Core.DependencyInjection.DependencyInjector`.
+
 ---
 
 ## См. также

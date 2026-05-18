@@ -4,48 +4,132 @@
 
 Specification Pattern в фреймворке Shared предоставляет способ инкапсуляции бизнес-критериев выборки данных в переиспользуемые объекты. Этот паттерн отделяет логику фильтрации, сортировки и включения связанных сущностей от кода доступа к данным.
 
+Спецификация наследуется от `SpecificationBase<TEntity>` и через защищённые методы `AddFilter()`, `AddOrderBy()`, `AddInclude()` формирует `QueryOptions<TEntity>`, которые затем используются репозиторием.
+
+##Assembly / Namespace
+
+| Компонент | Namespace |
+|-----------|-----------|
+| `SpecificationBase<TEntity>` | `Shared.Domain.Core.Dal.Specification.Models` |
+| `ISpecification<TEntity>` | `Shared.Domain.Core.Dal.Specification.Interfaces` |
+| `QueryOptions<TEntity>` | `Shared.Domain.Core.Dal.Repository.Models` |
+| `SortOption` | `Shared.Domain.Core.Dal.Models` |
+| `OrderDirectionType` | `Shared.Domain.Core.Dal` |
+
 ## Интерфейс ISpecification<TEntity>
 
-Базовый интерфейс определен в `Shared.Domain.Core.Dal.Specification.Interfaces.ISpecification`:
-
 ```csharp
-public interface ISpecification<TEntity> where TEntity : IEntity
+public interface ISpecification<TEntity>
+    where TEntity : IEntity
 {
+    /// <summary>
+    /// Собирает настройки для спецификации.
+    /// </summary>
     QueryOptions<TEntity> BuildOptions();
 }
 ```
 
-Specification преобразуется в `QueryOptions<TEntity>`, которые используются репозиторием для построения запроса.
+Спецификация преобразуется в `QueryOptions<TEntity>`, которые используются репозиторием для построения запроса.
 
-## Создание спецификаций
+## SpecificationBase<TEntity>
 
-### Базовая спецификация
+`SpecificationBase<TEntity>` — абстрактная record, реализующая `ISpecification<TEntity>`. Предоставляет защищённые методы для построения критериев выборки.
+
+### Сигнатура
 
 ```csharp
-public class ActiveUsersSpecification : ISpecification<User>
+public abstract record SpecificationBase<TEntity>(
+    ICollection<SortOption>? SortOptions = default)
+    : ISpecification<TEntity>
+    where TEntity : class, IEntity
+```
+
+### Защищённые члены
+
+| Член | Тип | Описание |
+|------|-----|----------|
+| `Options` | `QueryOptions<TEntity>` | Защищённое поле для накопления критериев |
+| `BuildOptions()` | `virtual QueryOptions<TEntity>` | Применяет `SortOptions` и возвращает `Options` |
+| `AddFilter()` | `void` | Добавляет выражение фильтрации |
+| `AddOrderBy()` | `void` | Добавляет выражение сортировки с направлением |
+| `AddInclude<TProperty>()` | `Includable<TEntity, TProperty>` | Добавляет навигационное свойство (одиночное) |
+| `AddInclude<TProperty>()` | `Includable<TEntity, TProperty>` | Добавляет навигационное свойство (коллекция) |
+
+### Методы подробно
+
+```csharp
+// Добавляет фильтр к запросу
+protected void AddFilter(Expression<Func<TEntity, bool>> expression)
+
+// Добавляет сортировку
+protected void AddOrderBy(
+    Expression<Func<TEntity, object>> expression,
+    OrderDirectionType orderDirectionType)
+
+// Добавляет Include для одиночного свойства навигации
+protected Includable<TEntity, TProperty> AddInclude<TProperty>(
+    Expression<Func<TEntity, TProperty>> expression)
+
+// Добавляет Include для свойства-коллекции навигации
+protected Includable<TEntity, TProperty> AddInclude<TProperty>(
+    Expression<Func<TEntity, IEnumerable<TProperty>>> expression)
+```
+
+### BuildOptions()
+
+Метод `BuildOptions()` по умолчанию применяет конструкторские `SortOptions` к `Options.OrderBy` и возвращает накопленный `QueryOptions<TEntity>`. Переопределяйте при необходимости кастомной логики сборки.
+
+```csharp
+public virtual QueryOptions<TEntity> BuildOptions()
 {
-    public QueryOptions<User> BuildOptions()
+    SortOptions?.ForEach(Options.AddOrderBy);
+    return Options;
+}
+```
+
+## Quick Start
+
+```csharp
+using Shared.Domain.Core.Dal.Specification.Models;
+using Shared.Domain.Core.Dal;
+
+// Простая спецификация — активные пользователи
+public class ActiveUsersSpecification : SpecificationBase<User>
+{
+    protected override void OnInit()
     {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.IsActive && !u.IsDeleted
-        };
+        AddFilter(u => u.IsActive && !u.IsDeleted);
     }
 }
 ```
 
+> **Важно:** Спецификации наследуются от `SpecificationBase<TEntity>` и используют защищённые методы `AddFilter()`, `AddOrderBy()`, `AddInclude()` в конструкторе или переопределённом `OnInit()`. Не присваивайте свойства `QueryOptions` напрямую.
+
+## Создание спецификаций
+
+### Базовая спецификация (фильтрация)
+
+```csharp
+public class ActiveUsersSpecification : SpecificationBase<User>
+{
+    public ActiveUsersSpecification()
+    {
+        AddFilter(u => u.IsActive && !u.IsDeleted);
+    }
+}
+```
+
+> **Примечание:** В текущей версии `SpecificationBase<TEntity>` не имеет виртуального метода `OnInit()`. Критерии следует добавлять в конструкторе спецификации.
+
 ### Спецификация с сортировкой
 
 ```csharp
-public class UsersByRegistrationDateSpecification : ISpecification<User>
+public class UsersByRegistrationDateSpecification : SpecificationBase<User>
 {
-    public QueryOptions<User> BuildOptions()
+    public UsersByRegistrationDateSpecification()
     {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.IsActive,
-            OrderBy = new[] { QueryOrderByOption.Desc(u => u.CreatedAt) }
-        };
+        AddFilter(u => u.IsActive);
+        AddOrderBy(u => u.CreatedAt, OrderDirectionType.Descending);
     }
 }
 ```
@@ -53,20 +137,34 @@ public class UsersByRegistrationDateSpecification : ISpecification<User>
 ### Спецификация с includes
 
 ```csharp
-public class UsersWithProfilesSpecification : ISpecification<User>
+public class UsersWithProfilesSpecification : SpecificationBase<User>
 {
-    public QueryOptions<User> BuildOptions()
+    public UsersWithProfilesSpecification()
     {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.IsActive,
-            Includes = new Expression<Func<User, object>>[]
-            {
-                u => u.Profile,
-                u => u.Roles
-            },
-            AsSplitQuery = true
-        };
+        AddFilter(u => u.IsActive);
+        AddInclude(u => u.Profile);
+        AddInclude(u => u.Roles);
+    }
+}
+```
+
+Для `AsSplitQuery` и `WithTracking` переопределяйте `BuildOptions()`:
+
+```csharp
+public class UsersWithProfilesSpecification : SpecificationBase<User>
+{
+    public UsersWithProfilesSpecification()
+    {
+        AddFilter(u => u.IsActive);
+        AddInclude(u => u.Profile);
+        AddInclude(u => u.Roles);
+    }
+
+    public override QueryOptions<User> BuildOptions()
+    {
+        var options = base.BuildOptions();
+        options.AsSplitQuery = true;
+        return options;
     }
 }
 ```
@@ -74,129 +172,59 @@ public class UsersWithProfilesSpecification : ISpecification<User>
 ### Параметризированная спецификация
 
 ```csharp
-public class UsersByRoleSpecification : ISpecification<User>
+public class UsersByRoleSpecification : SpecificationBase<User>
 {
     private readonly Guid _roleId;
-    private readonly int _page;
-    private readonly int _pageSize;
 
-    public UsersByRoleSpecification(Guid roleId, int page = 1, int pageSize = 20)
+    public UsersByRoleSpecification(Guid roleId)
     {
         _roleId = roleId;
-        _page = page;
-        _pageSize = pageSize;
+        AddFilter(u => u.Roles.Any(r => r.Id == _roleId));
+        AddFilter(u => u.IsActive);
+        AddOrderBy(u => u.Name, OrderDirectionType.Ascending);
     }
-
-    public QueryOptions<User> BuildOptions()
-    {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.Roles.Any(r => r.Id == _roleId) && u.IsActive,
-            OrderBy = new[] { QueryOrderByOption.Asc(u => u.Name) }
-        };
-    }
-
-    public int Page => _page;
-    public int PageSize => _pageSize;
 }
 ```
 
-### Композитная спецификация (AND/OR)
+> Обратите внимание: `AddFilter()` вызывается многократно — фильтры накапливаются в список `Filters` и объединяются через AND при выполнении запроса.
+
+### Спецификация с динамической сортировкой через SortOptions
+
+Конструктор `SpecificationBase<TEntity>` принимает `ICollection<SortOption>?`, что позволяет передавать сортировку из внешних параметров (например, из query string API):
 
 ```csharp
-public class AdvancedUserSearchSpecification : ISpecification<User>
+public class SortedUsersSpecification : SpecificationBase<User>
 {
-    private readonly SearchCriteria _criteria;
-
-    public AdvancedUserSearchSpecification(SearchCriteria criteria)
+    public SortedUsersSpecification(ICollection<SortOption>? sortOptions)
+        : base(sortOptions)
     {
-        _criteria = criteria;
-    }
-
-    public QueryOptions<User> BuildOptions()
-    {
-        var options = new QueryOptions<User>();
-
-        var predicates = new List<Expression<Func<User, bool>>>();
-
-        if (!string.IsNullOrEmpty(_criteria.Name))
-        {
-            predicates.Add(u => u.Name.Contains(_criteria.Name));
-        }
-
-        if (_criteria.MinAge.HasValue)
-        {
-            predicates.Add(u => u.Age >= _criteria.MinAge.Value);
-        }
-
-        if (_criteria.MaxAge.HasValue)
-        {
-            predicates.Add(u => u.Age <= _criteria.MaxAge.Value);
-        }
-
-        if (_criteria.IsActive.HasValue)
-        {
-            predicates.Add(u => u.IsActive == _criteria.IsActive.Value);
-        }
-
-        // Комбинирование предикатов через AND
-        if (predicates.Any())
-        {
-            options.Filter = predicates.Aggregate(
-                PredicateBuilder.And<User>()
-            );
-        }
-
-        options.OrderBy = new[] { QueryOrderByOption.Asc(u => u.Name) };
-
-        return options;
+        AddFilter(u => u.IsActive);
     }
 }
 
-// Вспомогательный класс для комбинации предикатов
-public static class PredicateBuilder
+// Использование
+var sortOptions = new List<SortOption>
 {
-    public static Expression<Func<T, bool>> And<T>(this IEnumerable<Expression<Func<T, bool>>> predicates)
-    {
-        return predicates.Aggregate(
-            PredicateBuilder.True<T>(),
-            (current, predicate) => current.And(predicate)
-        );
-    }
+    new("Name", OrderDirectionType.Ascending),
+    new("CreatedAt", OrderDirectionType.Descending)
+};
+var spec = new SortedUsersSpecification(sortOptions);
+```
 
-    public static Expression<Func<T, bool>> Or<T>(this IEnumerable<Expression<Func<T, bool>>> predicates)
-    {
-        return predicates.Aggregate(
-            PredicateBuilder.False<T>(),
-            (current, predicate) => current.Or(predicate)
-        );
-    }
+`SortOptions` автоматически применяются в `BuildOptions()` через `Options.AddOrderBy(SortOption)`.
 
-    public static Expression<Func<T, bool>> True<T>() => f => true;
-    public static Expression<Func<T, bool>> False<T>() => f => false;
+### Спецификация с ThenInclude
 
-    public static Expression<Func<T, bool>> And<T>(
-        this Expression<Func<T, bool>> expr1,
-        Expression<Func<T, bool>> expr2)
-    {
-        var parameter = Expression.Parameter(typeof(T));
-        var body = Expression.AndAlso(
-            Expression.Invoke(expr1, parameter),
-            Expression.Invoke(expr2, parameter)
-        );
-        return Expression.Lambda<Func<T, bool>>(body, parameter);
-    }
+```csharp
+using Shared.Domain.Core.Dal.Repository.Extensions;
 
-    public static Expression<Func<T, bool>> Or<T>(
-        this Expression<Func<T, bool>> expr1,
-        Expression<Func<T, bool>> expr2)
+public class UsersWithRolesAndPermissionsSpecification : SpecificationBase<User>
+{
+    public UsersWithRolesAndPermissionsSpecification()
     {
-        var parameter = Expression.Parameter(typeof(T));
-        var body = Expression.OrElse(
-            Expression.Invoke(expr1, parameter),
-            Expression.Invoke(expr2, parameter)
-        );
-        return Expression.Lambda<Func<T, bool>>(body, parameter);
+        AddFilter(u => u.IsActive);
+        AddInclude(u => u.Roles)
+            .ThenInclude(r => r.Permissions);
     }
 }
 ```
@@ -221,16 +249,6 @@ public class UserService
         return await _repository.GetRangeAsync(spec);
     }
 
-    public async Task<List<User>> GetUsersByRole(Guid roleId, int page, int pageSize)
-    {
-        var spec = new UsersByRoleSpecification(roleId, page, pageSize);
-        return await _repository.GetRangeAsync(
-            spec,
-            skip: (spec.Page - 1) * spec.PageSize,
-            take: spec.PageSize
-        );
-    }
-
     public async Task<User?> GetUserWithProfile(Guid userId)
     {
         var spec = new UsersWithProfilesSpecification();
@@ -242,12 +260,6 @@ public class UserService
 ### Использование с CQRS Query Handlers
 
 ```csharp
-public class GetActiveUsersQuery : IQuery<List<UserDto>>
-{
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 20;
-}
-
 public class GetActiveUsersQueryHandler : IQueryHandler<GetActiveUsersQuery, List<UserDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -259,7 +271,7 @@ public class GetActiveUsersQueryHandler : IQueryHandler<GetActiveUsersQuery, Lis
         _mapper = mapper;
     }
 
-    public async Task<List<UserDto>> Handle(GetActiveUsersQuery query, CancellationToken cancellationToken)
+    public async Task<List<UserDto>> Handle(GetActiveUsersQuery query, CancellationToken ct)
     {
         var userRepo = _unitOfWork.GetRepository<User>();
         var spec = new ActiveUsersSpecification();
@@ -268,8 +280,7 @@ public class GetActiveUsersQueryHandler : IQueryHandler<GetActiveUsersQuery, Lis
             spec,
             skip: (query.Page - 1) * query.PageSize,
             take: query.PageSize,
-            cancellationToken: cancellationToken
-        );
+            cancellationToken: ct);
 
         return _mapper.Map<List<UserDto>>(users);
     }
@@ -279,21 +290,18 @@ public class GetActiveUsersQueryHandler : IQueryHandler<GetActiveUsersQuery, Lis
 ### Спецификация с проекцией
 
 ```csharp
-public class UserSummarySpecification : ISpecification<User>
+public class UserSummarySpecification : SpecificationBase<User>
 {
-    public QueryOptions<User> BuildOptions()
+    public UserSummarySpecification()
     {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.IsActive,
-            OrderBy = new[] { QueryOrderByOption.Asc(u => u.Name) }
-        };
+        AddFilter(u => u.IsActive);
+        AddOrderBy(u => u.Name, OrderDirectionType.Ascending);
     }
 }
 
 // Использование с проекцией
 var spec = new UserSummarySpecification();
-var summaries = await repository.GetRangeAsync(
+var summaries = await repository.GetRangeAsync<UserSummaryDto>(
     spec,
     skip: 0,
     take: 100,
@@ -303,124 +311,201 @@ var summaries = await repository.GetRangeAsync(
         Name = u.Name,
         Email = u.Email,
         CreatedAt = u.CreatedAt
-    }
-);
+    });
+```
+
+## QueryOptions<TEntity>
+
+`QueryOptions<TEntity>` — mutable-объект, описывающий параметры запроса. Создаётся автоматически в `SpecificationBase` или используется напрямую через `IRepository`.
+
+### Конструктор
+
+```csharp
+public QueryOptions<TEntity>(
+    bool withTracking = false,
+    bool asSplitQuery = false,
+    bool distinct = false)
+```
+
+### Свойства
+
+| Свойство | Тип | Описание |
+|----------|-----|----------|
+| `Filters` | `List<Expression<Func<TEntity, bool>>>` | Список фильтров (объединяются через AND) |
+| `OrderBy` | `List<QueryOrderByOption<TEntity>>` | Список критериев сортировки |
+| `Includes` | `List<IIncludable<TEntity>>` | Список навигационных свойств |
+| `WithTracking` | `bool` | Отслеживание изменений сущностей (default: `false`) |
+| `AsSplitQuery` | `bool` | Разделение запроса на несколько SQL-запросов (default: `false`) |
+| `Distinct` | `bool` | Исключение дубликатов (default: `false`) |
+| `DistinctBy` | `Expression<Func<TEntity, bool>>?` | Условие для исключения дубликатов |
+| `CustomQueryBeforeProcesses` | `List<Func<IQueryable<TEntity>, IQueryable<TEntity>>>` | Кастомные пре-преобразования IQueryable |
+| `CustomQueryPostProcesses` | `List<Func<IQueryable<TEntity>, IQueryable<TEntity>>>` | Кастомные пост-преобразования IQueryable |
+
+### Методы
+
+| Метод | Возвращает | Описание |
+|-------|-----------|----------|
+| `AddFilter(Expression)` | `QueryOptions<TEntity>` | Добавляет фильтр |
+| `AddFilterIf(bool, Expression)` | `QueryOptions<TEntity>` | Добавляет фильтр при условии |
+| `AddOrderBy(Expression, OrderDirectionType, int?)` | `QueryOptions<TEntity>` | Добавляет сортировку |
+| `AddOrderBy(SortOption)` | `void` | Добавляет сортировку из SortOption |
+| `AddOrderByIf(bool, Expression, OrderDirectionType, int?)` | `QueryOptions<TEntity>` | Добавляет сортировку при условии |
+| `AddInclude<TProperty>(Expression)` | `Includable<TEntity, TProperty>` | Добавляет Include одиночного свойства |
+| `AddInclude<TProperty>(Expression<IEnumerable<TProperty>>)` | `Includable<TEntity, TProperty>` | Добавляет Include коллекции |
+
+### Прямое использование (без Specification)
+
+```csharp
+var options = new QueryOptions<User>()
+    .AddFilter(u => u.IsActive)
+    .AddOrderBy(u => u.Name, OrderDirectionType.Ascending);
+
+var users = await repository.GetRangeAsync(options, skip: 0, take: 20);
+```
+
+## SortOption
+
+`SortOption` — модель для передачи сортировки из внешних источников (query string и т.д.).
+
+```csharp
+public class SortOption(string key, OrderDirectionType directionType)
+{
+    public string Key { get; } = key;
+    public OrderDirectionType DirectionType { get; } = directionType;
+}
+```
+
+`Key` — имя свойства (регистронезависимое). `SortOption` автоматически маппится на выражение сортировки через reflection внутри `QueryOptions.AddOrderBy(SortOption)`.
+
+## OrderDirectionType
+
+```csharp
+public enum OrderDirectionType
+{
+    [Description("asc")]
+    Ascending,
+    [Description("desc")]
+    Descending
+}
+```
+
+## QueryOrderByOption<TEntity>
+
+```csharp
+public record QueryOrderByOption<TEntity>(
+    Expression<Func<TEntity, object>> Expression,
+    OrderDirectionType Direction);
+```
+
+Record-тип, содержащий выражение сортировки и направление. Создаётся внутри через `AddOrderBy()`.
+
+## Includable и ThenInclude
+
+`Includable<TEntity, TProperty>` — класс для цепочечного построения Include/ThenInclude.
+
+```csharp
+public class Includable<TSrcEntity, TDstEntity>(LambdaExpression expression)
+    : IIncludable<TSrcEntity>
+{
+    public LambdaExpression Expression { get; }
+    public IIncludable<TSrcEntity>? Child { get; }
+    public void SetChild(IIncludable<TSrcEntity> includable);
+}
+```
+
+### ThenInclude
+
+```csharp
+using Shared.Domain.Core.Dal.Repository.Extensions;
+
+// Цепочечное включение
+AddInclude(u => u.Roles)
+    .ThenInclude(r => r.Permissions);
 ```
 
 ## Расширенные возможности
 
-### Динамическая сортировка
+### Динамическая сортировка из API
 
 ```csharp
-public class SortableUserSpecification : ISpecification<User>
+public class SortableUserSpecification : SpecificationBase<User>
 {
-    private readonly string? _sortBy;
-    private readonly bool _descending;
-
-    public SortableUserSpecification(string? sortBy = "Name", bool descending = false)
+    public SortableUserSpecification(ICollection<SortOption>? sortOptions)
+        : base(sortOptions)
     {
-        _sortBy = sortBy;
-        _descending = descending;
+        AddFilter(u => u.IsActive);
+    }
+}
+
+// В API handler
+var sortOptions = request.SortItems
+    .Select(s => new SortOption(s.Field, s.Descending
+        ? OrderDirectionType.Descending
+        : OrderDirectionType.Ascending))
+    .ToList();
+
+var spec = new SortableUserSpecification(sortOptions);
+```
+
+### Условная фильтрация
+
+Используйте `AddFilter` с условными проверками в конструкторе:
+
+```csharp
+public class UserSearchSpecification : SpecificationBase<User>
+{
+    public UserSearchSpecification(string? name, int? minAge, int? maxAge)
+    {
+        AddFilter(u => u.IsActive);
+
+        if (!string.IsNullOrEmpty(name))
+            AddFilter(u => u.Name.Contains(name));
+
+        if (minAge.HasValue)
+            AddFilter(u => u.Age >= minAge.Value);
+
+        if (maxAge.HasValue)
+            AddFilter(u => u.Age <= maxAge.Value);
+
+        AddOrderBy(u => u.Name, OrderDirectionType.Ascending);
+    }
+}
+```
+
+### Кастомные преобразования IQueryable
+
+```csharp
+public class CustomQuerySpecification : SpecificationBase<User>
+{
+    public CustomQuerySpecification()
+    {
+        AddFilter(u => u.IsActive);
     }
 
-    public QueryOptions<User> BuildOptions()
+    public override QueryOptions<User> BuildOptions()
     {
-        var options = new QueryOptions<User>
-        {
-            Filter = u => u.IsActive
-        };
-
-        var orderByOptions = new List<QueryOrderByOption<User>>();
-
-        switch (_sortBy?.ToLower())
-        {
-            case "name":
-                orderByOptions.Add(
-                    _descending
-                        ? QueryOrderByOption.Desc(u => u.Name)
-                        : QueryOrderByOption.Asc(u => u.Name)
-                );
-                break;
-            case "email":
-                orderByOptions.Add(
-                    _descending
-                        ? QueryOrderByOption.Desc(u => u.Email)
-                        : QueryOrderByOption.Asc(u => u.Email)
-                );
-                break;
-            case "createdat":
-                orderByOptions.Add(
-                    _descending
-                        ? QueryOrderByOption.Desc(u => u.CreatedAt)
-                        : QueryOrderByOption.Asc(u => u.CreatedAt)
-                );
-                break;
-            default:
-                orderByOptions.Add(QueryOrderByOption.Asc(u => u.Name));
-                break;
-        }
-
-        options.OrderBy = orderByOptions.ToArray();
+        var options = base.BuildOptions();
+        options.CustomQueryPostProcesses.Add(q => q.Where(u => !u.IsBlocked));
         return options;
     }
 }
 ```
 
-### Спецификация с пагинацией
+### Distinct и DistinctBy
 
 ```csharp
-public class PagedUserSpecification : ISpecification<User>
+public class UniqueEmailsSpecification : SpecificationBase<User>
 {
-    private readonly int _page;
-    private readonly int _pageSize;
-
-    public PagedUserSpecification(int page = 1, int pageSize = 20)
+    public UniqueEmailsSpecification()
     {
-        _page = page;
-        _pageSize = pageSize;
+        AddFilter(u => u.IsActive);
     }
 
-    public QueryOptions<User> BuildOptions()
+    public override QueryOptions<User> BuildOptions()
     {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.IsActive,
-            OrderBy = new[] { QueryOrderByOption.Asc(u => u.Name) }
-        };
-    }
-
-    public int Skip => (_page - 1) * _pageSize;
-    public int Take => _pageSize;
-}
-
-// Использование
-var spec = new PagedUserSpecification(page: 2, pageSize: 50);
-var users = await repository.GetRangeAsync(
-    spec,
-    skip: spec.Skip,
-    take: spec.Take
-);
-```
-
-### Кэширование спецификаций
-
-```csharp
-public class CachedUserSpecification : ISpecification<User>
-{
-    private readonly string _cacheKey;
-
-    public CachedUserSpecification(string cacheKey)
-    {
-        _cacheKey = cacheKey;
-    }
-
-    public QueryOptions<User> BuildOptions()
-    {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.IsActive,
-            CacheKey = _cacheKey // Предполагаемое свойство для кэширования
-        };
+        var options = base.BuildOptions();
+        options.Distinct = true;
+        return options;
     }
 }
 ```
@@ -430,13 +515,25 @@ public class CachedUserSpecification : ISpecification<User>
 ### 1. Одна ответственность — одна спецификация
 
 ```csharp
-// Правильно - каждая спецификация решает одну задачу
-public class ActiveUsersSpecification : ISpecification<User> { ... }
-public class InactiveUsersSpecification : ISpecification<User> { ... }
-public class PremiumUsersSpecification : ISpecification<User> { ... }
+// Правильно — каждая спецификация решает одну задачу
+public class ActiveUsersSpecification : SpecificationBase<User>
+{
+    public ActiveUsersSpecification()
+    {
+        AddFilter(u => u.IsActive);
+    }
+}
 
-// Неправильно - слишком много логики в одной спецификации
-public class ComplexUserSpecification : ISpecification<User>
+public class PremiumUsersSpecification : SpecificationBase<User>
+{
+    public PremiumUsersSpecification()
+    {
+        AddFilter(u => u.IsPremium && u.IsActive);
+    }
+}
+
+// Неправильно — слишком много логики в одной спецификации
+public class ComplexUserSpecification : SpecificationBase<User>
 {
     // Слишком много условий и параметров
 }
@@ -445,118 +542,91 @@ public class ComplexUserSpecification : ISpecification<User>
 ### 2. Используйте параметризацию для гибкости
 
 ```csharp
-// Правильно - параметризированная спецификация
-public class UsersByAgeRangeSpecification : ISpecification<User>
+// Правильно — параметризированная спецификация
+public class UsersByAgeRangeSpecification : SpecificationBase<User>
 {
-    private readonly int _minAge;
-    private readonly int _maxAge;
-
     public UsersByAgeRangeSpecification(int minAge, int maxAge)
     {
-        _minAge = minAge;
-        _maxAge = maxAge;
-    }
-
-    public QueryOptions<User> BuildOptions()
-    {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.Age >= _minAge && u.Age <= _maxAge
-        };
+        AddFilter(u => u.Age >= minAge && u.Age <= maxAge);
     }
 }
 
-// Неправильно - хардкод значений
-public class AdultUsersSpecification : ISpecification<User>
+// Неправильно — хардкод значений
+public class AdultUsersSpecification : SpecificationBase<User>
 {
-    public QueryOptions<User> BuildOptions()
+    public AdultUsersSpecification()
     {
-        return new QueryOptions<User>
-        {
-            Filter = u => u.Age >= 18 && u.Age <= 65 // Хардкод!
-        };
+        AddFilter(u => u.Age >= 18 && u.Age <= 65); // Хардкод!
     }
 }
 ```
 
-### 3. Композиция вместо наследования
+### 3. Композиция фильтров через AddFilter
 
 ```csharp
-// Правильно - композиция спецификаций
-var baseSpec = new ActiveUsersSpecification();
-var roleSpec = new UsersByRoleSpecification(roleId);
-// Комбинируйте логику в сервисе
-
-// Неправильно - глубокое наследование
-public class ActivePremiumUsersByRoleSpecification : ActiveUsersSpecification
+// Каждый вызов AddFilter добавляет фильтр в список.
+// При выполнении запроса все фильтры объединяются через AND.
+public class ActivePremiumUsersSpecification : SpecificationBase<User>
 {
-    // ...
+    public ActivePremiumUsersSpecification()
+    {
+        AddFilter(u => u.IsActive);
+        AddFilter(u => u.IsPremium);
+    }
 }
 ```
 
-### 4. Тестируемость спецификаций
+### 4. Переопределяйте BuildOptions для настройки QueryOptions
 
 ```csharp
-[TestClass]
-public class ActiveUsersSpecificationTests
+// Доступ к WithTracking, AsSplitQuery, Distinct и другим свойствам
+public class DetailedUserSpecification : SpecificationBase<User>
 {
-    [TestMethod]
-    public void BuildOptions_ReturnsCorrectFilter()
+    public DetailedUserSpecification()
     {
-        // Arrange
-        var spec = new ActiveUsersSpecification();
+        AddInclude(u => u.Profile);
+        AddInclude(u => u.Roles);
+        AddFilter(u => u.IsActive);
+    }
 
-        // Act
-        var options = spec.BuildOptions();
-
-        // Assert
-        Assert.IsNotNull(options.Filter);
-        // Дальнейшая проверка выражения фильтра
+    public override QueryOptions<User> BuildOptions()
+    {
+        var options = base.BuildOptions();
+        options.AsSplitQuery = true;
+        options.WithTracking = false;
+        return options;
     }
 }
 ```
 
-### 5. Избегайте бизнес-логики в спецификациях
+### 5. Тестируемость спецификаций
 
 ```csharp
-// Правильно - только критерии выборки
-public class RecentOrdersSpecification : ISpecification<Order>
+[Fact]
+public void ActiveUsersSpecification_BuildOptions_ReturnsFilter()
 {
-    public QueryOptions<Order> BuildOptions()
-    {
-        return new QueryOptions<Order>
-        {
-            Filter = o => o.CreatedAt > DateTime.UtcNow.AddDays(-30),
-            OrderBy = new[] { QueryOrderByOption.Desc(o => o.CreatedAt) }
-        };
-    }
-}
+    // Arrange
+    var spec = new ActiveUsersSpecification();
 
-// Неправильно - бизнес-логика в спецификации
-public class ProcessableOrdersSpecification : ISpecification<Order>
-{
-    public QueryOptions<Order> BuildOptions()
-    {
-        return new QueryOptions<Order>
-        {
-            // Смешивание критериев выборки и бизнес-правил
-            Filter = o => o.Status == OrderStatus.Pending
-                       && o.TotalAmount > 1000
-                       && !o.HasFraudRisk() // Бизнес-логика!
-        };
-    }
+    // Act
+    var options = spec.BuildOptions();
+
+    // Assert
+    options.Filters.Should().HaveCount(1);
+    options.OrderBy.Should().BeEmpty();
+    options.Includes.Should().BeEmpty();
 }
 ```
 
-## Отличия от QueryOptions
+## Отличия от прямого использования QueryOptions
 
-| Аспект | Specification | QueryOptions |
-|--------|--------------|--------------|
+| Аспект | SpecificationBase | QueryOptions напрямую |
+|--------|-------------------|----------------------|
 | **Назначение** | Инкапсуляция бизнес-критериев | Настройки запроса |
 | **Переиспользование** | Высокое (отдельный класс) | Низкое (inline создание) |
 | **Тестируемость** | Легко тестировать отдельно | Сложнее тестировать |
-| **Параметризация** | Через конструктор | Через свойства |
-| **Композиция** | Через комбинацию классов | Через агрегацию свойств |
+| **Параметризация** | Через конструктор | Через fluent-методы |
+| **DI-friendly** | Да, регистрируется как сервис | Нет, создаётся inline |
 
 ## См. также
 
@@ -565,4 +635,4 @@ public class ProcessableOrdersSpecification : ISpecification<Order>
 | [Repository Pattern](repository.md) | Использование спецификаций с репозиторием |
 | [Unit of Work](unit-of-work.md) | Координация транзакций и репозиториев |
 | [Filtering & Sorting Guide](filtering-sorting-guide.md) | Подробное руководство по фильтрации и сортировке |
-| [CQRS](cqrs.md) | Разделение команд и запросов
+| [CQRS](cqrs.md) | Разделение команд и запросов |

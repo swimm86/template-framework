@@ -217,6 +217,17 @@ var date = JsonSerializer.Deserialize<DateOnly>("\"15.03.2024\"", options);
 
 ---
 
+### Константы форматов
+
+`FormatsConstants` централизует строковые форматы дат:
+
+| Константа | Значение | Описание |
+|-----------|----------|----------|
+| `DateOnlyFormat` | `"dd.MM.yyyy"` | Формат для DateOnly |
+| `DateTimeFormat` | `"dd.MM.yyyy HH:mm"` | Формат для DateTime |
+
+Используется `DateOnlyConverter`, `DefaultObjectToStringConverter` и другими компонентами фреймворка.
+
 ---
 
 ## См. также
