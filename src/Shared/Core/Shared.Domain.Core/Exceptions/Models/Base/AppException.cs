@@ -63,9 +63,18 @@ public abstract class AppException
     private static void ValidateAdditionalData(
         IReadOnlyDictionary<string, object>? additionalData)
     {
+        if (additionalData is { Count: 0 })
+        {
+            throw new ArgumentException(
+                "Can't be an empty dictionary. Pass null if there is no data.",
+                nameof(additionalData));
+        }
+
         if (additionalData?.Any(kvp => string.IsNullOrEmpty(kvp.Key)) is true)
         {
-            throw new ArgumentException("Ключи не могут быть null или пустыми", nameof(additionalData));
+            throw new ArgumentException(
+                "Keys can't be null or empty",
+                nameof(additionalData));
         }
     }
 }
