@@ -1,1 +1,1 @@
-docker-compose -p gpn-contour-template -f docker-compose.dev.yaml up -d --build
+docker-compose -p template -f docker-compose.dev.yaml up -d --build
