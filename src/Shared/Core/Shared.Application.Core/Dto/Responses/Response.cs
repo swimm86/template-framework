@@ -12,7 +12,7 @@ namespace Shared.Application.Core.Dto.Responses;
 public record Response : ResponseBase
 {
     /// <summary>
-    /// Коснтруктор.
+    /// Инициализирует новый экземпляр <see cref="Response"/>.
     /// </summary>
     /// <param name="statusCode">Статус ответа.</param>
     public Response(int statusCode)
@@ -21,7 +21,7 @@ public record Response : ResponseBase
     }
 
     /// <summary>
-    /// Пустой конструктор.
+    /// Инициализирует новый экземпляр <see cref="Response"/>.
     /// </summary>
     public Response()
     {
@@ -29,15 +29,15 @@ public record Response : ResponseBase
 }
 
 /// <summary>
-/// Данные ответа с Payload.
+/// Данные ответа с полезной нагрузкой.
 /// </summary>
-/// <typeparam name="T">Тип данных для Payload.</typeparam>
+/// <typeparam name="T">Тип полезной нагрузки.</typeparam>
 public record Response<T> : Response
 {
     /// <summary>
-    /// Конструктор.
+    /// Инициализирует новый экземпляр <see cref="Response{T}"/>.
     /// </summary>
-    /// <param name="payload">Payload.</param>
+    /// <param name="payload">Полезная нагрузка.</param>
     /// <param name="statusCode">Статус ответа.</param>
     public Response(T? payload, int statusCode)
         : base(statusCode)
@@ -46,14 +46,14 @@ public record Response<T> : Response
     }
 
     /// <summary>
-    /// Пустой конструктор.
+    /// Инициализирует новый экземпляр <see cref="Response{T}"/>.
     /// </summary>
     public Response()
     {
     }
 
     /// <summary>
-    /// Payload.
+    /// Полезная нагрузка.
     /// </summary>
     public T? Payload { get; set; }
 }

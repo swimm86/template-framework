@@ -7,7 +7,7 @@
 namespace Shared.Application.Core.DependencyInjection.Attributes;
 
 /// <summary>
-/// Атрибут, наличие которого обозначает, что класс должен быть сконфигурирован вручную.
+/// Указывает, что класс требует ручной конфигурации в DI-контейнере и должен быть исключён из автоматической регистрации.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
 public class ManualConfigurationAttribute

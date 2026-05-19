@@ -12,7 +12,7 @@ using Shared.Application.Cqrs.Core.Extensions;
 namespace Shared.Application.Cqrs.Core.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Application.Cqrs.Core</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Application.Cqrs.Core</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>

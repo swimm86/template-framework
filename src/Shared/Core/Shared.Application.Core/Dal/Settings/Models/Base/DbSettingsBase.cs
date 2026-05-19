@@ -7,7 +7,7 @@
 namespace Shared.Application.Core.Dal.Settings.Models.Base;
 
 /// <summary>
-/// Базовая конфигурация для бд.
+/// Базовая конфигурация подключения к базе данных.
 /// </summary>
 public abstract class DbSettingsBase
 {

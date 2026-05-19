@@ -7,7 +7,7 @@
 namespace Shared.Application.Core.Job;
 
 /// <summary>
-/// Флаги триггеров задач.
+/// Флаги расписания запуска фоновых задач.
 /// </summary>
 [Flags]
 public enum JobTriggerFlags

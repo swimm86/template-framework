@@ -4,19 +4,17 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.DbSeeder.Entities;
-
 namespace Shared.Application.Core.Dal.DbSeeder.Interfaces;
 
 /// <summary>
-/// Интерфейс для управления <see cref="Seed"/>-ами.
+/// Интерфейс сервиса управления seed-процессами.
 /// </summary>
 public interface IDbSeeder
 {
     /// <summary>
-    /// Применяет все <see cref="Seed"/>-ы.
+    /// Применяет все зарегистрированные seed-процессы.
     /// </summary>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>Результат выполнения асинхронной операции.</returns>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
     Task ApplySeedsAsync(CancellationToken cancellationToken = default);
 }

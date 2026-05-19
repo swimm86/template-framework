@@ -17,7 +17,7 @@ using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 namespace Shared.Application.Core.Dal.DbSeeder.Implementation;
 
 /// <summary>
-/// Утилита для управления <see cref="Seed"/>-ами.
+/// Сервис для применения seed-процессов к базе данных.
 /// </summary>
 public class DbSeeder(
     IUnitOfWork unitOfWork,

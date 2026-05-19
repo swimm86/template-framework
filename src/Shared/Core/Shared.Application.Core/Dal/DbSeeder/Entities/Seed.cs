@@ -9,7 +9,7 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Application.Core.Dal.DbSeeder.Entities;
 
 /// <summary>
-/// Сущность "Seed".
+/// Сущность для отслеживания выполненных seed-процессов.
 /// </summary>
 public class Seed
     : IEntity<Guid>
@@ -18,22 +18,22 @@ public class Seed
     public Guid Id { get; private init; }
 
     /// <summary>
-    /// Конструктор класса <see cref="Seed"/>.
+    /// Инициализирует новый экземпляр <see cref="Seed"/>.
     /// </summary>
     private Seed()
     {
     }
 
     /// <summary>
-    /// Наименование.
+    /// Наименование seed-процесса.
     /// </summary>
     public string Name { get; private set; }
 
     /// <summary>
-    /// Создает экземпляр класса <see cref="Seed"/>.
+    /// Создает новый экземпляр <see cref="Seed"/>.
     /// </summary>
-    /// <param name="name">Наименование.</param>
-    /// <returns>Экземпляр класса <see cref="Seed"/>.</returns>
+    /// <param name="name">Наименование seed-процесса.</param>
+    /// <returns>Экземпляр <see cref="Seed"/>.</returns>
     public static Seed Create(string name)
     {
         return new Seed

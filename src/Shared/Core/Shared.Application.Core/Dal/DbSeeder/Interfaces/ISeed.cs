@@ -7,13 +7,13 @@
 namespace Shared.Application.Core.Dal.DbSeeder.Interfaces;
 
 /// <summary>
-/// Интерфейс для seed-ов.
+/// Интерфейс для классов выполняющих seed-процессы.
 /// </summary>
 public interface ISeed
 {
     /// <summary>
-    /// Реализуеты seed-процесс.
+    /// Выполняет seed-процесс.
     /// </summary>
-    /// <returns>Результат выполнения асинхронной операции.</returns>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
     Task SeedAsync();
 }

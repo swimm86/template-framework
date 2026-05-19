@@ -10,8 +10,13 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Shared.Application.Core.Json;
 
 /// <summary>
-/// Содержит методы расширения для настройки JSON-сериализации.
+/// Методы расширения для настройки JSON-сериализации.
 /// </summary>
+/// <remarks>
+/// Настраивает <see cref="System.Text.Json.JsonSerializerOptions.DefaultIgnoreCondition"/>
+/// в значение <see cref="JsonIgnoreCondition.WhenWritingNull"/> для Minimal API,
+/// HTTP-клиентов и MVC-контроллеров.
+/// </remarks>
 public static class ServiceCollectionExtensions
 {
     /// <summary>

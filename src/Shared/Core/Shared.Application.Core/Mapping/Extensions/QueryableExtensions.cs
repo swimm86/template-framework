@@ -10,7 +10,7 @@ using Shared.Application.Core.Mapping.Interfaces;
 namespace Shared.Application.Core.Mapping.Extensions;
 
 /// <summary>
-/// Расширение для <see cref="IQueryable{T}"/>.
+/// Методы расширения для <see cref="IQueryable{T}"/>.
 /// </summary>
 public static class QueryableExtensions
 {
@@ -20,7 +20,7 @@ public static class QueryableExtensions
     /// </summary>
     /// <typeparam name="TDestination">Целевой тип элементов результата запроса.</typeparam>
     /// <param name="source">Исходный запрос для проекции.</param>
-    /// <param name="mapper">Маппер, который определяет правила преобразования типов.</param>
+    /// <param name="mapper">Сервис маппинга объектов.</param>
     /// <param name="parameters">Необязательные параметры, используемые маппером при проекции.</param>
     /// <param name="membersToExpand">Выражения для указания членов, которые нужно развернуть.</param>
     /// <returns>Новый экземпляр <see cref="IQueryable{T}"/>, содержащий элементы типа <typeparamref name="TDestination"/>.</returns>

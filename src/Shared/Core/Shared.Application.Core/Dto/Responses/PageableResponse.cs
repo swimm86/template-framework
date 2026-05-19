@@ -15,18 +15,18 @@ namespace Shared.Application.Core.Dto.Responses;
 public record PageableResponse<T> : Response<T>
 {
     /// <summary>
-    /// Пустой конструктор.
+    /// Инициализирует новый экземпляр <see cref="PageableResponse{T}"/>.
     /// </summary>
     public PageableResponse()
     {
     }
 
     /// <summary>
-    /// Конструктор.
+    /// Инициализирует новый экземпляр <see cref="PageableResponse{T}"/>.
     /// </summary>
     /// <param name="totalPages">Всего страниц.</param>
     /// <param name="pageNumber">Номер текущей страницы.</param>
-    /// <param name="payload">Payload.</param>
+    /// <param name="payload">Полезная нагрузка.</param>
     /// <param name="statusCode">Статус ответа.</param>
     public PageableResponse(int totalPages, int pageNumber, T? payload, int statusCode = StatusCodes.Status200OK)
         : base(payload, statusCode)
