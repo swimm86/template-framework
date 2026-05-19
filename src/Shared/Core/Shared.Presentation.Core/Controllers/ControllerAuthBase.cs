@@ -11,10 +11,9 @@ using Microsoft.Extensions.Logging;
 namespace Shared.Presentation.Core.Controllers;
 
 /// <summary>
-/// Контроллер с фильтром аутентификации
+/// Базовый класс контроллера с обязательной аутентификацией.
 /// </summary>
 [ApiController]
 [Authorize]
-public abstract class ControllerAuthBase(ILogger logger) : ControllerBase(logger)
-{
-}
+public abstract class ControllerAuthBase(ILogger logger)
+    : ControllerBase(logger);

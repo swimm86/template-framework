@@ -13,7 +13,7 @@ using Shared.Presentation.Core.Swagger.Extensions;
 namespace Shared.Presentation.Core.Extensions;
 
 /// <summary>
-/// Класс, который содержит расширения для <see cref="IApplicationBuilder"/>
+/// Методы расширения для настройки пайплайна HTTP-запросов <see cref="IApplicationBuilder"/>.
 /// </summary>
 public static class ApplicationBuilderExtensions
 {
@@ -22,7 +22,7 @@ public static class ApplicationBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Метод настраивает пайплайн обработки HTTP-запросов: логирование, Correlation ID,
-    /// Swagger (для среды разработки), обработку исключений, авторизацию и маппинг контроллеров.
+    /// Swagger (для среды разработки), обработку исключений, авторизацию и маршрутизацию контроллеров.
     /// </remarks>
     /// <param name="app"><see cref="WebApplication"/>.</param>
     /// <returns><see cref="IApplicationBuilder"/>.</returns>

@@ -16,9 +16,9 @@ using Shared.Presentation.Core.Exceptions.Settings;
 namespace Shared.Presentation.Core.Exceptions.Mappers.Base;
 
 /// <summary>
-/// Базовый класс маппера исключений: задаёт <see cref="IExceptionMapper.HandledType"/>, делегирует
+/// Базовый класс преобразователя исключений: задаёт <see cref="IExceptionMapper.HandledType"/>, делегирует
 /// не-generic <see cref="IExceptionMapper.Map"/> в типобезопасный <see cref="Handle"/>
-/// и предоставляет реализацию по умолчанию на основе  <see cref="Title"/>.
+/// и предоставляет реализацию по умолчанию на основе <see cref="Title"/>.
 /// </summary>
 /// <typeparam name="TException">Тип обрабатываемого исключения.</typeparam>
 public abstract class ExceptionMapperBase<TException>(

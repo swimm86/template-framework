@@ -18,7 +18,7 @@ public sealed class CorrelationIdMiddleware(
     RequestDelegate next)
 {
     /// <summary>
-    /// Выполняет middleware.
+    /// Обрабатывает HTTP-запрос: генерирует CorrelationId при отсутствии и добавляет его в заголовок ответа.
     /// </summary>
     /// <param name="context">Контекст HTTP-запроса.</param>
     /// <returns><see cref="Task"/>.</returns>

@@ -12,7 +12,7 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер проксированных исключений <see cref="ProxiedException"/> в <see cref="ProblemDetails"/>.
+/// Преобразователь проксированных исключений <see cref="ProxiedException"/> в <see cref="ProblemDetails"/>.
 /// </summary>
 /// <remarks>
 /// <para>

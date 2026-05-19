@@ -11,8 +11,8 @@ using Shared.Presentation.Core.Exceptions.Mappers;
 namespace Shared.Presentation.Core.Exceptions;
 
 /// <summary>
-/// Резолвер маппера по иерархии типов: обходит <see cref="Exception.GetType"/> и базовые типы,
-/// возвращает первый зарегистрированный маппер (самый производный выигрывает).
+/// Преобразователь исключений по иерархии типов: обходит <see cref="Exception.GetType"/> и базовые типы,
+/// возвращает первый зарегистрированный преобразователь (самый производный выигрывает).
 /// </summary>
 internal sealed class ExceptionMapperResolver
     : IExceptionMapperResolver
@@ -20,9 +20,9 @@ internal sealed class ExceptionMapperResolver
     private readonly Dictionary<Type, IExceptionMapper> _map;
 
     /// <summary>
-    /// Конструктор класса.
+    /// Инициализирует новый экземпляр <see cref="ExceptionMapperResolver"/>.
     /// </summary>
-    /// <param name="mappers">Все зарегистрированные мапперы.</param>
+    /// <param name="mappers">Все зарегистрированные преобразователи исключений.</param>
     public ExceptionMapperResolver(
         IEnumerable<IExceptionMapper> mappers)
     {

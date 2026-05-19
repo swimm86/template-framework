@@ -9,7 +9,7 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Settings;
 
 /// <summary>
-/// Настройка для <see cref="ExceptionMapperBase{TException}"/>
+/// Настройки для <see cref="ExceptionMapperBase{TException}"/>.
 /// </summary>
 /// <param name="ShouldEnrichWithTrace">
 /// Определяет, нужно ли добавлять stack trace и детали исключения в ответ.
@@ -17,7 +17,7 @@ namespace Shared.Presentation.Core.Exceptions.Settings;
 /// данные которых не должны обогащаться (например, проксированные ошибки).
 /// </param>
 /// <param name="StackTraceDepth">
-/// Количество строк стека вызовов для отладки. Значение по-умолчанию (10)
+/// Количество строк стека вызовов для отладки. Значение по умолчанию (10)
 /// выбрано для баланса между полезностью и размером ответа.
 /// </param>
 /// <param name="MaxExceptionDepth">

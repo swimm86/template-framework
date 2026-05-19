@@ -14,11 +14,11 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер агрегированных исключений <see cref="AggregateException"/> в набор <see cref="ProblemDetails"/>.
+/// Преобразователь агрегированных исключений <see cref="AggregateException"/> в набор <see cref="ProblemDetails"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Делегирует маппинг каждого внутреннего исключения соответствующему <see cref="IExceptionMapper"/>
+/// Делегирует преобразование каждого внутреннего исключения соответствующему <see cref="IExceptionMapper"/>
 /// через <see cref="IExceptionMapperResolver"/>. Использует <see cref="AggregateException.Flatten"/>
 /// для раскрытия вложенных <see cref="AggregateException"/>, предотвращая рекурсию.
 /// </para>
@@ -28,12 +28,12 @@ namespace Shared.Presentation.Core.Exceptions.Mappers;
 /// Каждый <see cref="ProblemDetails"/> содержит собственный статус внутреннего исключения.
 /// </para>
 /// <para>
-/// Для избежания circular dependency (Dispatcher → Mappers → AggregateMapper → Dispatcher)
-/// используется <see cref="IServiceProvider"/> для lazy-резолва диспетчера при первом вызове.
+/// Для избежания циклической зависимости (Resolver → Mappers → AggregateMapper → Resolver)
+/// используется <see cref="IServiceProvider"/> для ленивого получения резолвера при первом вызове.
 /// </para>
 /// </remarks>
 /// <param name="configuration">Конфигурация приложения.</param>
-/// <param name="serviceProvider">Провайдер сервисов для резолва диспетчера.</param>
+/// <param name="serviceProvider">Провайдер сервисов для получения резолвера исключений.</param>
 public sealed class AggregateExceptionMapper(
     IConfiguration configuration,
     IServiceProvider serviceProvider)

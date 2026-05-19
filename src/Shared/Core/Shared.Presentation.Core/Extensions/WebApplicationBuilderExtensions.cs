@@ -20,7 +20,7 @@ namespace Shared.Presentation.Core.Extensions;
 public static class WebApplicationBuilderExtensions
 {
     /// <summary>
-    /// Осуществляет инциализацию .env-конфигурации и регистрацию зависимостей из ссылочных сборок
+    /// Осуществляет инициализацию .env-конфигурации и регистрацию зависимостей из ссылочных сборок
     /// (<see cref="Infrastructure.Core.DependencyInjection.Extensions.ServiceCollectionExtensions"/>).
     /// </summary>
     /// <remarks>

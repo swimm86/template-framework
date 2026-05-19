@@ -13,7 +13,7 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер ошибок валидации FluentValidation <see cref="ValidationException"/> в <see cref="ProblemDetails"/>.
+/// Преобразователь ошибок валидации FluentValidation <see cref="ValidationException"/> в <see cref="ProblemDetails"/>.
 /// </summary>
 /// <remarks>
 /// Возвращает RFC 7807 Problem Details с кодом 400 Bad Request.
