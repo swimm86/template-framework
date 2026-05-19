@@ -25,7 +25,7 @@ public class GetterController(
     /// Возвращает коллекцию сущностей 'Person'.
     /// </summary>
     /// <param name="request">Тело запроса.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Коллекция сущностей 'Person'.</returns>
     [HttpPost("person/list")]
     public Task<IActionResult> GetPersonsAsync(

@@ -25,7 +25,7 @@ public sealed class PersonsController(
     /// Возвращает коллекцию сущностей 'Person' через слой приложения (без CQRS).
     /// </summary>
     /// <param name="request">Тело запроса.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Коллекция сущностей 'Person'.</returns>
     [HttpPost("services/list")]
     public Task<IActionResult> GetPersonsByServicesAsync(
@@ -37,7 +37,7 @@ public sealed class PersonsController(
     /// Возвращает коллекцию сущностей 'Person' через CQRS (MediatR).
     /// </summary>
     /// <param name="request">Тело запроса.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Коллекция сущностей 'Person'.</returns>
     [HttpPost("cqrs/list")]
     public Task<IActionResult> GetPersonsByCqrsAsync(
