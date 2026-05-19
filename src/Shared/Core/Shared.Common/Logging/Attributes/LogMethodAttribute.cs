@@ -112,7 +112,7 @@ public class LogMethodAttribute(
     /// Выполняет логирование начала выполнения метода.
     /// Переопределите для добавления дополнительных structured-logging свойств.
     /// </summary>
-    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="process">Имя процесса.</param>
     protected virtual void OnLogStarted(ILogger? logger, string process) =>
         logger?.LogStarted(process, logLevel);
@@ -121,7 +121,7 @@ public class LogMethodAttribute(
     /// Выполняет логирование успешного завершения метода.
     /// Переопределите для добавления дополнительных structured-logging свойств.
     /// </summary>
-    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="process">Имя процесса.</param>
     protected virtual void OnLogCompleted(ILogger? logger, string process) =>
         logger?.LogCompleted(process, logLevel);
@@ -130,7 +130,7 @@ public class LogMethodAttribute(
     /// Выполняет логирование ошибки выполнения метода.
     /// Переопределите для добавления дополнительных structured-logging свойств.
     /// </summary>
-    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="process">Имя процесса.</param>
     /// <param name="exception">Перехваченное исключение.</param>
     protected virtual void OnLogFailed(ILogger? logger, string process, Exception exception) =>
@@ -140,7 +140,7 @@ public class LogMethodAttribute(
     /// Выполняет логирование времени выполнения метода.
     /// Переопределите для изменения формата или добавления дополнительных свойств.
     /// </summary>
-    /// <param name="logger">Экземпляр логгера.</param>
+    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="process">Имя процесса.</param>
     /// <param name="level">Уровень логирования.</param>
     /// <param name="stopwatch">Таймер.</param>

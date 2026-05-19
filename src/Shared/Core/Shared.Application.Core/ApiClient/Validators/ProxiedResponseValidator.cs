@@ -30,7 +30,7 @@ namespace Shared.Application.Core.ApiClient.Validators;
 /// модифицируются для ясности.
 /// </para>
 /// </remarks>
-/// <param name="logger">Экземпляр логгера.</param>
+/// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
 public sealed class ProxiedResponseValidator(
     ILogger<ProxiedResponseValidator> logger)
     : IResponseValidator

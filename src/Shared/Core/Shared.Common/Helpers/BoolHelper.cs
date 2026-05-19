@@ -7,7 +7,7 @@
 namespace Shared.Common.Helpers;
 
 /// <summary>
-/// Расширение для <see cref="bool"/>.
+/// Вспомогательный класс для преобразования строковых представлений логических значений.
 /// </summary>
 public static class BoolHelper
 {
@@ -20,8 +20,10 @@ public static class BoolHelper
     /// Возвращает логическое значение, соответствующее заданной строке.
     /// </summary>
     /// <param name="value">Строка, которую нужно преобразовать в логическое значение.</param>
-    /// <param name="strong">Если true, то метод ищет подстроку, иначе - точное совпадение.</param>
-    /// <returns>Логическое значение, соответствующее заданной строке, или null, если строка не найдена.</returns>
+    /// <param name="strong">
+    /// Если <c>true</c>, выполняется поиск по подстроке; если <c>false</c> — точное совпадение.
+    /// </param>
+    /// <returns>Логическое значение, соответствующее заданной строке, или <c>null</c>, если соответствие не найдено.</returns>
     public static bool? GetBooleanValueByString(string value, bool strong)
     {
         var key = RussianBooleanStrings.Keys.FirstOrDefault(x =>

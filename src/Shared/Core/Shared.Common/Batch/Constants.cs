@@ -7,7 +7,7 @@
 namespace Shared.Common.Batch;
 
 /// <summary>
-/// Константы для работы с Batch-ами.
+/// Константы для работы с батчами (порциями данных).
 /// </summary>
 public static class Constants
 {

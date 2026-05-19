@@ -40,7 +40,7 @@ public static class AssemblyHelper
     /// <summary>
     /// Возвращает перечисление сборок, содержащих типы, унаследованные от указанного обобщенного базового типа.
     /// </summary>
-    /// <param name="type">Тип обобщенного базового класса для поиска производных типов.</param>
+    /// <param name="type">Обобщённый базовый тип для поиска производных типов.</param>
     /// <param name="entryAssembly">Сборка, с которой начинается поиск. Если не указано, используется сборка, в которой находится вызывающий код.</param>
     /// <returns>Перечисление сборок, содержащих типы, производные от указанного обобщенного базового типа.</returns>
     public static IEnumerable<Assembly> GetAssembliesContainingDerivedGenericTypes(
@@ -89,13 +89,9 @@ public static class AssemblyHelper
             .Where(attr => attr is not null)!;
     }
 
-    /// <summary>
-    /// Получает все типы, производные от указанного типа, из всех загруженных сборок.
-    /// </summary>
     /// <typeparam name="TType">Тип, для которого необходимо найти производные типы.</typeparam>
-    /// <param name="includedAttributesTypes">Список типов аттрибутов, которые должны содержать целевые типы.</param>
-    /// <param name="excludedAttributesTypes">Список типов аттрибутов, которые не должны содержать целевые типы.</param>
     /// <returns>Перечисление производных типов.</returns>
+    /// <inheritdoc cref="GetDerivedTypesFromAssemblies(Type, Type[], Type[])"/>
     public static IEnumerable<Type> GetDerivedTypesFromAssemblies<TType>(
         Type[]? includedAttributesTypes = null,
         Type[]? excludedAttributesTypes = null)
@@ -110,8 +106,8 @@ public static class AssemblyHelper
     /// Получает все типы, производные от указанного типа, из всех загруженных сборок.
     /// </summary>
     /// <param name="baseType">Тип, для которого необходимо найти производные типы.</param>
-    /// <param name="includedAttributesTypes">Список типов аттрибутов, которые должны содержать целевые типы.</param>
-    /// <param name="excludedAttributesTypes">Список типов аттрибутов, которые не должны содержать целевые типы.</param>
+    /// <param name="includedAttributesTypes">Список типов атрибутов, которыми должны быть помечены целевые типы.</param>
+    /// <param name="excludedAttributesTypes">Список типов атрибутов, которыми не должны быть помечены целевые типы.</param>
     /// <returns>Перечисление производных типов.</returns>
     public static IEnumerable<Type> GetDerivedTypesFromAssemblies(
         Type baseType,
@@ -152,11 +148,11 @@ public static class AssemblyHelper
     }
 
     /// <summary>
-    /// Получение сборки по наименованию.
+    /// Получает сборку по имени из домена приложения.
     /// </summary>
     /// <param name="appDomain">Домен приложения.</param>
-    /// <param name="assemblyName"> Наименование сборки.</param>
-    /// <returns>Сборка.</returns>
+    /// <param name="assemblyName">Имя сборки.</param>
+    /// <returns>Сборка с указанным именем или <c>null</c>, если не найдена.</returns>
     public static Assembly? GetAssemblyByName(this AppDomain appDomain, string assemblyName)
         => appDomain
             .GetAssemblies()

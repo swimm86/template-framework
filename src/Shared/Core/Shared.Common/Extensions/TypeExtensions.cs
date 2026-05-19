@@ -15,7 +15,7 @@ namespace Shared.Common.Extensions;
 public static class TypeExtensions
 {
     /// <summary>
-    /// Провереяет, реализует ли тип <see cref="IEnumerable"/> или <see cref="IEnumerable{T}"/>.
+    /// Проверяет, реализует ли тип <see cref="IEnumerable"/> или <see cref="IEnumerable{T}"/>.
     /// </summary>
     /// <param name="type">Тип для проверки.</param>
     /// <returns>Результат проверки.</returns>

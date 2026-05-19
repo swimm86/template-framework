@@ -12,12 +12,12 @@ namespace Shared.Common.Constants;
 public static class FormatsConstants
 {
     /// <summary>
-    /// Формат для даты.
+    /// Формат отображения даты (dd.MM.yyyy).
     /// </summary>
     public const string DateOnlyFormat = "dd.MM.yyyy";
 
     /// <summary>
-    /// Формат для даты и времени.
+    /// Формат отображения даты и времени (dd.MM.yyyy HH:mm).
     /// </summary>
     public const string DateTimeFormat = "dd.MM.yyyy HH:mm";
 }

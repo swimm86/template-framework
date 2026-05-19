@@ -12,9 +12,9 @@ namespace Shared.Common.Logging.Attributes;
 
 /// <summary>
 /// Вспомогательный класс для оборачивания async-задач (<see cref="Task"/> / <see cref="Task{T}"/>)
-/// в цепочку с колбэками логирования.
-/// Кеширует скомпилированные делегаты через Expression Trees для каждого уникального типа <c>T</c>,
-/// избегая overhead рефлексии при повторных вызовах.
+/// в цепочку с обратными вызовами (callback) логирования.
+/// Кэширует скомпилированные делегаты через Expression Trees для каждого уникального типа <c>T</c>,
+/// избегая накладных расходов (overhead) рефлексии при повторных вызовах.
 /// </summary>
 internal static class AsyncMethodLogger
 {
@@ -23,12 +23,12 @@ internal static class AsyncMethodLogger
         Func<object, Action, Action<Exception>, object>> WrapperCache = new();
 
     /// <summary>
-    /// Оборачивает <paramref name="returnValue"/> (Task / Task&lt;T&gt;) в обёртку с логированием.
+    /// Выполняет обёртывание <paramref name="returnValue"/> (Task / Task&lt;T&gt;) в обёртку с логированием.
     /// Для значений, не являющихся Task, немедленно вызывает <paramref name="onCompleted"/>.
     /// </summary>
     /// <param name="returnValue">Возвращаемое значение метода.</param>
-    /// <param name="onCompleted">Колбэк, вызываемый при успешном завершении.</param>
-    /// <param name="onFailed">Колбэк, вызываемый при ошибке.</param>
+    /// <param name="onCompleted">Обратный вызов (callback), вызываемый при успешном завершении.</param>
+    /// <param name="onFailed">Обратный вызов (callback), вызываемый при ошибке.</param>
     /// <returns>Обёрнутый Task или исходное значение.</returns>
     internal static object Wrap(
         object returnValue,

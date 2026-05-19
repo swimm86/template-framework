@@ -14,7 +14,7 @@ namespace Shared.Common.Helpers;
 public static class DateParserHelper
 {
     /// <summary>
-    /// Возможные форматы Дат, которые приходят в string через пользовательский ввод.
+    /// Поддерживаемые форматы дат для парсинга из пользовательского ввода.
     /// </summary>
     private static readonly string[] DateTimeFormats =
     [
@@ -54,10 +54,10 @@ public static class DateParserHelper
     }
 
     /// <summary>
-    /// Ультимативный парсинг даты из строки.
+    /// Выполняет парсинг даты из строки с поддержкой множества форматов.
     /// </summary>
-    /// <param name="inValue">Входящее значение.</param>
-    /// <returns>Результат парсинга.</returns>
+    /// <param name="inValue">Входящая строка с датой.</param>
+    /// <returns>Значение <see cref="DateTime"/> при успешном парсинге; иначе <c>null</c>.</returns>
     public static DateTime? TryParseDateTime(string? inValue)
     {
         if (string.IsNullOrWhiteSpace(inValue))

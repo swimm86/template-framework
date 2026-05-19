@@ -16,7 +16,7 @@ namespace Shared.Application.Cqrs.Core.Behaviours;
 /// </summary>
 /// <typeparam name="TRequest">Тип обрабатываемого запроса.</typeparam>
 /// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
-/// <param name="logger">Логгер для записи событий.</param>
+/// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
 internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
     ILogger<LoggingPipelineBehaviour<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>

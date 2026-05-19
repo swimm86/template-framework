@@ -7,22 +7,22 @@
 namespace Shared.Common.Extensions;
 
 /// <summary>
-/// Расширение для <see cref="IQueryable{T}"/>.
+/// Методы расширения для <see cref="IQueryable{T}"/>: постраничная выборка, ограничение результата.
 /// </summary>
 public static class QueryableExtensions
 {
     /// <summary>
-    /// Возвращает подмножество элементов из <see cref="IQueryable{T}"/> с возможностью указания пропуска и количества элементов для получения.
+    /// Возвращает подмножество элементов из <see cref="IQueryable{T}"/> с указанием пропуска и количества.
     /// </summary>
     /// <typeparam name="TEntity">Тип элементов в <see cref="IQueryable{T}"/>.</typeparam>
-    /// <param name="query">Исходный <see cref="IQueryable{T}"/>.</param>
-    /// <param name="skip">Количество элементов, которые нужно пропустить. Если не указан, то не происходит пропуска.</param>
-    /// <param name="take">Количество элементов, которые нужно получить. Если не указан, то возвращаются все элементы.</param>
-    /// <returns>Новый <see cref="IQueryable{T}"/>, содержащий подмножество элементов из исходного <see cref="IQueryable{T}"/>.</returns>
+    /// <param name="query">Исходный запрос <see cref="IQueryable{T}"/>.</param>
+    /// <param name="skip">Количество элементов для пропуска. Если не указан — пропуск не применяется.</param>
+    /// <param name="take">Количество элементов для выборки. Если не указан — возвращаются все элементы.</param>
+    /// <returns>Запрос <see cref="IQueryable{T}"/> с применёнными ограничениями Skip/Take.</returns>
     public static IQueryable<TEntity> GetRange<TEntity>(
         this IQueryable<TEntity> query,
-        int? skip = default,
-        int? take = default)
+        int? skip = null,
+        int? take = null)
     {
         if (skip != null)
         {

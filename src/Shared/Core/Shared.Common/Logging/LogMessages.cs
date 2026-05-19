@@ -7,7 +7,7 @@
 namespace Shared.Common.Logging;
 
 /// <summary>
-/// Единое хранилище шаблонов structured-logging сообщений для механизмов логирования.
+/// Единое хранилище шаблонов structured-logging сообщений для AOP-атрибутов и extension-методов логирования.
 /// Используется как <see cref="Attributes.LogMethodAttribute"/>, так и
 /// <see cref="global::Shared.Common.Logging.Extensions.LoggerExtensions"/>,
 /// гарантируя идентичность форматов сообщений в обоих подходах.
