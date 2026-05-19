@@ -22,15 +22,11 @@ namespace Shared.Application.Core.ApiClient.Extensions;
 /// </summary>
 public static class DependencyInjectionExtensions
 {
-    /// <summary>
-    /// Регистрирует API-клиент вручную через <see cref="IConfiguration"/>.
-    /// </summary>
     /// <typeparam name="TOptions">Тип настроек API-клиента.</typeparam>
-    /// <typeparam name="TIClient">Тип интерфейса API-клиента.</typeparam>
-    /// <typeparam name="TClient">Тип реализации API-клиента.</typeparam>
-    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <param name="configuration">Конфигурация приложения <see cref="IConfiguration"/>.</param>
-    /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
+    /// <inheritdoc cref="AddClient{TOptions,TIClient}"/>
+    /// <typeparam name="TClient"/><typeparam name="TIClient"/>
+    /// <param name="serviceCollection"/>
     public static IServiceCollection AddClient<TOptions, TIClient, TClient>(
         this IServiceCollection serviceCollection,
         IConfiguration configuration)
@@ -43,7 +39,7 @@ public static class DependencyInjectionExtensions
     }
 
     /// <summary>
-    /// Регистрирует API-клиент вручную через объект настроек.
+    /// Регистрирует вручную API-клиент в DI-контейнере через <see cref="IConfiguration"/>.
     /// </summary>
     /// <typeparam name="TIClient">Тип интерфейса API-клиента.</typeparam>
     /// <typeparam name="TClient">Тип реализации API-клиента.</typeparam>

@@ -13,7 +13,7 @@ namespace Shared.Application.Core.ApiClient.Configurators.BuilderConfigurator.In
 /// </summary>
 /// <remarks>
 /// <para>
-/// Контракт предполагает stateless-реализации, которые не зависят от runtime-scoped сервисов.
+/// Реализация должна быть stateless и не зависеть от runtime-scoped сервисов.
 /// </para>
 /// <para>
 /// Для общего конфигуратора свойство <see cref="ApiClientTypes"/> должно возвращать пустую коллекцию.

@@ -9,7 +9,7 @@ using Shared.Application.Core.Batch.Http.RetryPolicy.Interfaces;
 namespace Shared.Application.Core.Batch.Http.RetryPolicy.Extensions;
 
 /// <summary>
-/// Расширения для политики повторных попыток операции.
+/// Методы расширения для <see cref="IHttpBatchRetryPolicy"/>.
 /// </summary>
 public static class HttpBatchRetryPolicyExtensions
 {
@@ -18,7 +18,7 @@ public static class HttpBatchRetryPolicyExtensions
     /// </summary>
     /// <param name="policy">Политика повторных попыток операции.</param>
     /// <param name="operation">Операция для выполнения.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Задача, завершающаяся без значения после успешного выполнения операции (включая повторы при транзиентных сбоях).</returns>
     public static Task ExecuteAsync(
         this IHttpBatchRetryPolicy policy,

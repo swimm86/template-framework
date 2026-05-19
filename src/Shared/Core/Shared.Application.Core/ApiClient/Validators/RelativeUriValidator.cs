@@ -10,7 +10,7 @@ using Shared.Application.Core.ApiClient.Validators.Interfaces;
 namespace Shared.Application.Core.ApiClient.Validators;
 
 /// <summary>
-/// Валидатор относительных URI.
+/// Валидатор относительных URI-адресов.
 /// </summary>
 /// <remarks>
 /// Запрещает:

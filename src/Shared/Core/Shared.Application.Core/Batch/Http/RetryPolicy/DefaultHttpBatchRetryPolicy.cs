@@ -10,7 +10,7 @@ using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
 namespace Shared.Application.Core.Batch.Http.RetryPolicy;
 
 /// <summary>
-/// Политика повторов по <see cref="RetryConfiguration"/> (транзиентность HTTP/BCL, backoff, Retry-After из данных исключения).
+/// Политика повторов на основе <see cref="RetryConfiguration"/> (транзиентность HTTP/BCL, backoff, Retry-After из данных исключения).
 /// </summary>
 public sealed class DefaultHttpBatchRetryPolicy
     : IHttpBatchRetryPolicy

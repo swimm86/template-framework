@@ -7,7 +7,7 @@
 namespace Shared.Application.Core.CorrelationId;
 
 /// <summary>
-/// Константы для корреляционных идентификаторов.
+/// Константы для работы с корреляционными идентификаторами.
 /// </summary>
 public static class Constants
 {

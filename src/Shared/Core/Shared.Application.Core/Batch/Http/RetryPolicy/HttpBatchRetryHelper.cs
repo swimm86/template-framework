@@ -12,7 +12,7 @@ using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
 namespace Shared.Application.Core.Batch.Http.RetryPolicy;
 
 /// <summary>
-/// Внутренняя реализация backoff, классификации транзиентных сбоев и расчёта паузы перед повтором страницы.
+/// Вспомогательный класс для расчёта backoff, классификации транзиентных сбоев и вычисления паузы перед повтором запроса страницы.
 /// </summary>
 internal static class HttpBatchRetryHelper
 {
@@ -38,7 +38,7 @@ internal static class HttpBatchRetryHelper
     /// Транзиентность с учётом пользовательских правил и встроенных эвристик HTTP/BCL.
     /// </summary>
     /// <param name="ex">Исключение попытки.</param>
-    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <param name="options">Конфигурация повторов.</param>
     /// <returns><see langword="true"/>, если сбой считается временным.</returns>
     internal static bool IsTransientFailure(

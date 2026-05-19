@@ -7,8 +7,10 @@
 namespace Shared.Application.Core.ApiClient.Attributes;
 
 /// <summary>
-/// Задает явную конфигурацию для автоматической DI-регистрации API-клиента.
+/// Задает конфигурацию для автоматической регистрации API-клиента в DI-контейнере.
 /// </summary>
+/// <param name="settingsType">Тип настроек API-клиента.</param>
+/// <param name="interfaceType">Тип интерфейса, под которым клиент регистрируется в DI.</param>
 /// <remarks>
 /// Атрибут используется методом <c>AddHttpClients</c> для связывания:
 /// <list type="bullet">

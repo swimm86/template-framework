@@ -11,7 +11,7 @@ using Shared.Domain.Core.Cache.Interfaces;
 namespace Shared.Application.Core.Cache;
 
 /// <summary>
-/// Служба кэширования, ограниченная скоупом запроса.
+/// Сервис кэширования, ограниченный областью видимости запроса (scoped).
 /// </summary>
 public class ScopedMemoryCache : IScopedMemoryCache
 {
@@ -19,9 +19,9 @@ public class ScopedMemoryCache : IScopedMemoryCache
     private MemoryCache _cache;
 
     /// <summary>
-    /// Инициализирует новый экземпляр класса <see cref="ScopedMemoryCache"/>.
+    /// Инициализирует новый экземпляр <see cref="ScopedMemoryCache"/>.
     /// </summary>
-    /// <param name="logger">Логгер.</param>
+    /// <param name="logger">Экземпляр логгера.</param>
     public ScopedMemoryCache(ILogger<ScopedMemoryCache> logger)
     {
         _cache = new MemoryCache(new MemoryCacheOptions());

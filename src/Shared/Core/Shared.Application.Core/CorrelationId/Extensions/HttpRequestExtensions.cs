@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 namespace Shared.Application.Core.CorrelationId.Extensions;
 
 /// <summary>
-/// Расширения для <see cref="HttpRequest"/>.
+/// Методы расширения для <see cref="HttpRequest"/>.
 /// </summary>
 public static class HttpRequestExtensions
 {

@@ -15,7 +15,7 @@ public interface IHttpBatchRetryPolicy
     /// Выполняет операцию с повторами согласно реализации.
     /// </summary>
     /// <param name="operation">Операция для выполнения.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <typeparam name="TResult">Тип результата операции.</typeparam>
     /// <returns>Результат успешного выполнения.</returns>
     Task<TResult> ExecuteAsync<TResult>(
