@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Reflection;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
@@ -47,38 +48,67 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
 
     #region Read methods
 
-    public Task<TEntity?> GetAsync(object? id, QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<TEntity?> GetAsync(
+        object? id,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         if (id is null)
+        {
             return Task.FromResult<TEntity?>(null);
-        _storage.TryGetValue(id, out var entity);
-        return Task.FromResult(entity);
+        }
+
+        if (!_storage.TryGetValue(id, out var entity))
+        {
+            return Task.FromResult<TEntity?>(null);
+        }
+
+        return Task.FromResult(MatchesOptions(entity, options) ? entity : null);
     }
 
-    public Task<TEntity?> GetAsync(object? id, ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<TEntity?> GetAsync(
+        object? id,
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => GetAsync(id, specification.BuildOptions(), cancellationToken);
 
-    public Task<TOut?> GetAsync<TOut>(object? id, QueryOptions<TEntity>? options = null, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> GetAsync<TOut>(
+        object? id,
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         if (id is null)
             return Task.FromResult<TOut?>(default);
-        if (_storage.TryGetValue(id, out var entity))
+        if (!_storage.TryGetValue(id, out var entity) || !MatchesOptions(entity, options))
         {
-            if (selector is not null)
-                return Task.FromResult<TOut?>(selector.Compile()(entity));
-            return Task.FromResult<TOut?>((TOut?)(object)entity);
+            return Task.FromResult<TOut?>(default);
         }
-        return Task.FromResult<TOut?>(default);
+
+        if (selector is not null)
+        {
+            return Task.FromResult<TOut?>(selector.Compile()(entity));
+        }
+
+        return Task.FromResult((TOut?)(object)entity);
     }
 
-    public Task<TOut?> GetAsync<TOut>(object? id, ISpecification<TEntity> specification, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
-        => GetAsync<TOut>(id, specification.BuildOptions(), selector, cancellationToken);
+    public Task<TOut?> GetAsync<TOut>(
+        object? id,
+        ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
+        => GetAsync(id, specification.BuildOptions(), selector, cancellationToken);
 
-    public Task<List<TEntity>> GetRangeAsync(QueryOptions<TEntity>? options = null, int? skip = null, int? take = null, CancellationToken cancellationToken = default)
+    public Task<List<TEntity>> GetRangeAsync(
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
@@ -88,10 +118,19 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.FromResult(query.ToList());
     }
 
-    public Task<List<TEntity>> GetRangeAsync(ISpecification<TEntity> specification, int? skip = null, int? take = null, CancellationToken cancellationToken = default)
+    public Task<List<TEntity>> GetRangeAsync(
+        ISpecification<TEntity> specification,
+        int? skip = null,
+        int? take = null,
+        CancellationToken cancellationToken = default)
         => GetRangeAsync(specification.BuildOptions(), skip, take, cancellationToken);
 
-    public Task<List<TOut>> GetRangeAsync<TOut>(QueryOptions<TEntity>? options = null, int? skip = null, int? take = null, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<List<TOut>> GetRangeAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
@@ -102,46 +141,74 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.FromResult(query.Select(compiledSelector).ToList());
     }
 
-    public Task<List<TOut>> GetRangeAsync<TOut>(ISpecification<TEntity> specification, int? skip = null, int? take = null, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<List<TOut>> GetRangeAsync<TOut>(
+        ISpecification<TEntity> specification,
+        int? skip = null,
+        int? take = null,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
         => GetRangeAsync(specification.BuildOptions(), skip, take, selector, cancellationToken);
 
-    public Task<TEntity?> FirstOrDefaultAsync(QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<TEntity?> FirstOrDefaultAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).FirstOrDefault());
     }
 
-    public Task<TEntity?> FirstOrDefaultAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<TEntity?> FirstOrDefaultAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => FirstOrDefaultAsync(specification.BuildOptions(), cancellationToken);
 
-    public Task<TOut?> FirstOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> FirstOrDefaultAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         var entity = query.FirstOrDefault();
         if (entity is null)
+        {
             return Task.FromResult<TOut?>(default);
+        }
+
         if (selector is not null)
+        {
             return Task.FromResult<TOut?>(selector.Compile()(entity));
-        return Task.FromResult<TOut?>((TOut?)(object)entity);
+        }
+
+        return Task.FromResult((TOut?)(object)entity);
     }
 
-    public Task<TOut?> FirstOrDefaultAsync<TOut>(ISpecification<TEntity> specification, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> FirstOrDefaultAsync<TOut>(
+        ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
         => FirstOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
-    public Task<TEntity?> SingleOrDefaultAsync(QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<TEntity?> SingleOrDefaultAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).SingleOrDefault());
     }
 
-    public Task<TEntity?> SingleOrDefaultAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<TEntity?> SingleOrDefaultAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => SingleOrDefaultAsync(specification.BuildOptions(), cancellationToken);
 
-    public Task<TOut?> SingleOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> SingleOrDefaultAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
@@ -151,77 +218,114 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
             return Task.FromResult<TOut?>(default);
         if (selector is not null)
             return Task.FromResult<TOut?>(selector.Compile()(entity));
-        return Task.FromResult<TOut?>((TOut?)(object)entity);
+        return Task.FromResult((TOut?)(object)entity);
     }
 
-    public Task<TOut?> SingleOrDefaultAsync<TOut>(ISpecification<TEntity> specification, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> SingleOrDefaultAsync<TOut>(
+        ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
         => SingleOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
-    public Task<TEntity?> LastOrDefaultAsync(QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<TEntity?> LastOrDefaultAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).LastOrDefault());
     }
 
-    public Task<TEntity?> LastOrDefaultAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<TEntity?> LastOrDefaultAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => LastOrDefaultAsync(specification.BuildOptions(), cancellationToken);
 
-    public Task<TOut?> LastOrDefaultAsync<TOut>(QueryOptions<TEntity>? options = null, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> LastOrDefaultAsync<TOut>(
+        QueryOptions<TEntity>? options = null,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         var entity = query.LastOrDefault();
         if (entity is null)
+        {
             return Task.FromResult<TOut?>(default);
+        }
+
         if (selector is not null)
+        {
             return Task.FromResult<TOut?>(selector.Compile()(entity));
-        return Task.FromResult<TOut?>((TOut?)(object)entity);
+        }
+
+        return Task.FromResult((TOut?)(object)entity);
     }
 
-    public Task<TOut?> LastOrDefaultAsync<TOut>(ISpecification<TEntity> specification, Expression<Func<TEntity, TOut>>? selector = default, CancellationToken cancellationToken = default)
+    public Task<TOut?> LastOrDefaultAsync<TOut>(
+        ISpecification<TEntity> specification,
+        Expression<Func<TEntity, TOut>>? selector = null,
+        CancellationToken cancellationToken = default)
         => LastOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
     #endregion
 
     #region Aggregation methods
 
-    public Task<int> CountAsync(QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<int> CountAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Count());
     }
 
-    public Task<int> CountAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<int> CountAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => CountAsync(specification.BuildOptions(), cancellationToken);
 
-    public Task<bool> AnyAsync(QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<bool> AnyAsync(
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Any());
     }
 
-    public Task<bool> AnyAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<bool> AnyAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => AnyAsync(specification.BuildOptions(), cancellationToken);
 
-    public Task<decimal> SumAsync(Expression<Func<TEntity, decimal>> selector, QueryOptions<TEntity>? options = null, CancellationToken cancellationToken = default)
+    public Task<decimal> SumAsync(
+        Expression<Func<TEntity, decimal>> selector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
         GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Sum(selector.Compile()));
     }
 
-    public Task<decimal> SumAsync(Expression<Func<TEntity, decimal>> selector, ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    public Task<decimal> SumAsync(
+        Expression<Func<TEntity, decimal>> selector,
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
         => SumAsync(selector, specification.BuildOptions(), cancellationToken);
 
     #endregion
 
     #region Add methods
 
-    public Task<TEntity> AddAsync(TEntity entity, Guid? userId = default, string? userName = default, CancellationToken cancellationToken = default)
+    public Task<TEntity> AddAsync(
+        TEntity entity,
+        Guid? userId = null,
+        string? userName = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnAdd);
         AddCallCount++;
@@ -230,7 +334,11 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.FromResult(entity);
     }
 
-    public Task AddRangeAsync(IEnumerable<TEntity> entities, Guid? userId = default, string? userName = default, CancellationToken cancellationToken = default)
+    public Task AddRangeAsync(
+        IEnumerable<TEntity> entities,
+        Guid? userId = null,
+        string? userName = null,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnAdd);
         AddCallCount++;
@@ -245,7 +353,10 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
 
     #region Update methods
 
-    public Task UpdateRangeAsync(Expression<Func<TEntity, bool>>? condition = default, params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
+    public Task UpdateRangeAsync(
+        Expression<Func<TEntity, bool>>? condition = null,
+        params (LambdaExpression propertyExpression,
+            LambdaExpression valueExpression)[] updateData)
     {
         AddCallCount++;
         var query = _storage.Values.AsQueryable();
@@ -256,15 +367,19 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         {
             foreach (var (propExpr, valExpr) in updateData)
             {
-                var prop = propExpr.Compile().DynamicInvoke(entity);
-                var val = valExpr.Compile().DynamicInvoke(entity);
-                // Reflection-based property set would be needed for full implementation
+                if (propExpr.Body is MemberExpression { Member: PropertyInfo propInfo })
+                {
+                    var value = valExpr.Compile().DynamicInvoke(entity);
+                    propInfo.SetValue(entity, value);
+                }
             }
         }
         return Task.CompletedTask;
     }
 
-    public Task UpdateRangeAsync(QueryOptions<TEntity> options, params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
+    public Task UpdateRangeAsync(
+        QueryOptions<TEntity> options,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
     {
         AddCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
@@ -273,24 +388,36 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         {
             foreach (var (propExpr, valExpr) in updateData)
             {
-                var prop = propExpr.Compile().DynamicInvoke(entity);
-                var val = valExpr.Compile().DynamicInvoke(entity);
+                if (propExpr.Body is MemberExpression { Member: PropertyInfo propInfo })
+                {
+                    var value = valExpr.Compile().DynamicInvoke(entity);
+                    propInfo.SetValue(entity, value);
+                }
             }
         }
         return Task.CompletedTask;
     }
 
-    public Task UpdateRangeAsync(ISpecification<TEntity> specification, params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
+    public Task UpdateRangeAsync(
+        ISpecification<TEntity> specification,
+        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
         => UpdateRangeAsync(specification.BuildOptions(), updateData);
 
     #endregion
 
     #region Remove methods
 
-    public Task RemoveAsync(TEntity entity, Guid? userId, bool hard = false, CancellationToken cancellationToken = default)
+    public Task RemoveAsync(
+        TEntity entity,
+        Guid? userId,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
         => RemoveAsync(entity, hard, cancellationToken);
 
-    public Task RemoveAsync(TEntity entity, bool hard = false, CancellationToken cancellationToken = default)
+    public Task RemoveAsync(
+        TEntity entity,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
@@ -298,7 +425,10 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task RemoveRangeAsync(IEnumerable<TEntity> entities, bool hard = false, CancellationToken cancellationToken = default)
+    public Task RemoveRangeAsync(
+        IEnumerable<TEntity> entities,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
@@ -307,7 +437,9 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task RemovePermanentRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    public Task RemovePermanentRangeAsync(
+        IEnumerable<TEntity> entities,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
@@ -316,7 +448,10 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task RemoveRangeAsync(QueryOptions<TEntity> options, bool hard = false, CancellationToken cancellationToken = default)
+    public Task RemoveRangeAsync(
+        QueryOptions<TEntity> options,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
@@ -326,7 +461,10 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task RemoveRangeAsync(Expression<Func<TEntity, bool>> conditions, bool hard = false, CancellationToken cancellationToken = default)
+    public Task RemoveRangeAsync(
+        Expression<Func<TEntity, bool>> conditions,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
@@ -336,14 +474,17 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task RemoveRangeAsync(ISpecification<TEntity> specification, bool hard = false, CancellationToken cancellationToken = default)
+    public Task RemoveRangeAsync(
+        ISpecification<TEntity> specification,
+        bool hard = false,
+        CancellationToken cancellationToken = default)
         => RemoveRangeAsync(specification.BuildOptions(), hard, cancellationToken);
 
     #endregion
 
     public void Execute(Action process, bool useTransaction = false)
     {
-        Execute<object?>(() => { process(); return default; });
+        Execute<object?>(() => { process(); return null; });
     }
 
     public TResult Execute<TResult>(Func<TResult> process, bool useTransaction = false)
@@ -352,10 +493,19 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return process();
     }
 
-    public Task ExecuteAsync(Func<Task> process, bool useTransaction = false, CancellationToken cancellationToken = default)
-        => ExecuteAsync<object?>(async () => { await process(); return default; }, useTransaction, cancellationToken);
+    public Task ExecuteAsync(
+        Func<Task> process,
+        bool useTransaction = false,
+        CancellationToken cancellationToken = default)
+        => ExecuteAsync<object?>(
+            async () => { await process(); return null; },
+            useTransaction,
+            cancellationToken);
 
-    public Task<TResult> ExecuteAsync<TResult>(Func<Task<TResult>> process, bool useTransaction = false, CancellationToken cancellationToken = default)
+    public Task<TResult> ExecuteAsync<TResult>(
+        Func<Task<TResult>> process,
+        bool useTransaction = false,
+        CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
         return process();
@@ -380,21 +530,30 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    private static IQueryable<TEntity> ApplyOptions(IQueryable<TEntity> query, QueryOptions<TEntity>? options)
+    private static bool MatchesOptions(
+        TEntity entity,
+        QueryOptions<TEntity>? options)
+        => ApplyOptions(new[] { entity }.AsQueryable(), options).Any();
+
+    private static IQueryable<TEntity> ApplyOptions(
+        IQueryable<TEntity> query,
+        QueryOptions<TEntity>? options)
     {
         if (options is null)
+        {
             return query;
+        }
 
-        foreach (var filter in options.Filters)
-            query = query.Where(filter);
+        query = options.Filters.Aggregate(query, (current, filter) => current.Where(filter));
 
-        foreach (var order in options.OrderBy)
-            query = order.Direction == OrderDirectionType.Ascending
-                ? query.OrderBy(order.Expression)
-                : query.OrderByDescending(order.Expression);
+        query = options.OrderBy.Aggregate(query, (current, order) => order.Direction == OrderDirectionType.Ascending
+            ? current.OrderBy(order.Expression)
+            : current.OrderByDescending(order.Expression));
 
         if (options.Distinct)
+        {
             query = query.Distinct();
+        }
 
         return query;
     }
