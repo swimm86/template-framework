@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="7.2.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Core\Shared.Application.Cqrs.Core\Shared.Application.Cqrs.Core.csproj" />
+    <ProjectReference Include="..\..\Shared.Testing\Shared.Testing.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Infrastructure\**" />
+    <Compile Remove="Abstractions\**" />
+    <Compile Remove="Features\**" />
+    <Compile Include="Infrastructure\TestDoubles\TestModels.cs" />
+    <Compile Include="Infrastructure\TestDoubles\FakeValidator.cs" />
+    <Compile Include="Infrastructure\TestDoubles\FakeLoggerFactory.cs" />
+    <Compile Include="Infrastructure\TestDoubles\CountingUnitOfWork.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestRequestHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestRequestHandlerThatThrows.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestEntityRequestHandlers.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestReadByKeyQuery.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestListFilter.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestPageableRequest.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestPageableResponse.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestReadListQuery.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestReadQueryHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestReadListQueryHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestEntityWithoutDateCreated.cs" />
+    <Compile Include="Infrastructure\TestDoubles\GuardThrowingReadQueryHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\NoDateCreatedHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\PostProcessTrackingReadListQueryHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\OptionsCapturingReadListQueryHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\OptionsCapturingNoDateCreatedReadListQueryHandler.cs" />
+    <Compile Include="Infrastructure\TestDoubles\CallbackRepository.cs" />
+    <Compile Include="Infrastructure\TestDoubles\CallbackUnitOfWork.cs" />
+    <Compile Include="Abstractions\RequestHandlerTests.cs" />
+    <Compile Include="Abstractions\EntityRequestHandlerTests.cs" />
+    <Compile Include="Abstractions\Queries\Requests\ReadByKeyQueryTests.cs" />
+    <Compile Include="Abstractions\Queries\Requests\ReadListQueryTests.cs" />
+    <Compile Include="Abstractions\Queries\Handlers\ReadQueryHandlerTests.cs" />
+    <Compile Include="Abstractions\Queries\Handlers\ReadListQueryHandlerTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="FluentAssertions" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

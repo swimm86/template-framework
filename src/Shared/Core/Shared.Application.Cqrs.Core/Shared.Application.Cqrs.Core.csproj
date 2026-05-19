@@ -11,8 +11,12 @@
       <ProjectReference Include="..\Shared.Application.Core\Shared.Application.Core.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="MediatR" Version="12.4.1" />
+  <ItemGroup>
+    <InternalsVisibleTo Include="Shared.Application.Cqrs.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
