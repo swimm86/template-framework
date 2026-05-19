@@ -78,7 +78,6 @@ public abstract class DeleteCommandHandler<TCommand, TEntity>(
             entity,
             userId: userProvider.UserId,
             cancellationToken: cancellationToken);
-        // TODO BUG (#2): SaveChangesAsync(default) uses default(CancellationToken) instead of the cancellationToken from Handle — delete operation cannot be cancelled
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new Response { StatusCode = StatusCodes.Status200OK };
     }

@@ -52,7 +52,6 @@ public abstract class ReadQueryHandler<TQuery, TEntity, TResponse>(
         TQuery query,
         CancellationToken cancellationToken)
     {
-        // TODO BUG (#4): Repository.GetAsync call does not pass cancellationToken — query execution will not be cancelled when the request is aborted
         var entity = await Repository.GetAsync(
             query.Key,
             ConstructOptions(query),

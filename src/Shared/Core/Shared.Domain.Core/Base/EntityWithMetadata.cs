@@ -68,8 +68,7 @@ public abstract class EntityWithMetadata<TEntity, TKey>
             return;
         }
 
-        // TODO BUG (#5): inverted condition — checks new 'userName' parameter instead of existing 'CreatedByUserName'; allows overwriting an already-set author name
-        if (!string.IsNullOrWhiteSpace(userName))
+        if (!string.IsNullOrWhiteSpace(CreatedByUserName))
         {
             throw new BusinessLogicException("Запрещено изменять автора сущности.");
         }
