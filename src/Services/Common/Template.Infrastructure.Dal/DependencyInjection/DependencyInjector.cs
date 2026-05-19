@@ -15,7 +15,7 @@ using Template.Infrastructure.Dal.Settings;
 namespace Template.Infrastructure.Dal.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Common.Infrastructure.Dal</c>.
+/// Регистрация DI-зависимостей слоя <c>Common.Infrastructure.Dal</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="configuration">Конфигурация приложения (<see cref="IConfiguration"/>).</param>

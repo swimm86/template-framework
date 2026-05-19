@@ -12,7 +12,7 @@ using Shared.Application.Core.DependencyInjection.Base;
 namespace Shared.Infrastructure.Job.Quartz.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Job.Quartz</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Infrastructure.Job.Quartz</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>

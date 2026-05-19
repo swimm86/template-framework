@@ -11,7 +11,7 @@ using Shared.Application.Core.DependencyInjection.Base;
 namespace Template.Setter.Infrastructure.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Setter.Infrastructure</c>.
+/// Регистрация DI-зависимостей слоя <c>Setter.Infrastructure</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>

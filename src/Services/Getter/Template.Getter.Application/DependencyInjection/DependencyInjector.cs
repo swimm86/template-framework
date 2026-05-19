@@ -13,7 +13,7 @@ using Template.Getter.Application.Services;
 namespace Template.Getter.Application.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Getter.Application</c>.
+/// Регистрация DI-зависимостей слоя <c>Getter.Application</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>

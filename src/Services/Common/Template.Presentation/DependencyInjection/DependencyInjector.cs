@@ -13,7 +13,7 @@ using Template.Presentation.Swagger.Extensions;
 namespace Template.Presentation.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Common.Presentation</c>.
+/// Регистрация DI-зависимостей слоя <c>Common.Presentation</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>

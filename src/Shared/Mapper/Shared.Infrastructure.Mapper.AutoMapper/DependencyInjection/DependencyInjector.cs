@@ -14,7 +14,7 @@ using IMapper = Shared.Domain.Core.Mapping.Interfaces.IMapper;
 namespace Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Mapper.AutoMapper</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Infrastructure.Mapper.AutoMapper</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="loggerFactory"><inheritdoc cref="DependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
