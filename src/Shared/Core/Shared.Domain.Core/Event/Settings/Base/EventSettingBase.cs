@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Event.Settings.Base;
 
 /// <summary>
-/// Базовая модель настройки ивентов.
+/// Базовая модель настройки событий.
 /// </summary>
 /// <typeparam name="TItems">Тип исключенных элементов.</typeparam>
 /// <typeparam name="TKey">Тип ключа исключенного элемента.</typeparam>

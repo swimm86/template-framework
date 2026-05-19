@@ -14,7 +14,7 @@ using Shared.Presentation.Core.Swagger.Extensions;
 namespace Shared.Presentation.Core.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Presentation.Core</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Presentation.Core</c>.
 /// </summary>
 /// <remarks>
 /// Данный инжектор регистрирует основные сервисы слоя представления: Swagger, FluentValidation,

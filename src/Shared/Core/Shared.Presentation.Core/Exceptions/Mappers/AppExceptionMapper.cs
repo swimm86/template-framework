@@ -12,10 +12,10 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер доменных исключений приложения <see cref="AppException"/> в ProblemDetails.
+/// Преобразователь доменных исключений приложения <see cref="AppException"/> в ProblemDetails.
 /// </summary>
 /// <remarks>
-/// Используется для базового типа и подтипов, для которых не зарегистрирован более специфичный маппер.
+/// Используется для базового типа и подтипов, для которых не зарегистрирован более специфичный преобразователь.
 /// Возвращает ответ с кодом 500 и сообщением исключения.
 /// </remarks>
 public sealed class AppExceptionMapper(

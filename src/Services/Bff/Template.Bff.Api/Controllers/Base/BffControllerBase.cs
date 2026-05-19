@@ -14,7 +14,7 @@ namespace Template.Bff.Api.Controllers.Base;
 /// <summary>
 /// Базовый класс для BFF Controller-ов.
 /// </summary>
-/// <param name="logger">Логгер.</param>
+/// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
 [AppName(Constants.AppName)]
 [ControllerType("bff")]
 public abstract class BffControllerBase(

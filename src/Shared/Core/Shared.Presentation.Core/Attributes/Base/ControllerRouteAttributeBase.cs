@@ -29,7 +29,7 @@ public abstract class ControllerRouteAttributeBase(string value)
     : Attribute
 {
     /// <summary>
-    /// Значение.
+    /// Значение, подставляемое в маршрут вместо плейсхолдера.
     /// </summary>
     public string Value { get; } = value;
 }

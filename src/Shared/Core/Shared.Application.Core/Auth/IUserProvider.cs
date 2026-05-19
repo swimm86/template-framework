@@ -7,7 +7,7 @@
 namespace Shared.Application.Core.Auth;
 
 /// <summary>
-/// Интерфейс провайдера пользователя.
+/// Интерфейс провайдера информации о текущем пользователе.
 /// </summary>
 public interface IUserProvider
 {

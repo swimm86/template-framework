@@ -51,10 +51,10 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Конвертирует строку в строку, которая нчинается с заглавной буквы.
+    /// Преобразует строку к виду с заглавной первой буквой.
     /// </summary>
     /// <param name="input">Исходная строка.</param>
-    /// <returns>Строка с заглавной буквы.</returns>
+    /// <returns>Строка с заглавной первой буквой.</returns>
     public static string ToUpperFirstChar(this string input)
     {
         return string.IsNullOrEmpty(input)

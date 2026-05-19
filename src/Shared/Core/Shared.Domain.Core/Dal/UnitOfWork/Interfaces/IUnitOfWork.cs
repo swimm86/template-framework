@@ -11,27 +11,27 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 
 /// <summary>
-/// Интерфейс, который используется для unit of work
+/// Определяет контракт для Unit of Work.
 /// </summary>
 public interface IUnitOfWork
     : IDisposable
 {
     /// <summary>
-    /// Сохраняет изменения
+    /// Сохраняет изменения.
     /// </summary>
     /// <param name="commitTransaction">Признак того, что необходимо закоммитить транзакцию.</param>
-    /// <param name="resetEventSettingsAfterSave">Сбросить настройки доменных ивентов после сохранения.</param>
+    /// <param name="resetEventSettingsAfterSave">Сбросить настройки доменных событий после сохранения.</param>
     /// <returns>Код результата.</returns>
     int SaveChanges(
         bool commitTransaction = true,
         bool resetEventSettingsAfterSave = true);
 
     /// <summary>
-    /// Асинхронно сохраняет изменения
+    /// Асинхронно сохраняет изменения.
     /// </summary>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <param name="commitTransaction">Признак того, что необходимо закоммитить транзакцию.</param>
-    /// <param name="resetEventSettingsAfterSave">Сбросить настройки доменных ивентов после сохранения.</param>
+    /// <param name="resetEventSettingsAfterSave">Сбросить настройки доменных событий после сохранения.</param>
     /// <returns>Код результата.</returns>
     Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default,
@@ -47,7 +47,7 @@ public interface IUnitOfWork
         where TEntity : class, IEntity;
 
     /// <summary>
-    /// Осуществляет фиксацию тразакции.
+    /// Осуществляет фиксацию транзакции.
     /// </summary>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>
@@ -80,57 +80,57 @@ public interface IUnitOfWork
     IUnitOfWork DisableTransaction();
 
     /// <summary>
-    /// Отключает доменные ивенты.
+    /// Отключает доменные события.
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork DisableEvents();
 
     /// <summary>
-    /// Включает доменные ивенты.
+    /// Включает доменные события.
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork EnableEvents();
 
     /// <summary>
-    /// Отключает доменные ивенты.
+    /// Отключает доменные события.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип ивента (если <see langword="null"/>, то отключаются события для всего типа).</param>
+    /// <param name="eventType">Тип события (если <see langword="null"/>, то отключаются события для всего типа).</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork DisableEvents<TEntity>(DomainEventType? eventType = default)
         where TEntity : IEntity, IWithDomainEvents;
 
     /// <summary>
-    /// Включает доменные ивенты.
+    /// Включает доменные события.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип ивента (если <see langword="null"/>, то отключаются события для всего типа).</param>
+    /// <param name="eventType">Тип события (если <see langword="null"/>, то отключаются события для всего типа).</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork EnableEvents<TEntity>(DomainEventType? eventType = default)
         where TEntity : IEntity, IWithDomainEvents;
 
     /// <summary>
-    /// Отключает доменные ивенты.
+    /// Отключает доменные события.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип ивента.</param>
+    /// <param name="eventType">Тип события.</param>
     /// <param name="eventKeyFlags">Флаги событий.</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork DisableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
         where TEntity : IEntity, IWithDomainEvents;
 
     /// <summary>
-    /// Включает доменные ивенты.
+    /// Включает доменные события.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип ивента.</param>
+    /// <param name="eventType">Тип события.</param>
     /// <param name="eventKeyFlags">Флаги событий.</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork EnableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
         where TEntity : IEntity, IWithDomainEvents;
 
     /// <summary>
-    /// Сбрасывает настройки доменных ивентов.
+    /// Сбрасывает настройки доменных событий.
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork ResetEventSettings();

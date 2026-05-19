@@ -12,7 +12,7 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер ошибок бизнес-логики <see cref="BusinessLogicException"/> в ProblemDetails.
+/// Преобразователь ошибок бизнес-логики <see cref="BusinessLogicException"/> в ProblemDetails.
 /// </summary>
 /// <remarks>
 /// Возвращает RFC 7807 Problem Details с кодом 422 Unprocessable Entity и сообщением исключения.

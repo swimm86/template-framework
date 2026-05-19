@@ -14,14 +14,14 @@ namespace Shared.Application.Core.Dto.Responses;
 public abstract record ResponseBase
 {
     /// <summary>
-    /// Пустой конструктор.
+    /// Инициализирует новый экземпляр <see cref="ResponseBase"/>.
     /// </summary>
     protected ResponseBase()
     {
     }
 
     /// <summary>
-    /// Базовый абстрактный класс для ответов.
+    /// Инициализирует новый экземпляр <see cref="ResponseBase"/>.
     /// </summary>
     /// <param name="StatusCode">Статус ответа.</param>
     protected ResponseBase(int StatusCode)

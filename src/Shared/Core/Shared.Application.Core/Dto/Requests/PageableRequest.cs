@@ -13,7 +13,7 @@ using Shared.Domain.Core.Dal.Models;
 namespace Shared.Application.Core.Dto.Requests;
 
 /// <summary>
-/// Базовая модель для Request-а с пагинацией.
+/// Базовая модель запроса с пагинацией.
 /// </summary>
 public abstract record PageableRequest
 {
@@ -72,7 +72,7 @@ public abstract record PageableRequest
 }
 
 /// <summary>
-/// Базовая модель для Request-а с пагинацией.
+/// Базовая модель запроса с пагинацией и фильтром.
 /// </summary>
 public abstract record PageableRequest<TFilter>
     : PageableRequest

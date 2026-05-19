@@ -13,9 +13,9 @@ using Shared.Common.Helpers;
 namespace Shared.Application.Core.Configuration.Extensions;
 
 /// <summary>
-/// Класс, содержащий расширения для работы с <see cref="IConfiguration"/>.
+/// Методы расширения для работы с <see cref="IConfiguration"/>.
 /// Предоставляет методы для загрузки конфигурации из различных источников,
-/// получения настроек в зависимости от модуля приложения и инициализации конфигурации.
+/// получения настроек по модулю приложения и инициализации конфигурации.
 /// </summary>
 public static class ConfigurationExtensions
 {

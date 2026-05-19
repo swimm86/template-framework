@@ -14,21 +14,21 @@ namespace Shared.Presentation.Core.Extensions;
 public static class HttpRequestExtensions
 {
     /// <summary>
-    /// Возвзращает признак наличия куки в запросе по имени.
+    /// Возвращает признак наличия cookie в запросе по имени.
     /// </summary>
-    /// <param name="request">Запрос.</param>
-    /// <param name="cookieName">Название куки.</param>
-    /// <returns>Признак наличия куки в запросе.</returns>
+    /// <param name="request">HTTP-запрос.</param>
+    /// <param name="cookieName">Имя cookie.</param>
+    /// <returns>Значение <c>true</c>, если cookie с указанным именем присутствует в запросе; иначе <c>false</c>.</returns>
     public static bool ContainsCookie(this HttpRequest request, string cookieName) =>
         request.Cookies.ContainsKey(cookieName);
 
     /// <summary>
-    /// Возвращает куки из запроса по имени (при наличии).
+    /// Получает значение cookie из запроса по имени.
     /// </summary>
-    /// <param name="request">Запрос.</param>
-    /// <param name="cookieName">Название куки.</param>
-    /// <param name="cookieValue">Значение куки.</param>
-    /// <returns>Признак успешного выполнения операции.</returns>
+    /// <param name="request">HTTP-запрос.</param>
+    /// <param name="cookieName">Имя cookie.</param>
+    /// <param name="cookieValue">Значение cookie, если оно найдено; иначе <c>null</c>.</param>
+    /// <returns>Значение <c>true</c>, если cookie с указанным именем присутствует в запросе; иначе <c>false</c>.</returns>
     private static bool TryGetCookieValue(this HttpRequest request, string cookieName, out string? cookieValue) =>
         request.Cookies.TryGetValue(cookieName, out cookieValue);
 }

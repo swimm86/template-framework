@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Интерфейс обновления сущности
+/// Определяет контракт для объектов с датой обновления.
 /// </summary>
 public interface IWithDateUpdated
 {
@@ -17,8 +17,8 @@ public interface IWithDateUpdated
     DateTime? DateUpdated { get; }
 
     /// <summary>
-    /// Метод установки.
+    /// Устанавливает дату обновления.
     /// </summary>
-    /// <param name="dateUpdated">Дата создания.</param>
+    /// <param name="dateUpdated">Дата обновления.</param>
     void SetDateUpdated(DateTime? dateUpdated);
 }

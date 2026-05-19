@@ -9,18 +9,18 @@ using System.ComponentModel;
 namespace Shared.Domain.Core.Dal;
 
 /// <summary>
-/// Перечислевние направлений сортировки
+/// Перечисление направлений сортировки.
 /// </summary>
 public enum OrderDirectionType
 {
     /// <summary>
-    /// Направление сортировки по возрастанию
+    /// Сортировка по возрастанию.
     /// </summary>
     [Description("asc")]
     Ascending,
 
     /// <summary>
-    /// Направление сортировки по убыванию
+    /// Сортировка по убыванию.
     /// </summary>
     [Description("desc")]
     Descending,

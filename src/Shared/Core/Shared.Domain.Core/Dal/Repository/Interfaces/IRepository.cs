@@ -21,24 +21,21 @@ public interface IRepository<TEntity>
     #region Read methods
 
     /// <summary>
-    /// Асинхронно возвращает экземпляр сущности по ее индентификатору.
+    /// Асинхронно возвращает экземпляр сущности по ее идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор сущности.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Экземпляр сущности, если найден, иначе null.</returns>
     Task<TEntity?> GetAsync(
         object? id,
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает экземпляр сущности по ее индентификатору.
-    /// </summary>
-    /// <param name="id">Идентификатор сущности.</param>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Экземпляр сущности, если найден, иначе null.</returns>
+    /// <inheritdoc cref="GetAsync(object?, QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="id"/><param name="cancellationToken"/>
     Task<TEntity?> GetAsync(
         object? id,
         ISpecification<TEntity> specification,
@@ -46,58 +43,48 @@ public interface IRepository<TEntity>
         GetAsync(id, specification.BuildOptions(), cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее индентификатору.
+    /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее идентификатору.
     /// </summary>
     /// <typeparam name="TOut">Тип, к которому будут преобразована сущность.</typeparam>
     /// <param name="id">Идентификатор сущности.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="selector">Преобразование (если null, то используется преобразование с помощью маппера).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, если найден, иначе null.</returns>
     Task<TOut?> GetAsync<TOut>(
         object? id,
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, по ее индентификатору.
-    /// </summary>
-    /// <typeparam name="TOut">Тип, к которому будут преобразована сущность.</typeparam>
-    /// <param name="id">Идентификатор сущности.</param>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Экземпляр сущности, преобразованный в тип <typeparamref name="TOut"/>, если найден, иначе null.</returns>
+    /// <inheritdoc cref="GetAsync{TOut}(object?, QueryOptions{TEntity}?, Expression{Func{TEntity, TOut}}?, CancellationToken)"/>
+    /// <param name="id"/><param name="selector"/><param name="cancellationToken"/>
     Task<TOut?> GetAsync<TOut>(
         object? id,
         ISpecification<TEntity> specification,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default) =>
         GetAsync(id, specification.BuildOptions(), selector, cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает коллекцию экземпляров сущности по переданной настройке.
+    /// Асинхронно возвращает коллекцию сущностей по заданным параметрам запроса.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Коллекция экземпляров сущности, полученная по переданной настройке.</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Коллекция сущностей, отфильтрованных и упорядоченных согласно заданным параметрам.</returns>
     Task<List<TEntity>> GetRangeAsync(
         QueryOptions<TEntity>? options = null,
         int? skip = null,
         int? take = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает коллекцию экземпляров сущности по переданной настройке.
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
-    /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Коллекция экземпляров сущности, полученная по переданной настройке.</returns>
+    /// <returns>Коллекция сущностей, отфильтрованных и упорядоченных согласно заданной спецификации.</returns>
+    /// <inheritdoc cref="GetRangeAsync(QueryOptions{TEntity}?, int?, int?, CancellationToken)"/>
+    /// <param name="skip"/><param name="take"/><param name="cancellationToken"/>
     Task<List<TEntity>> GetRangeAsync(
         ISpecification<TEntity> specification,
         int? skip = null,
@@ -106,185 +93,155 @@ public interface IRepository<TEntity>
         GetRangeAsync(specification.BuildOptions(), skip, take, cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает коллекцию сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.
+    /// Асинхронно возвращает коллекцию сущностей, преобразованных в тип <typeparamref name="TOut"/>, по заданным параметрам запроса.
     /// </summary>
+    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Коллекция сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.</returns>
+    /// <param name="selector">Выражение проекции (если null, используется маппер).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Коллекция преобразованных сущностей, отфильтрованных и упорядоченных согласно заданным параметрам.</returns>
     Task<List<TOut>> GetRangeAsync<TOut>(
         QueryOptions<TEntity>? options = null,
         int? skip = null,
         int? take = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает коллекцию сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
-    /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Коллекция сущностей, которые были преобразованы в тип <typeparamref name="TOut"/>.</returns>
+    /// <inheritdoc cref="GetRangeAsync{TOut}(QueryOptions{TEntity}?, int?, int?, Expression{Func{TEntity, TOut}}?, CancellationToken)"/>
+    /// <param name="skip"/><param name="take"/><param name="selector"/><param name="cancellationToken"/>
     Task<List<TOut>> GetRangeAsync<TOut>(
         ISpecification<TEntity> specification,
         int? skip = null,
         int? take = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default) =>
         GetRangeAsync(specification.BuildOptions(), skip, take, selector, cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке.
+    /// Асинхронно возвращает первый элемент выборки или null, если выборка пуста.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Первый элемент выборки или null, если выборка пуста.</returns>
     Task<TEntity?> FirstOrDefaultAsync(
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке.
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <returns>Первый элемент выборки или null, если выборка пуста.</returns>
+    /// <inheritdoc cref="FirstOrDefaultAsync(QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="cancellationToken"/>
     Task<TEntity?> FirstOrDefaultAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default) =>
         FirstOrDefaultAsync(specification.BuildOptions(), cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
+    /// Асинхронно возвращает первый элемент выборки, преобразованный в тип <typeparamref name="TOut"/>, или null, если выборка пуста.
     /// </summary>
+    /// <typeparam name="TOut">Тип, к которому будет преобразована сущность.</typeparam>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <param name="selector">Выражение проекции (если null, используется маппер).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Первый преобразованный элемент выборки или null, если выборка пуста.</returns>
     Task<TOut?> FirstOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает первый попавшийся экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Первый попавшийся экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <inheritdoc cref="FirstOrDefaultAsync{TOut}(QueryOptions{TEntity}?, Expression{Func{TEntity, TOut}}?, CancellationToken)"/>
+    /// <param name="selector"/><param name="cancellationToken"/>
     Task<TOut?> FirstOrDefaultAsync<TOut>(
         ISpecification<TEntity> specification,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default) =>
         FirstOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке.
+    /// Асинхронно возвращает единственный элемент выборки или null, если выборка пуста.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
-    /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Единственный элемент выборки или null, если выборка пуста.</returns>
+    /// <exception cref="InvalidOperationException">Выборка содержит более одного элемента.</exception>
     Task<TEntity?> SingleOrDefaultAsync(
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке.
-    /// </summary>
-    /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
+    /// <returns>Единственный элемент выборки или null, если выборка пуста.</returns>
+    /// <inheritdoc cref="SingleOrDefaultAsync(QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="cancellationToken"/>
     Task<TEntity?> SingleOrDefaultAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default) =>
         SingleOrDefaultAsync(specification.BuildOptions(), cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
+    /// Асинхронно возвращает единственный элемент выборки, преобразованный в тип <typeparamref name="TOut"/>, или null, если выборка пуста.
     /// </summary>
+    /// <typeparam name="TOut">Тип, к которому будет преобразована сущность.</typeparam>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
-    /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
+    /// <param name="selector">Выражение проекции (если null, используется маппер).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Единственный преобразованный элемент выборки или null, если выборка пуста.</returns>
+    /// <exception cref="InvalidOperationException">Выборка содержит более одного элемента.</exception>
     Task<TOut?> SingleOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает единственный экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
-    /// </summary>
-    /// <exception cref="T:System.InvalidOperationException">Выборка по спецификации содержит более одного элемента.</exception>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Единственный экземпляр сущности из выборки по переданной спецификации, если выборка имеет 1 элемент, иначе null.</returns>
+    /// <inheritdoc cref="SingleOrDefaultAsync{TOut}(QueryOptions{TEntity}?, Expression{Func{TEntity, TOut}}?, CancellationToken)"/>
+    /// <param name="selector"/><param name="cancellationToken"/>
     Task<TOut?> SingleOrDefaultAsync<TOut>(
         ISpecification<TEntity> specification,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default) =>
         SingleOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке.
+    /// Асинхронно возвращает последний элемент выборки или null, если выборка пуста.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Последний элемент выборки или null, если выборка пуста.</returns>
     Task<TEntity?> LastOrDefaultAsync(
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке.
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <returns>Последний элемент выборки или null, если выборка пуста.</returns>
+    /// <inheritdoc cref="LastOrDefaultAsync(QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="cancellationToken"/>
     Task<TEntity?> LastOrDefaultAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default) =>
         LastOrDefaultAsync(specification.BuildOptions(), cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
+    /// Асинхронно возвращает последний элемент выборки, преобразованный в тип <typeparamref name="TOut"/>, или null, если выборка пуста.
     /// </summary>
+    /// <typeparam name="TOut">Тип, к которому будет преобразована сущность.</typeparam>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <param name="selector">Выражение проекции (если null, используется маппер).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Последний преобразованный элемент выборки или null, если выборка пуста.</returns>
     Task<TOut?> LastOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает последний экземпляр сущности из выборки по переданной настройке с преоборазованием в тип <typeparamref name="TOut"/>.
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <typeparam name="TOut">Тип, к которому будут преобразованы сущности.</typeparam>
-    /// <returns>Последний экземпляр сущности из выборки по переданной спецификации, если выборка не пуста, иначе null.</returns>
+    /// <inheritdoc cref="LastOrDefaultAsync{TOut}(QueryOptions{TEntity}?, Expression{Func{TEntity, TOut}}?, CancellationToken)"/>
+    /// <param name="selector"/><param name="cancellationToken"/>
     Task<TOut?> LastOrDefaultAsync<TOut>(
         ISpecification<TEntity> specification,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default) =>
         LastOrDefaultAsync(specification.BuildOptions(), selector, cancellationToken);
 
@@ -293,66 +250,59 @@ public interface IRepository<TEntity>
     #region Aggregation methods
 
     /// <summary>
-    /// Асинхронно возвращает количество элементов в выборке по настройке.
+    /// Асинхронно возвращает количество элементов в выборке.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Количество элементов в выборке по спецификации.</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Количество элементов в выборке.</returns>
     Task<int> CountAsync(
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает количество элементов в выборке по настройке (Specification).
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Количество элементов в выборке по спецификации.</returns>
+    /// <returns>Количество элементов в выборке.</returns>
+    /// <inheritdoc cref="CountAsync(QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="cancellationToken"/>
     Task<int> CountAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default) =>
         CountAsync(specification.BuildOptions(), cancellationToken);
 
     /// <summary>
-    /// Асинхронно возвращает признак наличия элемента в выборке по настройке.
+    /// Асинхронно возвращает признак наличия хотя бы одного элемента в выборке.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Признак наличия элемента в выборке по настройке</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Значение true, если выборка содержит хотя бы один элемент, иначе false.</returns>
     Task<bool> AnyAsync(
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно возвращает признак наличия элемента в выборке по настройке (Specification).
-    /// </summary>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Признак наличия элемента в выборке по настройке</returns>
+    /// <returns>Значение true, если выборка содержит хотя бы один элемент, иначе false.</returns>
+    /// <inheritdoc cref="AnyAsync(QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="cancellationToken"/>
     Task<bool> AnyAsync(
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default) =>
         AnyAsync(specification.BuildOptions(), cancellationToken);
 
     /// <summary>
-    /// Асинхронно высисляет сумму проекций элементов (в выборке по настройке) в числовые значения.
+    /// Асинхронно вычисляет сумму проекций элементов выборки в числовые значения.
     /// </summary>
-    /// <param name="selector">Проекция, применяемая к каждому элементу.</param>
+    /// <param name="selector">Выражение проекции, применяемое к каждому элементу.</param>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Сумму проекций элементов (в выборке по настройке) в числовые значения</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Сумма проекций элементов выборки.</returns>
     Task<decimal> SumAsync(
         Expression<Func<TEntity, decimal>> selector,
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно высисляет сумму проекций элементов (в выборке по настройке) в числовые значения.
-    /// </summary>
-    /// <param name="selector">Проекция, применяемая к каждому элементу.</param>
     /// <param name="specification">Спецификация.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Сумму проекций элементов (в выборке по настройке) в числовые значения</returns>
+    /// <returns>Сумма проекций элементов выборки.</returns>
+    /// <inheritdoc cref="SumAsync(Expression{Func{TEntity, decimal}}, QueryOptions{TEntity}?, CancellationToken)"/>
+    /// <param name="selector"/><param name="cancellationToken"/>
     Task<decimal> SumAsync(
         Expression<Func<TEntity, decimal>> selector,
         ISpecification<TEntity> specification,
@@ -370,27 +320,21 @@ public interface IRepository<TEntity>
     /// <param name="entity">Экземпляр сущности.</param>
     /// <param name="userId">Id пользователя, добавившего запись.</param>
     /// <param name="userName">Имя пользователя, добавившего запись.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Экземпляр созданной сущности.</returns>
     Task<TEntity> AddAsync(
         TEntity entity,
-        Guid? userId = default,
-        string? userName = default,
+        Guid? userId = null,
+        string? userName = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно добавляет коллекцию экземпляров сущности в БД.
-    /// </summary>
-    /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
+    /// <inheritdoc cref="AddAsync(TEntity, Guid?, string?, CancellationToken)"/>
     /// <param name="entities">Коллекция экземпляров сущности.</param>
-    /// <param name="userId">Id пользователя, добавившего запись.</param>
-    /// <param name="userName">Имя пользователя, добавившего запись.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="userId"/><param name="userName"/><param name="cancellationToken"/>
     Task AddRangeAsync(
         IEnumerable<TEntity> entities,
-        Guid? userId = default,
-        string? userName = default,
+        Guid? userId = null,
+        string? userName = null,
         CancellationToken cancellationToken = default);
 
     #endregion
@@ -398,48 +342,50 @@ public interface IRepository<TEntity>
     #region Update methods
 
     /// <summary>
-    /// Массово обновляет сущности по заданному условию.
+    /// Массово обновляет сущности, удовлетворяющие заданному условию.
     /// </summary>
-    /// <param name="condition">Условие для обновления.</param>
-    /// <param name="updateData">Массив кортежей, содержащий выражения для обновляемых свойств и их значений.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="condition">Выражение-условие для отбора обновляемых сущностей.</param>
+    /// <param name="updateData">Массив кортежей: выражение свойства и выражение нового значения.</param>
+    /// <returns>Задача выполнения операции обновления.</returns>
     Task UpdateRangeAsync(
-        Expression<Func<TEntity, bool>>? condition = default,
+        Expression<Func<TEntity, bool>>? condition = null,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData);
 
     /// <summary>
-    /// Массово обновляет сущности по заданным настройкам.
+    /// Массово обновляет сущности по заданным параметрам запроса.
     /// </summary>
-    /// <param name="options">Настройки запроса. Если null, запрос будет выполнен без дополнительных настроек.</param>
-    /// <param name="updateData">Массив кортежей, содержащий выражения для обновляемых свойств и их значений.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="options">Параметры запроса для отбора обновляемых сущностей.</param>
+    /// <param name="updateData">Массив кортежей: выражение свойства и выражение нового значения.</param>
+    /// <returns>Задача выполнения операции обновления.</returns>
     Task UpdateRangeAsync(
         QueryOptions<TEntity> options,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData);
 
     /// <summary>
-    /// Массово обновляет сущности по заданной спецификации.
+    /// Массово обновляет сущности, отобранные по заданной спецификации.
     /// </summary>
-    /// <param name="specification">Спецификация. Если null, запрос будет выполнен без дополнительных настроек.</param>
-    /// <param name="updateData">Массив кортежей, содержащий выражения для обновляемых свойств и их значений.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="specification">Спецификация для отбора обновляемых сущностей.</param>
+    /// <param name="updateData">Массив кортежей: выражение свойства и выражение нового значения.</param>
+    /// <returns>Задача выполнения операции обновления.</returns>
     Task UpdateRangeAsync(
         ISpecification<TEntity> specification,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData);
 
     /// <summary>
-    /// Предоставляет функции для обновления сущностей без извлечения их из БД.
+    /// Создаёт кортеж выражений для использования в методах массового обновления.
     /// </summary>
-    /// <typeparam name="TProp">Тип свойства.</typeparam>
-    /// <param name="propertyExpression">Выражение для свойства.</param>
-    /// <param name="valueExpression">Выражение для значения.</param>
-    /// <returns>Кортеж из выражений для обновления.</returns>
-    /// <remarks>Пример использования:
-    /// IRepository{TEntity}
-    ///  .UpdateRangeAsync(
-    ///    x => x.Id == Guid.Parse("4c2ca6bf-8c8f-4cbf-9097-d40615241a2c"),
-    /// repo.GetUpdateRangeAsyncLambdaFunc(x => x.Name, x => "name2"),
-    /// repo.GetUpdateRangeAsyncLambdaFunc(x => x.PpsVersionName, x => "ppsVersionName 2"));
+    /// <typeparam name="TProp">Тип обновляемого свойства.</typeparam>
+    /// <param name="propertyExpression">Выражение, указывающее на обновляемое свойство.</param>
+    /// <param name="valueExpression">Выражение, вычисляющее новое значение свойства.</param>
+    /// <returns>Кортеж из двух выражений: свойства и значения.</returns>
+    /// <remarks>
+    /// Пример использования:
+    /// <code>
+    /// await repository.UpdateRangeAsync(
+    ///     x => x.Id == targetId,
+    ///     repository.GetUpdateRangeAsyncLambdaFunc(x => x.Name, x => "newName"),
+    ///     repository.GetUpdateRangeAsyncLambdaFunc(x => x.Version, x => "v2"));
+    /// </code>
     /// </remarks>
     public static (LambdaExpression, LambdaExpression) GetUpdateRangeAsyncLambdaFunc<TProp>(
         Expression<Func<TEntity, TProp>> propertyExpression,
@@ -459,7 +405,7 @@ public interface IRepository<TEntity>
     /// <param name="entity">Экземпляр сущности.</param>
     /// <param name="userId">Id пользователя, удалившего запись.</param>
     /// <param name="hard">Признак того, что сущность должна быть удалена физически.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns><see cref="Task"/>.</returns>
     Task RemoveAsync(
         TEntity entity,
@@ -467,14 +413,8 @@ public interface IRepository<TEntity>
         bool hard = false,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно удаляет экземпляр сущности из БД.
-    /// </summary>
-    /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
-    /// <param name="entity">Экземпляр сущности.</param>
-    /// <param name="hard">Признак того, что сущность должна быть удалена физически.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <inheritdoc cref="RemoveAsync(TEntity, Guid?, bool, CancellationToken)"/>
+    /// <param name="entity"/><param name="hard"/><param name="cancellationToken"/>
     Task RemoveAsync(
         TEntity entity,
         bool hard = false,
@@ -486,58 +426,49 @@ public interface IRepository<TEntity>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
     /// <param name="entities">Коллекция экземпляров сущности.</param>
     /// <param name="hard">Признак того, что сущность должна быть удалена физически.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns><see cref="Task"/>.</returns>
     Task RemoveRangeAsync(
         IEnumerable<TEntity> entities,
         bool hard = false,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно физически удаляет коллекцию экземпляров сущности из БД.
-    /// </summary>
-    /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
-    /// <param name="entities">Коллекция экземпляров сущности.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <inheritdoc cref="RemoveRangeAsync(IEnumerable{TEntity}, bool, CancellationToken)"/>
+    /// <param name="entities"/><param name="cancellationToken"/>
+    /// <remarks>Сущности удаляются физически, мягкое удаление не применяется.</remarks>
     Task RemovePermanentRangeAsync(
         IEnumerable<TEntity> entities,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Асинхронно удаляет выборку экземпляров сущности из БД, по переданной настройке.
+    /// Асинхронно удаляет сущности, отобранные по заданным параметрам запроса.
     /// </summary>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
-    /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="hard">Признак того, что сущность должна быть удалена физически.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="options">Параметры запроса для отбора удаляемых сущностей.</param>
+    /// <param name="hard">Удалить сущности физически (true) или применить мягкое удаление (false).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Задача выполнения операции удаления.</returns>
     Task RemoveRangeAsync(
         QueryOptions<TEntity> options,
         bool hard = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Асинхронно удаляет выборку экземпляров сущности из БД, по переданному условию.
+    /// Асинхронно удаляет сущности, удовлетворяющие заданному условию.
     /// </summary>
     /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
-    /// <param name="conditions">Условия для удаления.</param>
-    /// <param name="hard">Признак того, что сущность должна быть удалена физически.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="conditions">Выражение-условие для отбора удаляемых сущностей.</param>
+    /// <param name="hard">Удалить сущности физически (true) или применить мягкое удаление (false).</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Задача выполнения операции удаления.</returns>
     Task RemoveRangeAsync(
         Expression<Func<TEntity, bool>> conditions,
         bool hard = false,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Асинхронно удаляет выборку экземпляров сущности из БД, по переданной настройке (Specification).
-    /// </summary>
-    /// <remarks>Имеет эффект только после вызова <see cref="SaveChangesAsync"/>.</remarks>
-    /// <param name="specification">Спецификация. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <param name="hard">Признак того, что сущность должна быть удалена физически.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="specification">Спецификация для отбора удаляемых сущностей.</param>
+    /// <inheritdoc cref="RemoveRangeAsync(QueryOptions{TEntity}, bool, CancellationToken)"/>
+    /// <param name="hard"/><param name="cancellationToken"/>
     Task RemoveRangeAsync(
         ISpecification<TEntity> specification,
         bool hard = false,
@@ -547,37 +478,37 @@ public interface IRepository<TEntity>
     #endregion
 
     /// <summary>
-    /// Выполняет операцию с сущностями.
+    /// Выполняет синхронную операцию в контексте репозитория.
     /// </summary>
-    /// <param name="process">Реализация операции.</param>
-    /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
+    /// <param name="process">Делегат операции для выполнения.</param>
+    /// <param name="useTransaction">Выполнять операцию в рамках транзакции.</param>
     void Execute(
         Action process,
         bool useTransaction = false) =>
         Execute<object?>(() =>
         {
             process();
-            return default;
+            return null;
         });
 
     /// <summary>
-    /// Выполняет операцию с сущностями.
+    /// Выполняет синхронную операцию в контексте репозитория с возвращением результата.
     /// </summary>
-    /// <typeparam name="TResult">Тип результата выполнения операции.</typeparam>
-    /// <param name="process">Реализация операции.</param>
-    /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
-    /// <returns>Результат выполнения операции <typeparamref name="TResult"/>.</returns>
+    /// <typeparam name="TResult">Тип возвращаемого значения.</typeparam>
+    /// <param name="process">Делегат операции для выполнения.</param>
+    /// <param name="useTransaction">Выполнять операцию в рамках транзакции.</param>
+    /// <returns>Результат выполнения операции.</returns>
     TResult Execute<TResult>(
         Func<TResult> process,
         bool useTransaction = false);
 
     /// <summary>
-    /// Выполняет операцию асинхронно
+    /// Выполняет асинхронную операцию в контексте репозитория.
     /// </summary>
-    /// <param name="process">Асинхрорнная реализация операции.</param>
-    /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="process">Асинхронный делегат операции для выполнения.</param>
+    /// <param name="useTransaction">Выполнять операцию в рамках транзакции.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Задача выполнения операции.</returns>
     Task ExecuteAsync(
         Func<Task> process,
         bool useTransaction = false,
@@ -586,40 +517,40 @@ public interface IRepository<TEntity>
             async () =>
             {
                 await process();
-                return default;
+                return null;
             },
             useTransaction,
             cancellationToken);
 
     /// <summary>
-    /// Выполняет операцию асинхронно
+    /// Выполняет асинхронную операцию в контексте репозитория с возвращением результата.
     /// </summary>
-    /// <typeparam name="TResult">Тип результата выполнения операции.</typeparam>
-    /// <param name="process">Асинхрорнная реализация операции.</param>
-    /// <param name="useTransaction">Признак того, что операция будет выполнена в рамках транзакции.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Результат выполнения операции <see cref="TResult"/>.</returns>
+    /// <typeparam name="TResult">Тип возвращаемого значения.</typeparam>
+    /// <param name="process">Асинхронный делегат операции для выполнения.</param>
+    /// <param name="useTransaction">Выполнять операцию в рамках транзакции.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Результат выполнения операции.</returns>
     Task<TResult> ExecuteAsync<TResult>(
         Func<Task<TResult>> process,
         bool useTransaction = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Возвращает <see cref="IQueryable{TEntity}"/>.
+    /// Возвращает <see cref="IQueryable{TEntity}"/> для построения запросов.
     /// </summary>
     /// <param name="options">Настройки запроса. Если параметр равен null, запрос будет выполнен без применения дополнительных настроек.</param>
-    /// <returns><see cref="IQueryable{TEntity}"/>.</returns>
+    /// <returns>Запрос <see cref="IQueryable{TEntity}"/> с применёнными настройками.</returns>
     IQueryable<TEntity> Set(QueryOptions<TEntity>? options = null);
 
     /// <summary>
-    /// Применяет внесенные до вызова изменения.
+    /// Синхронно сохраняет все изменения, внесённые в контекст репозитория.
     /// </summary>
     void SaveChanges();
 
     /// <summary>
-    /// Асинхронно применяет внесенные до вызова изменения.
+    /// Асинхронно сохраняет все изменения, внесённые в контекст репозитория.
     /// </summary>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Задача выполнения операции сохранения.</returns>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

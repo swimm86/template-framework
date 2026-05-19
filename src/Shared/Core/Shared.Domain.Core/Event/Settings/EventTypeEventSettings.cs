@@ -10,14 +10,14 @@ using Shared.Domain.Core.Event.Settings.Base;
 namespace Shared.Domain.Core.Event.Settings;
 
 /// <summary>
-/// Модель настройки ивентов по типу.
+/// Модель настройки событий по типу.
 /// </summary>
 /// <param name="Enabled">Признак того, что по умолчанию настройка включена.</param>
 public record EventTypeEventSettings(bool Enabled = true)
     : EventSettingBase<Enum?, Enum>(Enabled)
 {
     /// <inheritdoc />
-    protected override Enum? GetDefaultItems => default;
+    protected override Enum? GetDefaultItems => null;
 
     /// <inheritdoc />
     protected sealed override bool HasExceptItems => ExceptItems != null;

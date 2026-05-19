@@ -10,7 +10,7 @@ using Shared.Application.Core.ApiClient.Configurators.BuilderConfigurator.Interf
 namespace Template.Infrastructure.ApiClient.Configurators;
 
 /// <summary>
-/// Конфигуратор <see cref="IHttpClientBuilder"/> для API-клиентов по-умолчанию.
+/// Конфигуратор <see cref="IHttpClientBuilder"/> для API-клиентов по умолчанию.
 /// </summary>
 public class DefaultApiClientBuilderConfigurator
     : IApiClientBuilderConfigurator

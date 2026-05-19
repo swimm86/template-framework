@@ -18,7 +18,7 @@ namespace Shared.Presentation.Core.Exceptions;
 /// Перехватывает исключения, преобразует их в <see cref="ErrorResponse"/>
 /// и записывает в HTTP-ответ с соответствующим статус-кодом.
 /// </remarks>
-/// <param name="exceptionMapperDispatcher">Резолвер маппера по типу исключения.</param>
+/// <param name="exceptionMapperDispatcher">Преобразователь исключений, выбирающий подходящий <see cref="IExceptionMapper"/> по типу исключения.</param>
 internal sealed class ExceptionHandler(
     IExceptionMapperResolver exceptionMapperDispatcher)
     : IExceptionHandler

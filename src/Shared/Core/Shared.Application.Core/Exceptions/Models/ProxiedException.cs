@@ -58,7 +58,7 @@ public class ProxiedException
     public int StatusCode { get; }
 
     /// <summary>
-    /// Инициализация <see cref="ProxiedException"/>.
+    /// Инициализирует новый экземпляр <see cref="ProxiedException"/>.
     /// </summary>
     /// <param name="problemDetails">Детали ошибки в формате <see cref="ProblemDetails"/>.</param>
     /// <param name="statusCode">HTTP-статус код ошибки.</param>

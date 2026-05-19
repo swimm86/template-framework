@@ -17,7 +17,7 @@ public class TypeDomainEvent
     private readonly Func<IServiceProvider, ICollection<IWithDomainEvents>, CancellationToken, Task> _action;
 
     /// <summary>
-    /// Консутруктор.
+    /// Инициализирует новый экземпляр <see cref="TypeDomainEvent"/>.
     /// </summary>
     /// <param name="action">Действие, которое реализует событие.</param>
     /// <param name="key">Ключ события.</param>

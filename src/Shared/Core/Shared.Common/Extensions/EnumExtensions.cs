@@ -10,12 +10,12 @@ using System.Reflection;
 namespace Shared.Common.Extensions;
 
 /// <summary>
-/// Расширение для <see cref="Enum"/>.
+/// Методы расширения для <see cref="Enum"/>: получение описаний, преобразование по описанию, работа с флагами.
 /// </summary>
 public static class EnumExtensions
 {
     /// <summary>
-    /// Получить значения атрибута <see cref="DescriptionAttribute"/> из значения <see cref="Enum"/>.
+    /// Возвращает значение атрибута <see cref="DescriptionAttribute"/> для элемента перечисления.
     /// </summary>
     /// <param name="value">Значение <see cref="Enum"/>, для которого необходимо получить описание.</param>
     /// <returns>Значение атрибута <see cref="DescriptionAttribute"/>.</returns>
@@ -27,13 +27,15 @@ public static class EnumExtensions
     }
 
     /// <summary>
-    /// Возвращает значение enum типа <see cref="enumType"/> по его описанию,
+    /// Возвращает значение перечисления по его описанию,
     /// указанному в атрибуте <see cref="DescriptionAttribute"/>.
     /// </summary>
-    /// <param name="description">Описание значения enum.</param>
-    /// <param name="enumType">Тип enum.</param>
-    /// <param name="emptyValue">Значение по умолчанию. Если указано, то в случае не нахождения нужного значения, будет возвращено.</param>
-    /// <returns>Значение enum типа <see cref="enumType"/>.</returns>
+    /// <param name="description">Описание значения перечисления.</param>
+    /// <param name="enumType">Тип перечисления.</param>
+    /// <param name="emptyValue">
+    /// Значение по умолчанию. Возвращается, если элемент с указанным описанием не найден.
+    /// </param>
+    /// <returns>Значение перечисления типа <paramref name="enumType"/>.</returns>
     public static Enum GetEnumValueByDescription(
         this string? description,
         Type enumType,
@@ -50,9 +52,11 @@ public static class EnumExtensions
     /// Возвращает значение перечисления типа <typeparamref name="TEnum"/> по его описанию,
     /// указанному в атрибуте <see cref="DescriptionAttribute"/>.
     /// </summary>
-    /// <typeparam name="TEnum">Тип enum.</typeparam>
-    /// <param name="emptyValue">Значение по умолчанию. Если указано, то в случае не нахождения нужного значения, будет возвращено.</param>
-    /// <returns>Значение enum типа <typeparamref name="TEnum"/>.</returns>
+    /// <typeparam name="TEnum">Тип перечисления.</typeparam>
+    /// <param name="emptyValue">
+    /// Значение по умолчанию. Возвращается, если элемент с указанным описанием не найден.
+    /// </param>
+    /// <returns>Значение перечисления типа <typeparamref name="TEnum"/>.</returns>
     /// <inheritdoc cref="GetEnumValueByDescription(string?, Type, Enum?)"/>
     /// <param name="description"/>
     public static TEnum? GetEnumValueByDescription<TEnum>(
@@ -68,11 +72,11 @@ public static class EnumExtensions
     }
 
     /// <summary>
-    /// Получить элементы enum по их частичному описанию из <see cref="DescriptionAttribute"/>
+    /// Возвращает элементы перечисления, описание которых содержит указанную подстроку.
     /// </summary>
-    /// <param name="description">Описание значения enum.</param>
-    /// <param name="enumType">Тип enum.</param>
-    /// <returns>Элемент enum.</returns>
+    /// <param name="description">Подстрока для поиска в описаниях элементов.</param>
+    /// <param name="enumType">Тип перечисления.</param>
+    /// <returns>Коллекция элементов перечисления, содержащих подстроку в описании.</returns>
     public static IEnumerable<Enum> GetEnumValueByPartOfDescription(
         this string? description,
         Type enumType)
@@ -85,11 +89,11 @@ public static class EnumExtensions
     }
 
     /// <summary>
-    /// Объединяет флаги между собой.
+    /// Объединяет флаги перечисления (побитовое ИЛИ).
     /// </summary>
-    /// <param name="flags">Флаги.</param>
+    /// <param name="flags">Исходные флаги.</param>
     /// <param name="flagsToAdd">Флаги для добавления.</param>
-    /// <returns>Объединенные флаги.</returns>
+    /// <returns>Результат объединения флагов.</returns>
     /// <exception cref="ArgumentException">
     /// Возникает, если типы не совпадают между собой или не наследуют <see cref="Enum"/>.
     /// </exception>
@@ -97,16 +101,16 @@ public static class EnumExtensions
         flags.Combine(flagsToAdd, (value1, value2) => value1 | value2);
 
     /// <summary>
-    /// Исключает флаги из других флагов.
+    /// Исключает указанные флаги из набора (побитовое И НЕ).
     /// </summary>
-    /// <param name="flags">Флаги.</param>
-    /// <param name="flagsToAdd">Флаги для исключения.</param>
-    /// <returns>Флаги после исключения.</returns>
+    /// <param name="flags">Исходные флаги.</param>
+    /// <param name="flagsToRemove">Флаги для исключения.</param>
+    /// <returns>Результат исключения флагов.</returns>
     /// <exception cref="ArgumentException">
     /// Возникает, если типы не совпадают между собой или не наследуют <see cref="Enum"/>.
     /// </exception>
-    public static Enum Without(this Enum flags, Enum flagsToAdd) =>
-        flags.Combine(flagsToAdd, (value1, value2) => value1 & ~value2);
+    public static Enum Without(this Enum flags, Enum flagsToRemove) =>
+        flags.Combine(flagsToRemove, (value1, value2) => value1 & ~value2);
 
     private static Enum Combine(this Enum flags, Enum flagsToAdd, Func<long, long, long> combineFunc)
     {

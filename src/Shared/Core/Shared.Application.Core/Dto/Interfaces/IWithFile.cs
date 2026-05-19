@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 namespace Shared.Application.Core.Dto.Interfaces;
 
 /// <summary>
-/// Интерфейс с файлом.
+/// Интерфейс для объектов, содержащих файл.
 /// </summary>
 public interface IWithFile
 {

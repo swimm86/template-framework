@@ -12,6 +12,7 @@ namespace Shared.Application.Core.ApiClient;
 
 /// <summary>
 /// Типизированные HTTP-методы (GET, POST, PUT, PATCH, DELETE) <see cref="ApiClient"/>.
+/// Выполняют десериализацию ответов в указанный тип.
 /// </summary>
 public abstract partial class ApiClient
 {

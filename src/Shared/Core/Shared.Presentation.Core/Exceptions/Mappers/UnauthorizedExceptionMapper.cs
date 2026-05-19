@@ -12,7 +12,7 @@ using Shared.Presentation.Core.Exceptions.Models;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер исключений неаутентифицированного доступа <see cref="UnauthorizedException"/> в ProblemDetails.
+/// Преобразователь исключений неаутентифицированного доступа <see cref="UnauthorizedException"/> в ProblemDetails.
 /// </summary>
 /// <remarks>
 /// Возвращает RFC 7807 Problem Details с кодом 401 Unauthorized.

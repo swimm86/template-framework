@@ -15,7 +15,7 @@ namespace Shared.Presentation.Core.Swagger.Extensions;
 internal static class ApplicationBuilderExtensions
 {
     /// <summary>
-    /// Использование генерации Swagger.
+    /// Активирует Swagger и настраивает SwaggerUI в пайплайне обработки запросов.
     /// </summary>
     /// <param name="app"><see cref="IApplicationBuilder"/>.</param>
     /// <param name="setupUiAction">Делегат для настройки <see cref="SwaggerUIOptions"/></param>

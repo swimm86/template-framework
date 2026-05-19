@@ -7,19 +7,17 @@
 namespace Shared.Application.Core.Dal.DbSeeder.Attributes;
 
 /// <summary>
-/// Атрибут seed-а.
+/// Атрибут для пометки классов первичного заполнения данных (seed).
 /// </summary>
+/// <param name="name">Наименование seed-процесса.</param>
+/// <param name="order">Порядок выполнения.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public class SeedAttribute(string name, int order)
     : Attribute
 {
-    /// <summary>
-    /// Наименование.
-    /// </summary>
+    /// <inheritdoc cref="SeedAttribute" select="param[@name='name']"/>
     public string Name { get; private set; } = name;
 
-    /// <summary>
-    /// Порядок.
-    /// </summary>
+    /// <inheritdoc cref="SeedAttribute" select="param[@name='order']"/>
     public int Order { get; private set; } = order;
 }

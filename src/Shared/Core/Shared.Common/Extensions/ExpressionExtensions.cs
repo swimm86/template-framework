@@ -20,7 +20,7 @@ public static class ExpressionExtensions
     /// <typeparam name="TProperty">Тип свойства, имя которого необходимо получить.</typeparam>
     /// <param name="propertyExpression">Лямбда-выражение, указывающее на свойство, имя которого нужно извлечь.</param>
     /// <returns>Имя свойства, указанного в выражении.</returns>
-    /// <exception cref="ArgumentException">Исключение, вызываемое если выражение не представляет свойство.</exception>
+    /// <exception cref="ArgumentException">Выбрасывается, если выражение не представляет доступ к свойству.</exception>
     public static string GetPropertyName<TPreviousProperty, TProperty>(
         this Expression<Func<TPreviousProperty, TProperty>> propertyExpression)
     {
@@ -28,18 +28,18 @@ public static class ExpressionExtensions
         {
             MemberExpression memberExpression => memberExpression.Member.Name,
             UnaryExpression { Operand: MemberExpression expression } => expression.Member.Name,
-            _ => throw new ArgumentException("Выражение не представляет свойство")
+            _ => throw new ArgumentException("Выражение должно представлять доступ к свойству.")
         };
     }
 
     /// <summary>
-    /// Получает выражения доступа к свойству и конечный тип свойства.
+    /// Получает выражение доступа к свойству и его конечный тип по точечному пути.
     /// </summary>
-    /// <remarks>Поддерживает глубокий доступ.</remarks>
-    /// <typeparam name="T">Тип входного параметра выражений.</typeparam>
+    /// <remarks>Поддерживает вложенные свойства (глубокий доступ через точку).</remarks>
+    /// <typeparam name="T">Тип входного параметра выражения.</typeparam>
     /// <param name="parameterExpr">Параметр выражения.</param>
-    /// <param name="path">Путь к свойству через точку.</param>
-    /// <returns>Пара (выражение доступа к свойству, тип свойства) или <c>(null, null)</c>, если параметр или свойство не найдены.</returns>
+    /// <param name="path">Путь к свойству через точку (регистронезависимый).</param>
+    /// <returns>Кортеж (выражение доступа, тип свойства) или <c>(null, null)</c>, если свойство не найдено.</returns>
     public static (Expression? AccessExpr, Type? PropertyType) GetPropertyAccessAndType<T>(
         this ParameterExpression? parameterExpr,
         string path)
@@ -69,14 +69,14 @@ public static class ExpressionExtensions
     }
 
     /// <summary>
-    /// Объединяет выражения через "И".
+    /// Объединяет выражения через «И» (AndAlso).
     /// </summary>
     /// <typeparam name="T">Тип входного параметра выражений.</typeparam>
-    /// <param name="expr1">Выражение 1.</param>
-    /// <param name="expr2">Выражение 2.</param>
-    /// <returns>Объединенное выражение.</returns>
-    /// <exception cref="ArgumentNullException">Выбрасывается если один из параметров равен <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">Выбрасывается если выражения не содержат параметров.</exception>
+    /// <param name="expr1">Первое логическое выражение.</param>
+    /// <param name="expr2">Второе логическое выражение.</param>
+    /// <returns>Объединённое логическое выражение.</returns>
+    /// <exception cref="ArgumentNullException">Выбрасывается, если один из параметров равен <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Выбрасывается, если выражения не содержат параметров.</exception>
     public static Expression<Func<T, bool>> And<T>(
         this Expression<Func<T, bool>> expr1,
         Expression<Func<T, bool>> expr2)
@@ -97,14 +97,14 @@ public static class ExpressionExtensions
     }
 
     /// <summary>
-    /// Объединяет выражения через "ИЛИ".
+    /// Объединяет выражения через «ИЛИ» (OrElse).
     /// </summary>
     /// <typeparam name="T">Тип входного параметра выражений.</typeparam>
-    /// <param name="expr1">Выражение 1.</param>
-    /// <param name="expr2">Выражение 2.</param>
-    /// <returns>Объединенное выражение.</returns>
-    /// <exception cref="ArgumentNullException">Выбрасывается если один из параметров равен <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">Выбрасывается если выражения не содержат параметров.</exception>
+    /// <param name="expr1">Первое логическое выражение.</param>
+    /// <param name="expr2">Второе логическое выражение.</param>
+    /// <returns>Объединённое логическое выражение.</returns>
+    /// <exception cref="ArgumentNullException">Выбрасывается, если один из параметров равен <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Выбрасывается, если выражения не содержат параметров.</exception>
     public static Expression<Func<T, bool>> Or<T>(
         this Expression<Func<T, bool>> expr1,
         Expression<Func<T, bool>> expr2)

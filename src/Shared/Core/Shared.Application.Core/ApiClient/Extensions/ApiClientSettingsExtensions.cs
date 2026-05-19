@@ -18,11 +18,15 @@ public static class ApiClientSettingsExtensions
     /// Проверяет корректность базовых настроек API-клиента.
     /// </summary>
     /// <param name="options">Экземпляр настроек для валидации.</param>
-    /// <exception cref="ArgumentNullException">Исключение, выбрасываемое, если переданный экземпляр настроек равен null.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// Выбрасывается, если <paramref name="options"/> равен <see langword="null"/>.
+    /// </exception>
     /// <remarks>
-    /// На текущий момент проверяется только обязательность поля <see cref="ApiClientSettingsBase.BaseUrl"/>.
+    /// Проверяется обязательность поля <see cref="ApiClientSettingsBase.BaseUrl"/>.
     /// </remarks>
-    /// <exception cref="OptionsValidationException">Исключение, выбрасываемое, если поле <see cref="ApiClientSettingsBase.BaseUrl"/> не заполнено или содержит пустое значение.</exception>
+    /// <exception cref="OptionsValidationException">
+    /// Выбрасывается, если <see cref="ApiClientSettingsBase.BaseUrl"/> не заполнен.
+    /// </exception>
     public static void Validate(
         this ApiClientSettingsBase options)
     {

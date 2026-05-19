@@ -87,7 +87,7 @@ public static class RepositoryExtensions
     /// <param name="repository">Репозиторий для работы с сущностями.</param>
     /// <param name="id">Идентификатор искомой сущности.</param>
     /// <param name="options">Опции запроса.</param>
-    /// <param name="selector">Преобразование (если null, то используется преобрзование с помощью маппера).</param>
+    /// <param name="selector">Преобразование (если null, то используется преобразование с помощью маппера).</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Найденная сущность.</returns>
     /// <exception cref="NotFoundException">Сущность не найдена.</exception>
@@ -152,7 +152,7 @@ public static class RepositoryExtensions
     /// <param name="entities">Коллекция основных сущностей.</param>
     /// <param name="navigationDtos">Коллекция DTO для навигационных сущностей.</param>
     /// <param name="comparisonFunc">Функция для сравнения основной сущности с навигационной сущностью.</param>
-    /// <param name="mapper">Объект для маппинга данных между типами.</param>
+    /// <param name="mapper">Сервис маппинга объектов.</param>
     /// <param name="addAction">Действие для добавления навигационной сущности к основной сущности.</param>
     /// <param name="removeAction">Действие для удаления навигационной сущности из основной сущности.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
@@ -202,7 +202,7 @@ public static class RepositoryExtensions
     /// <param name="navDestToSrcComparisonFunc">Функция для сравнения навигационной сущности с ее DTO.</param>
     /// <param name="dtoSelector">Функция для выбора идентификатора из DTO навигационной сущности.</param>
     /// <param name="entitySelector">Функция для выбора идентификатора из навигационной сущности.</param>
-    /// <param name="mapper">Объект для маппинга данных между типами.</param>
+    /// <param name="mapper">Сервис маппинга объектов.</param>
     /// <param name="addAction">Действие для добавления навигационной сущности.</param>
     /// <param name="removeAction">Действие для удаления навигационной сущности.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>

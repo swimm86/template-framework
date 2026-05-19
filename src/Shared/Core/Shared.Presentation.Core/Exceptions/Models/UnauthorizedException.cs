@@ -21,7 +21,7 @@ public class UnauthorizedException
     public ClientRequestContext Context { get; }
 
     /// <summary>
-    /// Инициализация <see cref="UnauthorizedException"/>.
+    /// Инициализирует новый экземпляр <see cref="UnauthorizedException"/>.
     /// </summary>
     /// <param name="context">Контекст запроса, содержащий данные о клиенте и домене.</param>
     /// <param name="additionalData">Дополнительная информация для потребителей.</param>

@@ -11,13 +11,13 @@ using Shared.Application.Core.Cache.Interfaces;
 namespace Shared.Application.Core.Cache;
 
 /// <summary>
-/// Класс для работы с кэшем, реализующий интерфейс <see cref="ICacheService{TData}"/>.
-/// Позволяет обновлять и получать кэшированные данные асинхронно.
+/// Сервис работы с кэшем, реализующий <see cref="ICacheService{TData}"/>.
+/// Поддерживает асинхронное обновление и получение кэшированных данных.
 /// </summary>
 /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
-/// <param name="key">Ключ для кэширования данных.</param>
-/// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/> для работы с ним.</param>
-/// <param name="getFunc">Функция для получения данных, если они отсутствуют в кэше.</param>
+/// <param name="key">Ключ кэша.</param>
+/// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/>.</param>
+/// <param name="getFunc">Функция получения данных при отсутствии в кэше.</param>
 public class CacheService<TData>(
     string key,
     IServiceProvider serviceProvider,

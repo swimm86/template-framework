@@ -10,7 +10,7 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Domain.Core.Event.Interfaces;
 
 /// <summary>
-/// Интерфейс доменного евента.
+/// Определяет контракт для доменного события.
 /// </summary>
 public interface IDomainEvent
 {

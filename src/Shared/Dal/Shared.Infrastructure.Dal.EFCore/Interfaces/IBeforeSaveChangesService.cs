@@ -15,7 +15,7 @@ public interface IBeforeSaveChangesService
     /// Асинхронно выполняет действия перед сохранением изменений в БД.
     /// </summary>
     /// <param name="dbContext"><see cref="DbContext"/>.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат асинхронного выполнения.</returns>
     Task ProcessAsync(
         DbContext dbContext,

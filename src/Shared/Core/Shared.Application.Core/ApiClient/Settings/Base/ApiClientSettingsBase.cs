@@ -32,16 +32,13 @@ public abstract class ApiClientSettingsBase
     public virtual TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(DefaultTimeoutSec);
 
     /// <summary>
-    /// Проверяет корректность базовых настроек API-клиента.
+    /// Проверяет корректность настроек API-клиента.
     /// </summary>
     /// <remarks>
-    /// На текущий момент проверяется только обязательность поля <see cref="ApiClientSettingsBase.BaseUrl"/>.
+    /// Проверяется обязательность поля <see cref="BaseUrl"/>.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    /// Исключение, выбрасываемое, если переданный экземпляр настроек равен null.
-    /// </exception>
     /// <exception cref="OptionsValidationException">
-    /// Исключение, выбрасываемое, если поле <see cref="ApiClientSettingsBase.BaseUrl"/> не заполнено или содержит пустое значение.
+    /// Выбрасывается, если <see cref="BaseUrl"/> не заполнен.
     /// </exception>
     public void Validate()
     {

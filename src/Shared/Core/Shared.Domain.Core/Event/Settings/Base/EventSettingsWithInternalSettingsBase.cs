@@ -7,13 +7,13 @@
 namespace Shared.Domain.Core.Event.Settings.Base;
 
 /// <summary>
-/// Базовая модель настройки ивентов c внутренними настройками.
+/// Базовая модель настройки событий с вложенными настройками.
 /// </summary>
-/// <typeparam name="TKey">Тип ключа исключенного элемента.</typeparam>
-/// <typeparam name="TItem">Тип исключенного элемента.</typeparam>
-/// <typeparam name="TExceptKey">Тип ключа ынутреннего исключенного элемента.</typeparam>
-/// <typeparam name="TExceptItems">Тип внутренних исключенных элементов.</typeparam>
-/// <param name="Enabled"></param>
+/// <typeparam name="TKey">Тип ключа элемента-исключения.</typeparam>
+/// <typeparam name="TItem">Тип элемента-исключения.</typeparam>
+/// <typeparam name="TExceptKey">Тип ключа вложенного элемента-исключения.</typeparam>
+/// <typeparam name="TExceptItems">Тип вложенных элементов-исключений.</typeparam>
+/// <param name="Enabled">Признак того, что по умолчанию настройка включена.</param>
 public abstract record EventSettingsWithInternalSettingsBase<TKey, TItem, TExceptKey, TExceptItems>(
     bool Enabled)
     : EventSettingBase<Dictionary<TKey, TItem>, TKey>(Enabled)

@@ -19,10 +19,10 @@ using Shared.Domain.Core.Utils.Extensions;
 namespace Shared.Application.Core.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Application.Core</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Application.Core</c>.
 /// </summary>
 /// <remarks>
-/// Данный инжектор регистрирует системные сервисы: аксессор HTTP-контекста, сериализатор JSON,
+/// Регистрирует системные сервисы: аксессор HTTP-контекста, сериализатор JSON,
 /// репозитории, средства наполнения БД (DbSeeder), утилиты свойств и кэширование.
 /// <para><inheritdoc cref="DependencyInjectorBase" path="/remarks"/></para>
 /// </remarks>

@@ -11,19 +11,18 @@ using Shared.Application.Core.Cache.Interfaces;
 namespace Shared.Application.Core.Cache;
 
 /// <summary>
-/// Статический класс для управления кэшем.
-/// Позволяет регистрировать и получать кэшированные данные.
+/// Статический класс для регистрации и получения сервисов кэширования.
 /// </summary>
 public static class CacheServiceFactory
 {
     /// <summary>
-    /// Регистрирует новый кэш для указанного ключа.
+    /// Регистрирует сервис кэширования для указанного ключа.
     /// </summary>
     /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
-    /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>
-    /// <param name="key">Ключ для кэширования данных.</param>
-    /// <param name="getOrAddFunc">Функция для получения или добавления данных в кэш.</param>
-    /// <returns>Экземпляр <see cref="IServiceCollection"/> для работы с ним.</returns>
+    /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
+    /// <param name="key">Ключ кэша.</param>
+    /// <param name="getOrAddFunc">Функция получения или создания данных для кэша.</param>
+    /// <returns>Коллекция сервисов <see cref="IServiceCollection"/>.</returns>
     public static IServiceCollection RegisterCacheService<TData>(
         this IServiceCollection serviceCollection,
         string key,
@@ -54,12 +53,11 @@ public static class CacheServiceFactory
     }
 
     /// <summary>
-    /// Возвращает <see cref="ICacheService{TData}"/>.
+    /// Возвращает экземпляр <see cref="ICacheService{TData}"/> по ключу.
     /// </summary>
     /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
-    /// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/> для работы с ним.</param>
-    /// <param name="key">Ключ для получения данных из кэша.</param>
-    /// <returns>Асинхронная задача, возвращающая кэшированные данные.</returns>
+    /// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/>.</param>
+    /// <param name="key">Ключ кэша.</param>
     /// <returns>Экземпляр <see cref="ICacheService{TData}"/>.</returns>
     /// <exception cref="CacheNotFoundException">Выбрасывается, если кэш с указанным ключом не найден.</exception>
     public static ICacheService<TData> GetCacheService<TData>(
@@ -80,9 +78,9 @@ public static class CacheServiceFactory
     /// Получает данные из кэша по указанному ключу.
     /// </summary>
     /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
-    /// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/> для работы с ним.</param>
-    /// <param name="key">Ключ для получения данных из кэша.</param>
-    /// <returns>Асинхронная задача, возвращающая кэшированные данные.</returns>
+    /// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/>.</param>
+    /// <param name="key">Ключ кэша.</param>
+    /// <returns>Кэшированные данные типа <typeparamref name="TData"/>.</returns>
     /// <exception cref="CacheNotFoundException">Выбрасывается, если кэш с указанным ключом не найден.</exception>
     public static Task<TData> GetCachedDataAsync<TData>(
         this IServiceProvider serviceProvider,

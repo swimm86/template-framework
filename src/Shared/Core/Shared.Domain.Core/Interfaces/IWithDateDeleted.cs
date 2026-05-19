@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Интерфейс даты удаления.
+/// Определяет контракт для объектов с датой удаления.
 /// </summary>
 public interface IWithDateDeleted
 {
@@ -17,7 +17,7 @@ public interface IWithDateDeleted
     DateTime? DateDeleted { get; }
 
     /// <summary>
-    /// Метод установки.
+    /// Устанавливает дату удаления.
     /// </summary>
     /// <param name="dateDeleted">Дата удаления.</param>
     void SetDateDeleted(DateTime? dateDeleted);

@@ -19,7 +19,7 @@ namespace Shared.Application.Core.DependencyInjection.Base
     public abstract class DependencyInjectorBase
     {
         /// <summary>
-        /// Логгер.
+        /// Экземпляр логгера.
         /// </summary>
         protected readonly ILogger Logger;
 
@@ -53,7 +53,7 @@ namespace Shared.Application.Core.DependencyInjection.Base
         }
 
         /// <summary>
-        /// Процесс внедрения зависимостей
+        /// Выполняет внедрение зависимостей.
         /// </summary>
         /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
         /// <returns>Коллекция сервисов <see cref="IServiceCollection"/>.</returns>

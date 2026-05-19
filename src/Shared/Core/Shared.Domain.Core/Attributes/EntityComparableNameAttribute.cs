@@ -9,9 +9,10 @@ namespace Shared.Domain.Core.Attributes;
 /// <summary>
 /// Атрибут названия параметра сущности для сравнения.
 /// </summary>
-/// <param name="name">Название сущности.</param>
+/// <param name="name">Название параметра для сравнения.</param>
 [AttributeUsage(AttributeTargets.Class)]
-public class EntityComparableNameAttribute(string name) : Attribute
+public class EntityComparableNameAttribute(string name)
+    : Attribute
 {
     /// <summary>
     /// Название параметра для сравнения по умолчанию.

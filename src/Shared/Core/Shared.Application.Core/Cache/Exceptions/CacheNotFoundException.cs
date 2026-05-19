@@ -9,8 +9,8 @@ using Shared.Domain.Core.Exceptions.Models.Base;
 namespace Shared.Application.Core.Cache.Exceptions;
 
 /// <summary>
-/// Исключение, возникающее при попытке доступа к отсутствующему кэшу.
+/// Исключение, возникающее при попытке доступа к незарегистрированному кэшу.
 /// </summary>
-/// <param name="cacheKey">Ключ кэша, который не был найден.</param>
+/// <param name="cacheKey">Ключ кэша, который не найден.</param>
 public class CacheNotFoundException(string cacheKey)
     : AppException($"Отсутствует кэш с ключом {cacheKey}.");

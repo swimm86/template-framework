@@ -10,7 +10,7 @@ using Shared.Domain.Core.Exceptions.Models.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers.Base;
 
 /// <summary>
-/// Базовый маппер для обработки исключений, унаследованных от <see cref="AppException"/>.
+/// Базовый преобразователь для обработки исключений, унаследованных от <see cref="AppException"/>.
 /// </summary>
 /// <typeparam name="TException">Тип исключения, унаследованный от <see cref="AppException"/>.</typeparam>
 public abstract class AppExceptionMapperBase<TException>(

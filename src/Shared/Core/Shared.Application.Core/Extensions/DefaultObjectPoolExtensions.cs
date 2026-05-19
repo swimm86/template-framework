@@ -9,7 +9,7 @@ using Microsoft.Extensions.ObjectPool;
 namespace Shared.Application.Core.Extensions;
 
 /// <summary>
-/// Расширение для <see cref="DefaultObjectPool{T}"/>.
+/// Методы расширения для <see cref="DefaultObjectPool{T}"/>.
 /// </summary>
 public static class DefaultObjectPoolExtensions
 {
@@ -20,7 +20,7 @@ public static class DefaultObjectPoolExtensions
     /// <param name="pool">Пул объектов.</param>
     /// <param name="action">Действие для выполнения с объектом из пула.</param>
     /// <exception cref="ArgumentNullException">
-    /// thrown if <paramref name="pool"/> or <paramref name="action"/> is null.
+    /// Выбрасывается, если <paramref name="pool"/> или <paramref name="action"/> равен <see langword="null"/>.
     /// </exception>
     public static void UsePool<TPoolObject>(
         this DefaultObjectPool<TPoolObject> pool,
@@ -47,7 +47,7 @@ public static class DefaultObjectPoolExtensions
     /// <param name="func">Функция для выполнения с объектом из пула.</param>
     /// <returns>Результат выполнения функции.</returns>
     /// <exception cref="ArgumentNullException">
-    /// thrown if <paramref name="pool"/> or <paramref name="func"/> is null.
+    /// Выбрасывается, если <paramref name="pool"/> или <paramref name="func"/> равен <see langword="null"/>.
     /// </exception>
     public static TReturnValue UsePool<TPoolObject, TReturnValue>(
         this DefaultObjectPool<TPoolObject> pool,
@@ -73,7 +73,7 @@ public static class DefaultObjectPoolExtensions
     /// <param name="actionTask">Асинхронное действие для выполнения с объектом из пула.</param>
     /// <returns>Задача, представляющая асинхронную операцию.</returns>
     /// <exception cref="ArgumentNullException">
-    /// thrown if <paramref name="pool"/> or <paramref name="actionTask"/> is null.
+    /// Выбрасывается, если <paramref name="pool"/> или <paramref name="actionTask"/> равен <see langword="null"/>.
     /// </exception>
     public static async Task UsePoolAsync<TPoolObject>(
         this DefaultObjectPool<TPoolObject> pool,
@@ -100,7 +100,7 @@ public static class DefaultObjectPoolExtensions
     /// <param name="func">Асинхронная функция для выполнения с объектом из пула.</param>
     /// <returns>Задача, представляющая асинхронную операцию с результатом.</returns>
     /// <exception cref="ArgumentNullException">
-    /// thrown if <paramref name="pool"/> or <paramref name="func"/> is null.
+    /// Выбрасывается, если <paramref name="pool"/> или <paramref name="func"/> равен <see langword="null"/>.
     /// </exception>
     public static async Task<TReturnValue> UsePoolAsync<TPoolObject, TReturnValue>(
         this DefaultObjectPool<TPoolObject> pool,

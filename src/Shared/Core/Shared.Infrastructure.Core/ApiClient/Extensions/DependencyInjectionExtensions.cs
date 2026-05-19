@@ -54,8 +54,8 @@ public static class DependencyInjectionExtensions
     }
 
     /// <summary>
-    /// Регистрирует все наследники <see cref="DelegatingHandler"/> помеченные атрибутом
-    /// <see cref="ApiClientDelegatingHandleMetadataAttribute"/> в контейнере зависимостей.
+    /// Регистрирует все наследники <see cref="DelegatingHandler"/>, помеченные атрибутом
+    /// <see cref="ApiClientDelegatingHandleMetadataAttribute"/>, в контейнере зависимостей.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>
@@ -71,8 +71,8 @@ public static class DependencyInjectionExtensions
     }
 
     /// <summary>
-    /// Регистрирует все наследники <see cref="HttpClientHandler"/> помеченные атрибутом
-    /// <see cref="ApiClientPrimaryHttpHandlerMetadataAttribute"/> в контейнере зависимостей.
+    /// Регистрирует все наследники <see cref="HttpClientHandler"/>, помеченные атрибутом
+    /// <see cref="ApiClientPrimaryHttpHandlerMetadataAttribute"/>, в контейнере зависимостей.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов <see cref="IServiceCollection"/>.</param>
     /// <returns>Текущая коллекция сервисов <see cref="IServiceCollection"/>.</returns>

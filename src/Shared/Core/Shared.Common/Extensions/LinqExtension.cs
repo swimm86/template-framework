@@ -7,16 +7,16 @@
 namespace Shared.Common.Extensions;
 
 /// <summary>
-/// Расширение для <see cref="IEnumerable{T}"/>.
+/// Методы расширения для <see cref="IEnumerable{T}"/> и <see cref="IAsyncEnumerable{T}"/>.
 /// </summary>
 public static class LinqExtension
 {
     /// <summary>
-    ///  <see cref="ForEach{T}"/> для <see cref="IEnumerable{T}"/>.
+    /// Выполняет указанное действие для каждого элемента последовательности.
     /// </summary>
-    /// <typeparam name="T">Тип перечисления.</typeparam>
-    /// <param name="source">Перечисление.</param>
-    /// <param name="action">Операция.</param>
+    /// <typeparam name="T">Тип элементов последовательности.</typeparam>
+    /// <param name="source">Исходная последовательность.</param>
+    /// <param name="action">Действие, выполняемое для каждого элемента.</param>
     public static void ForEach<T>(
         this IEnumerable<T> source,
         Action<T> action)
@@ -33,13 +33,13 @@ public static class LinqExtension
     }
 
     /// <summary>
-    /// Асинхронная версия <see cref="ForEach{T}"/> для <see cref="IEnumerable{T}"/>.
+    /// Асинхронно выполняет указанное действие для каждого элемента последовательности.
     /// </summary>
-    /// <typeparam name="T">Тип перечисления.</typeparam>
-    /// <param name="source">Перечисление.</param>
-    /// <param name="func">Операция.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <typeparam name="T">Тип элементов последовательности.</typeparam>
+    /// <param name="source">Исходная последовательность.</param>
+    /// <param name="func">Асинхронное действие, выполняемое для каждого элемента.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
     public static async Task ForeachAsync<T>(
         this IEnumerable<T> source,
         Func<T, Task> func,
@@ -58,13 +58,13 @@ public static class LinqExtension
     }
 
     /// <summary>
-    /// Асинхронная версия <see cref="ForEach{T}"/> для <see cref="IAsyncEnumerable{T}"/>.
+    /// Асинхронно выполняет указанное действие для каждого элемента асинхронной последовательности.
     /// </summary>
-    /// <typeparam name="T">Тип перечисления.</typeparam>
-    /// <param name="source">Перечисление.</param>
-    /// <param name="func">Операция.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <typeparam name="T">Тип элементов последовательности.</typeparam>
+    /// <param name="source">Исходная асинхронная последовательность.</param>
+    /// <param name="func">Асинхронное действие, выполняемое для каждого элемента.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
     public static async Task ForEachAsync<T>(
         this IAsyncEnumerable<T> source,
         Func<T, Task> func,

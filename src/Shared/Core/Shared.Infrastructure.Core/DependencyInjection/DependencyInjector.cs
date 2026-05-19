@@ -14,10 +14,10 @@ using Shared.Infrastructure.Core.ApiClient.Extensions;
 namespace Shared.Infrastructure.Core.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Core</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Infrastructure.Core</c>.
 /// </summary>
 /// <remarks>
-/// Данный инжектор инициализирует конфигураторы ApiClient и регистрирует инфраструктурные сервисы
+/// Инициализирует конфигураторы ApiClient и регистрирует инфраструктурные сервисы
 /// для выполнения HTTP-запросов: делегирующие обработчики и типизированные HTTP-клиенты.
 /// <para><inheritdoc cref="DependencyInjectorBase" path="/remarks"/></para>
 /// </remarks>

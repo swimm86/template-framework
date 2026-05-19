@@ -37,12 +37,12 @@ public abstract class ControllerBase(
     : Microsoft.AspNetCore.Mvc.ControllerBase
 {
     /// <summary>
-    /// Асинхронно обрабатывает запрос, используя предоставленную функцию обработки.
+    /// Асинхронно обрабатывает запрос и возвращает HTTP-ответ с соответствующим статус-кодом.
     /// </summary>
-    /// <param name="processFunc">Функция обработки запроса, которая должна вернуть результат обработки в виде объекта <see cref="Task{TResponse}"/>, где TResponse является ответом с типизированным содержимым.</param>
-    /// <param name="methodName">Наименование метода, вызвавшего асинхронную операцию.</param>
-    /// <typeparam name="TResponse">Тип ответа, который должен наследоваться от <see cref="Response{TPayload}"/>, где TPayload - тип данных в теле ответа.</typeparam>
-    /// <returns>Объект <see cref="Task{IActionResult}"/>, представляющий асинхронную операцию. Результат содержит статус код и данные ответа, упакованные в соответствующий формат HTTP-ответа.</returns>
+    /// <typeparam name="TResponse">Тип ответа, наследующий <see cref="Response"/>.</typeparam>
+    /// <param name="processFunc">Функция обработки запроса.</param>
+    /// <param name="methodName">Имя вызвавшего метода (заполняется автоматически).</param>
+    /// <returns>Результат выполнения запроса в виде <see cref="IActionResult"/>.</returns>
     protected Task<IActionResult> Process<TResponse>(
         Func<Task<TResponse>> processFunc,
         [CallerMemberName] string? methodName = null)

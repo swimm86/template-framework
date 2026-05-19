@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Utils.Interfaces;
 
 /// <summary>
-/// Интерфейс для установления значений свойств из объектов.
+/// Определяет контракт для установки значений свойств объектов.
 /// </summary>
 public interface IPropertySetter
 {

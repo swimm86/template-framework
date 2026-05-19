@@ -22,14 +22,14 @@ public interface IEntityWithUserData
     public string? UpdatedByUserName { get; }
 
     /// <summary>
-    /// Установка данных пользователя.
+    /// Устанавливает имя пользователя, создавшего сущность.
     /// </summary>
-    /// <param name="name">Имя.</param>
+    /// <param name="name">Имя пользователя.</param>
     void SetCreatedByUserName(string name);
 
     /// <summary>
-    /// Установка данных пользователя.
+    /// Устанавливает имя пользователя, обновившего сущность.
     /// </summary>
-    /// <param name="name">Имя.</param>
+    /// <param name="name">Имя пользователя.</param>
     void SetUpdatedByUserName(string name);
 }

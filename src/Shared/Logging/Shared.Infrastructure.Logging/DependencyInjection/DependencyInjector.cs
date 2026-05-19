@@ -13,7 +13,7 @@ using Shared.Infrastructure.Logging.Extensions;
 namespace Shared.Infrastructure.Logging.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Logging</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Infrastructure.Logging</c>.
 /// </summary>
 /// <inheritdoc cref="DependencyInjectorBase" path="/remarks"/>
 /// <param name="configuration">Конфигурация приложения (<see cref="IConfiguration"/>).</param>

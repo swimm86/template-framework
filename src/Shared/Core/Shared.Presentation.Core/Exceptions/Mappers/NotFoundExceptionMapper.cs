@@ -12,7 +12,7 @@ using Shared.Presentation.Core.Exceptions.Mappers.Base;
 namespace Shared.Presentation.Core.Exceptions.Mappers;
 
 /// <summary>
-/// Маппер исключений «сущность не найдена» <see cref="NotFoundException"/> в ProblemDetails.
+/// Преобразователь исключений «сущность не найдена» <see cref="NotFoundException"/> в ProblemDetails.
 /// </summary>
 /// <remarks>
 /// Возвращает RFC 7807 Problem Details с кодом 404 Not Found и сообщением исключения.

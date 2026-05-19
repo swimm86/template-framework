@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 namespace Shared.Application.Core.CorrelationId.Extensions;
 
 /// <summary>
-/// Расширения для <see cref="IHttpContextAccessor"/>.
+/// Методы расширения для <see cref="IHttpContextAccessor"/>.
 /// </summary>
 public static class HttpContextAccessorExtensions
 {

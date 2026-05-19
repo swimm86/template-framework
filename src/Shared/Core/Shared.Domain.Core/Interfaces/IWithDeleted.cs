@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Интерфейс удаления.
+/// Определяет контракт для объектов, поддерживающих мягкое удаление.
 /// </summary>
 public interface IWithDeleted : IWithDateDeleted
 {
@@ -17,24 +17,24 @@ public interface IWithDeleted : IWithDateDeleted
     Guid? DeletedByUserId { get; }
 
     /// <summary>
-    /// Удален.
+    /// Признак удаления сущности.
     /// </summary>
     bool IsDeleted { get; }
 
     /// <summary>
-    /// Метод установки.
+    /// Устанавливает идентификатор пользователя, удалившего сущность.
     /// </summary>
     /// <param name="deletedByUserId">Идентификатор пользователя, который является инициатором удаления.</param>
     void SetDeletedByUserId(Guid? deletedByUserId);
 
     /// <summary>
-    /// Делает полезные вещи при удалении.
+    /// Инициализирует данные удаления сущности.
     /// </summary>
     /// <param name="userId">Идентификатор пользователя.</param>
     void OnDelete(Guid? userId);
 
     /// <summary>
-    /// Установить в состояние - удален.
+    /// Устанавливает признак удаления сущности.
     /// </summary>
     void SetIsDeleted();
 }

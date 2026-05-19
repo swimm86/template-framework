@@ -52,7 +52,7 @@ namespace Shared.Common.Batch;
 /// </example>
 public static class BatchHelper
 {
-    /// <inheritdoc cref = "ProcessBatchesAsync{TBatch}(Func{int, int, Task{TBatch}}, Func{TBatch, bool},Func{TBatch, int},Func{TBatch, Task},int,Func{bool},CancellationToken)" />
+    /// <inheritdoc cref="ProcessBatchesAsync{TBatch}(Func{int, int, Task{TBatch}}, Func{TBatch, bool},Func{TBatch, int},Func{TBatch, Task},int,Func{bool},CancellationToken)"/>
     /// <typeparam name="TObject">Тип объекта внутри батча.</typeparam>
     public static Task ProcessBatchesAsync<TObject>(
         Func<int, int, Task<ICollection<TObject>>> getBatchFunc,
@@ -75,7 +75,7 @@ public static class BatchHelper
     /// и для каждого непустого батча вызывает <paramref name="processBatchAction"/>.
     /// </summary>
     /// <returns>Задача, завершающаяся после обхода всех батчей.</returns>
-    /// <inheritdoc cref = "BatchSelectAsync{TBatch}(Func{int,int,Task{TBatch}},Func{TBatch,bool},Func{TBatch,int},int,Func{bool},CancellationToken)" />
+    /// <inheritdoc cref="BatchSelectAsync{TBatch}(Func{int,int,Task{TBatch}},Func{TBatch,bool},Func{TBatch,int},int,Func{bool},CancellationToken)"/>
     /// <param name="getBatchFunc"/><param name="isBatchEmptyFunc"/><param name="batchSizeFunc"/><param name="batchSize"/>
     /// <param name="isNeedToBreakFunc"/><param name="cancellationToken"/>
     /// <param name="processBatchAction">
@@ -111,7 +111,7 @@ public static class BatchHelper
     /// (Подробнее — <see cref="BatchSelectAsync{TBatch}(Func{int,int,Task{TBatch}},Func{TBatch,bool},Func{TBatch,int},int,Func{bool},CancellationToken)"/>).
     /// </remarks>
     /// <typeparam name="TObject">Тип объекта внутри батча.</typeparam>
-    /// <inheritdoc cref="BatchSelectAsync{TBatch}(Func{int,int,Task{TBatch}},Func{TBatch,bool},Func{TBatch,int},int,Func{bool},CancellationToken)" />
+    /// <inheritdoc cref="BatchSelectAsync{TBatch}(Func{int,int,Task{TBatch}},Func{TBatch,bool},Func{TBatch,int},int,Func{bool},CancellationToken)"/>
     public static IAsyncEnumerable<ICollection<TObject>> BatchSelectAsync<TObject>(
         Func<int, int, Task<ICollection<TObject>>> getBatchFunc,
         int batchSize = Constants.DefaultBatchSize,
@@ -147,9 +147,7 @@ public static class BatchHelper
     /// <param name="isNeedToBreakFunc">
     /// Дополнительное условие выхода до следующего запроса батча.
     /// </param>
-    /// <param name="cancellationToken">
-    /// <see cref="CancellationToken"/> для отмены операции.
-    /// </param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Ленивый поток непустых батчей.</returns>
     /// <remarks>
     /// <para>

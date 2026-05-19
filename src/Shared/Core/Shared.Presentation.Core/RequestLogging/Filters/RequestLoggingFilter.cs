@@ -22,7 +22,7 @@ namespace Shared.Presentation.Core.RequestLogging.Filters;
 /// Фильтр для логирования аргументов контроллера.
 /// </summary>
 /// <remarks>
-/// Выполняется ПОСЛЕ модель биндинга — все аргументы уже в памяти.
+/// Выполняется после model binding — все аргументы уже доступны в памяти.
 /// НЕ требует буферизации потока.
 /// Сохраняет аргументы в HttpContext.Items для ExceptionHandler.
 /// </remarks>
@@ -31,10 +31,10 @@ public sealed class RequestLoggingFilter(
     : IAsyncActionFilter
 {
     /// <summary>
-    /// Информация о типе для сериализации.
+    /// Информация о типе для кастомной сериализации.
     /// </summary>
-    /// <param name="Properties">Массив свойств, которые необходимо сериализовать.</param>
-    /// <param name="RedactedProperties">Массив свойств, которые необходимо проинициализировать заглушками.</param>
+    /// <param name="Properties">Свойства, подлежащие прямой сериализации.</param>
+    /// <param name="RedactedProperties">Свойства, заменяемые на заглушки при сериализации.</param>
     private sealed record TypeSerializationInfo(
         PropertyInfo[] Properties,
         Dictionary<PropertyInfo, string> RedactedProperties)

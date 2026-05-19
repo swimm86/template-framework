@@ -9,17 +9,17 @@ using System.Linq.Expressions;
 namespace Shared.Application.Core.Mapping.Interfaces;
 
 /// <summary>
-/// Интерфейс маппера.
+/// Интерфейс сервиса маппинга объектов.
 /// </summary>
 public interface IMapper
 {
     /// <summary>
-    /// Маппинг исходного типа <see cref="TSource"/> в целевой тип <see cref="TResult"/>.
+    /// Выполняет маппинг экземпляра исходного типа в целевой тип (<see cref="TSource"/>-><see cref="TResult"/>).
     /// </summary>
-    /// <typeparam name="TSource">Исходный тип для маппинга.</typeparam>
-    /// <typeparam name="TResult">Целевой тип результата маппинга.</typeparam>
-    /// <param name="source">Экземпляр исходного типа <typeparamref name="TSource"/>.</param>
-    /// <returns>Экземпляр целевого типа <typeparamref name="TResult"/>.</returns>
+    /// <typeparam name="TSource">Исходный тип.</typeparam>
+    /// <typeparam name="TResult">Целевой тип.</typeparam>
+    /// <param name="source">Экземпляр исходного типа.</param>
+    /// <returns>Экземпляр целевого типа.</returns>
     TResult Map<TSource, TResult>(TSource source);
 
     /// <summary>
@@ -36,11 +36,11 @@ public interface IMapper
         params Expression<Func<TResult, object>>[] membersToExpand);
 
     /// <summary>
-    /// Маппинг параметров из экземпляра исходного типа <see cref="TSource"/> в экземпляр целевого типа <see cref="TResult"/>.
+    /// Выполняет маппинг свойств из исходного экземпляра в целевой (<see cref="TSource"/>-><see cref="TResult"/>).
     /// </summary>
-    /// <typeparam name="TSource">Тип исходного экземпляра для маппинга.</typeparam>
-    /// <typeparam name="TResult">Тип целевого экземпляра для маппинга.</typeparam>
-    /// <param name="source">Экземпляр исходного типа <typeparamref name="TSource"/>.</param>
-    /// <param name="result">Экземпляр целевого типа <typeparamref name="TSource"/>.</param>
+    /// <typeparam name="TSource">Исходный тип.</typeparam>
+    /// <typeparam name="TResult">Целевой тип.</typeparam>
+    /// <param name="source">Экземпляр исходного типа.</param>
+    /// <param name="result">Экземпляр целевого типа.</param>
     void Map<TSource, TResult>(TSource source, TResult result);
 }

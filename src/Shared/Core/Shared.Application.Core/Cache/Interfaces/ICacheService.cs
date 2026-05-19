@@ -7,20 +7,20 @@
 namespace Shared.Application.Core.Cache.Interfaces;
 
 /// <summary>
-/// Интерфейс для работы с кэшем.
+/// Интерфейс сервиса кэширования.
 /// </summary>
 /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
 public interface ICacheService<TData>
 {
     /// <summary>
-    /// Обновляет кэш асинхронно.
+    /// Обновляет данные в кэше.
     /// </summary>
-    /// <returns>Асинхронная задача.</returns>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
     Task UpdateCacheAsync();
 
     /// <summary>
-    /// Возвращает данные из кэша асинхронно.
+    /// Возвращает данные из кэша.
     /// </summary>
-    /// <returns>Асинхронная задача, возвращающая данные типа <see cref="TData"/>.</returns>
+    /// <returns>Кэшированные данные типа <typeparamref name="TData"/>.</returns>
     Task<TData> GetCachedDataAsync();
 }

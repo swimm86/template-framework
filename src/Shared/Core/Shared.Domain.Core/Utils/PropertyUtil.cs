@@ -13,7 +13,7 @@ using Shared.Domain.Core.Utils.Interfaces;
 namespace Shared.Domain.Core.Utils;
 
 /// <summary>
-/// Утилита для взаимодействия со свойствами объектов.
+/// Утилита для работы со свойствами объектов.
 /// </summary>
 public class PropertyUtil
     : IPropertyGetter, IPropertySetter

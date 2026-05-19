@@ -18,7 +18,7 @@ public class EntityDomainEvent
     private readonly Func<IServiceProvider, CancellationToken, Task> _action;
 
     /// <summary>
-    /// Консутруктор.
+    /// Инициализирует новый экземпляр <see cref="EntityDomainEvent"/>.
     /// </summary>
     /// <param name="action">Действие, которое реализует событие.</param>
     /// <param name="key">Ключ события.</param>
