@@ -15,10 +15,10 @@ namespace Shared.Domain.Core.Utils.Extensions;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Метод расширения для IServiceCollection, который регистрирует зависимости, связанные с <see cref="PropertyUtil"/>.
+    /// Регистрирует сервисы <see cref="PropertyUtil"/> в коллекции сервисов.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов для регистрации.</param>
-    /// <returns>Измененная коллекция сервисов с добавленным <see cref="PropertyUtil"/>.</returns>
+    /// <returns>Коллекция сервисов с зарегистрированными зависимостями <see cref="PropertyUtil"/>.</returns>
     public static IServiceCollection AddPropertyUtil(
         this IServiceCollection serviceCollection)
     {

@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Интерфейс создания.
+/// Определяет контракт для объектов, поддерживающих отслеживание информации о создании.
 /// </summary>
 public interface IWithCreated : IWithDateCreated
 {
@@ -22,7 +22,7 @@ public interface IWithCreated : IWithDateCreated
     string? CreatedByUserName { get; }
 
     /// <summary>
-    /// Метод установки.
+    /// Устанавливает идентификатор пользователя, создавшего сущность.
     /// </summary>
     /// <param name="createdByUserId">Идентификатор пользователя.</param>
     void SetCreatedByUserId(Guid? createdByUserId);
@@ -34,7 +34,7 @@ public interface IWithCreated : IWithDateCreated
     void SetCreatedByUserName(string userName);
 
     /// <summary>
-    /// Делает полезные вещи при создании.
+    /// Инициализирует данные создания сущности.
     /// </summary>
     /// <param name="userId">Идентификатор пользователя.</param>
     /// <param name="userName">Имя пользователя, который создал сущность.</param>

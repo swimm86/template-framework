@@ -18,19 +18,20 @@ namespace Shared.Domain.Core.Base;
 /// Абстрактный базовый класс сущности.
 /// </summary>
 /// <typeparam name="TKey"> Тип ключа сущности. </typeparam>
-public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
+public abstract class BaseEntity<TKey>
+    : IEntity<TKey>, IWithDomainEvents
 {
     /// <summary>
-    /// Словарь доменных эвентов до сохранения.
+    /// Словарь доменных событий до сохранения.
     /// </summary>
     [NotMapped]
-    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsBeforeSave = default!;
+    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsBeforeSave = null!;
 
     /// <summary>
-    /// Словарь доменных эвентов после сохранения.
+    /// Словарь доменных событий после сохранения.
     /// </summary>
     [NotMapped]
-    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsAfterSave = default!;
+    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsAfterSave = null!;
 
     /// <inheritdoc />
     public virtual TKey Id { get; set; } = default!;
@@ -49,7 +50,7 @@ public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
     protected virtual IDomainEvent[] AfterSaveEvents => [];
 
     /// <summary>
-    /// Консруктор.
+    /// Инициализирует новый экземпляр <see cref="BaseEntity{TKey}"/>.
     /// </summary>
     protected BaseEntity()
     {
@@ -85,7 +86,9 @@ public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
     /// </summary>
     /// <param name="domainEventType">Тип доменного события.</param>
     /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
-    public void DisableDomainEvents(DomainEventType domainEventType, Enum? flags = default)
+    public void DisableDomainEvents(
+        DomainEventType domainEventType,
+        Enum? flags = null)
         => UpdateDomainEvents(domainEventType, flags, x => x.Disable());
 
     /// <summary>
@@ -97,12 +100,12 @@ public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
         EnableDomainEvents(DomainEventType.AfterSave);
     }
 
-    /// <summary>
-    /// Включает доменные события.
-    /// </summary>
     /// <param name="domainEventType">Тип доменного события.</param>
     /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
-    public void EnableDomainEvents(DomainEventType domainEventType, Enum? flags = default)
+    /// <inheritdoc cref="EnableDomainEvents()"/>
+    public void EnableDomainEvents(
+        DomainEventType domainEventType,
+        Enum? flags = null)
         => UpdateDomainEvents(domainEventType, flags, x => x.Enable());
 
     /// <summary>
@@ -120,7 +123,10 @@ public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
     /// <param name="domainEventType">Тип доменного события.</param>
     /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
     /// <param name="eventAction">Действие над событием.</param>
-    private void UpdateDomainEvents(DomainEventType domainEventType, Enum? flags, Action<IDomainEvent> eventAction)
+    private void UpdateDomainEvents(
+        DomainEventType domainEventType,
+        Enum? flags,
+        Action<IDomainEvent> eventAction)
     {
         var events = GetCurrentDomainEvents(domainEventType);
 
@@ -133,6 +139,9 @@ public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithDomainEvents
     /// </summary>
     /// <param name="domainEventType"> Тип доменного события. </param>
     /// <returns> Коллекцию доменных событий выбранного типа. </returns>
-    private ReadOnlyDictionary<Enum, IDomainEvent> GetCurrentDomainEvents(DomainEventType domainEventType)
-        => domainEventType == DomainEventType.AfterSave ? _domainEventsAfterSave : _domainEventsBeforeSave;
+    private ReadOnlyDictionary<Enum, IDomainEvent> GetCurrentDomainEvents(
+        DomainEventType domainEventType)
+        => domainEventType == DomainEventType.AfterSave
+            ? _domainEventsAfterSave
+            : _domainEventsBeforeSave;
 }

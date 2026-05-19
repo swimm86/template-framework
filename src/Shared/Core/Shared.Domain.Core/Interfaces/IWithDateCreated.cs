@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Интерфейс даты создания.
+/// Определяет контракт для объектов с датой создания.
 /// </summary>
 public interface IWithDateCreated
 {
@@ -17,7 +17,7 @@ public interface IWithDateCreated
     DateTime DateCreated { get; }
 
     /// <summary>
-    /// Метод установки.
+    /// Устанавливает дату создания.
     /// </summary>
     /// <param name="dateCreated">Дата создания.</param>
     void SetDateCreated(DateTime dateCreated);

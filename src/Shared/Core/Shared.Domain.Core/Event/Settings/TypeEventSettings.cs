@@ -10,7 +10,7 @@ using Shared.Domain.Core.Event.Settings.Base;
 namespace Shared.Domain.Core.Event.Settings;
 
 /// <summary>
-/// Модель настройки ивентов по типу сущностей.
+/// Модель настройки событий по типу сущностей.
 /// </summary>
 /// <param name="Enabled">Признак того, что по умолчанию настройка включена.</param>
 public record TypeEventSettings(bool Enabled = true)

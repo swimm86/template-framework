@@ -23,7 +23,7 @@ public interface IEntity
 /// <typeparam name="T">Тип идентификатора сущности. Должен быть структурой.</typeparam>
 public interface IEntity<out T> : IEntity
 {
-    /// <inheritdoc/>>
+    /// <inheritdoc/>
     object IEntity.Id => Id;
 
     /// <summary>

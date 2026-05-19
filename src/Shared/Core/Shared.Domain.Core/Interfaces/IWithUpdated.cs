@@ -7,7 +7,7 @@
 namespace Shared.Domain.Core.Interfaces;
 
 /// <summary>
-/// Интерфейс обновления.
+/// Определяет контракт для объектов, поддерживающих отслеживание информации об обновлении.
 /// </summary>
 public interface IWithUpdated : IWithDateUpdated
 {
@@ -17,13 +17,13 @@ public interface IWithUpdated : IWithDateUpdated
     Guid? UpdatedByUserId { get; }
 
     /// <summary>
-    /// Метод установки.
+    /// Устанавливает идентификатор пользователя, обновившего сущность.
     /// </summary>
     /// <param name="updatedByUserId">Идентификатор пользователя, который является инициатором обновления.</param>
     void SetUpdatedByUserId(Guid? updatedByUserId);
 
     /// <summary>
-    /// Делает полезные вещи при обновлении.
+    /// Инициализирует данные обновления сущности.
     /// </summary>
     /// <param name="userId">Идентификатор пользователя.</param>
     void OnUpdate(Guid? userId);

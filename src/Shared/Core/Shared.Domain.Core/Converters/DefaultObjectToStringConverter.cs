@@ -10,7 +10,7 @@ using Shared.Domain.Core.Converters.Interfaces;
 namespace Shared.Domain.Core.Converters;
 
 /// <summary>
-/// Конвертер объекта в строку по-умолчанию.
+/// Конвертер объекта в строку по умолчанию.
 /// </summary>
 public class DefaultObjectToStringConverter
     : IObjectToStringConverter

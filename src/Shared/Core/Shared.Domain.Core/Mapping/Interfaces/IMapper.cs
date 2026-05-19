@@ -41,6 +41,6 @@ public interface IMapper
     /// <typeparam name="TSource">Тип исходного экземпляра для маппинга.</typeparam>
     /// <typeparam name="TResult">Тип целевого экземпляра для маппинга.</typeparam>
     /// <param name="source">Экземпляр исходного типа <typeparamref name="TSource"/>.</param>
-    /// <param name="result">Экземпляр целевого типа <typeparamref name="TSource"/>.</param>
+    /// <param name="result">Экземпляр целевого типа <typeparamref name="TResult"/>.</param>
     void Map<TSource, TResult>(TSource source, TResult result);
 }

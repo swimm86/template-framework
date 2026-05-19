@@ -17,7 +17,7 @@ public abstract class DbSettingsBase
     required public string ConnectionString { get; init; } = null!;
 
     /// <summary>
-    /// Признак того, что по-умолчанию включена транзакционность.
+    /// Признак того, что по умолчанию включена транзакционность.
     /// </summary>
     required public bool TransactionsEnabled { get; set; } = true;
 }

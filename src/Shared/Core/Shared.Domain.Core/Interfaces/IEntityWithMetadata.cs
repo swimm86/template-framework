@@ -13,11 +13,10 @@ public interface IEntityWithMetadata : IEntity, IWithCreated, IWithUpdated, IWit
 {
 }
 
-/// /// <summary>
-/// Определяет интерфейс для сущности с дополнительной метадатой с идентификатором определенного типа.
+/// <summary>
+/// Определяет интерфейс для сущности с дополнительной метадатой и идентификатором определенного типа.
 /// </summary>
 /// <typeparam name="T">Тип идентификатора сущности. Должен быть структурой.</typeparam>
-public interface IEntityWithMetadata<out T> : IEntity<T>, IEntityWithMetadata
-    where T : struct
-{
-}
+public interface IEntityWithMetadata<out T>
+    : IEntity<T>, IEntityWithMetadata
+    where T : struct;

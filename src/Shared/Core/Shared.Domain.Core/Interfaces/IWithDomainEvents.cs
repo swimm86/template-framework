@@ -51,14 +51,14 @@ public interface IWithDomainEvents
     /// <param name="eventType">Тип события.</param>
     /// <param name="key">Ключ события.</param>
     /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
-    /// <param name="entities">Сущности типа.</param>
+    /// <param name="entities">Коллекция сущностей для обработки.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>
     public async Task ProcessDomainEventAsync(
         DomainEventType eventType,
         Enum key,
         IServiceProvider serviceProvider,
-        ICollection<IWithDomainEvents>? entities = default,
+        ICollection<IWithDomainEvents>? entities = null,
         CancellationToken cancellationToken = default)
     {
         entities ??= [];
@@ -74,13 +74,13 @@ public interface IWithDomainEvents
     /// </summary>
     /// <param name="eventType">Тип события.</param>
     /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
-    /// <param name="entities">Сущности типа.</param>
+    /// <param name="entities">Коллекция сущностей для обработки.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>
     public Task ProcessDomainEventsAsync(
         DomainEventType eventType,
         IServiceProvider serviceProvider,
-        ICollection<IWithDomainEvents>? entities = default,
+        ICollection<IWithDomainEvents>? entities = null,
         CancellationToken cancellationToken = default) =>
         GetAllKeys(eventType).ForeachAsync(
             key => ProcessDomainEventAsync(eventType, key, serviceProvider, entities, cancellationToken),

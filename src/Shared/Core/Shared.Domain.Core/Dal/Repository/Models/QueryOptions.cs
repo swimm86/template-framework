@@ -85,7 +85,7 @@ public class QueryOptions<TEntity>(
     }
 
     /// <summary>
-    /// Inlcude для типа коллекций.
+    /// Include для типа коллекций.
     /// </summary>
     /// <param name="expression">Выражение инклюда.</param>
     /// <typeparam name="TProperty">Тип навигационного свойства.</typeparam>

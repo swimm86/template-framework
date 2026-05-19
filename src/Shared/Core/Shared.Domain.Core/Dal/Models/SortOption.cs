@@ -19,7 +19,7 @@ public class SortOption(string key, OrderDirectionType directionType)
     public string Key { get; } = key;
 
     /// <summary>
-    /// Направление.
+    /// Направление сортировки.
     /// </summary>
     public OrderDirectionType DirectionType { get; } = directionType;
 }
