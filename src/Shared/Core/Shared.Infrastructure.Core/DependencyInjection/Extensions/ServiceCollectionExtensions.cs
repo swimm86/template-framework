@@ -67,9 +67,9 @@ public static class ServiceCollectionExtensions
     /// Создаёт экземпляр регистратора указанного типа и вызывает <see cref="DependencyInjectorBase.Inject"/>.
     /// </summary>
     /// <param name="serviceCollection">Коллекция сервисов приложения.</param>
-    /// <param name="provider">Провайдер для разрешения конструктора регистратора.</param>
+    /// <param name="provider">Провайдер для разрешения зависимостей конструктора регистратора.</param>
     /// <param name="dependencyInjectorType">Тип неабстрактного класса, наследующего <see cref="DependencyInjectorBase"/>.</param>
-    /// <exception cref="ArgumentException">Тип не является подходящим наследником <see cref="DependencyInjectorBase"/>.</exception>
+    /// <exception cref="ArgumentException">Выбрасывается, если тип не является подходящим наследником <see cref="DependencyInjectorBase"/>.</exception>
     private static void ApplyDependencyInjector(
         this IServiceCollection serviceCollection,
         IServiceProvider provider,
