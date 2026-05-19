@@ -51,12 +51,23 @@
     <Compile Include="Infrastructure\TestDoubles\OptionsCapturingNoDateCreatedReadListQueryHandler.cs" />
     <Compile Include="Infrastructure\TestDoubles\CallbackRepository.cs" />
     <Compile Include="Infrastructure\TestDoubles\CallbackUnitOfWork.cs" />
+    <Compile Include="Infrastructure\TestDoubles\FakeUserProvider.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestCommandHandlers.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestDeleteCommand.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestCloneCommand.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestUpdateCommand.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestCreateCommand.cs" />
+    <Compile Include="Infrastructure\TestDoubles\TestEntityRemoveCommand.cs" />
     <Compile Include="Abstractions\RequestHandlerTests.cs" />
     <Compile Include="Abstractions\EntityRequestHandlerTests.cs" />
     <Compile Include="Abstractions\Queries\Requests\ReadByKeyQueryTests.cs" />
     <Compile Include="Abstractions\Queries\Requests\ReadListQueryTests.cs" />
     <Compile Include="Abstractions\Queries\Handlers\ReadQueryHandlerTests.cs" />
     <Compile Include="Abstractions\Queries\Handlers\ReadListQueryHandlerTests.cs" />
+    <Compile Include="Abstractions\Commands\Handlers\CreateCommandHandlerTests.cs" />
+    <Compile Include="Abstractions\Commands\Handlers\DeleteCommandHandlerTests.cs" />
+    <Compile Include="Abstractions\Commands\Handlers\CloneCommandHandlerTests.cs" />
+    <Compile Include="Abstractions\Commands\Handlers\UpdateCommandHandlerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="FluentAssertions" />

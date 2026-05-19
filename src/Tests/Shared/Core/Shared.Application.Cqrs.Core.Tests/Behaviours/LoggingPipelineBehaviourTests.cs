@@ -69,7 +69,6 @@ public sealed class LoggingPipelineBehaviourTests
     [Fact]
     public async Task Handle_ForwardsCancellationTokenToNext()
     {
-        // TODO BUG (#1): CancellationToken _ is discarded — not forwarded to next()
         var sut = CreateSut();
         var request = new TestRequest();
         var response = new TestResponse();

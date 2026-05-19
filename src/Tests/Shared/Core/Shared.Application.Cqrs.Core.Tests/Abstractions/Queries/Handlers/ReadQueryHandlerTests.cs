@@ -52,7 +52,6 @@ public sealed class ReadQueryHandlerTests
         using var cts = new CancellationTokenSource();
         await sut.Handle(query, cts.Token);
 
-        // TODO BUG (#4): GetAsync called without cancellationToken
         capturedToken.Should().Be(cts.Token, "GetAsync should receive the CancellationToken from Handle");
     }
 

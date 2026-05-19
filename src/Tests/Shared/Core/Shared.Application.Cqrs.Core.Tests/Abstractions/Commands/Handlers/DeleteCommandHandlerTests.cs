@@ -54,7 +54,6 @@ public sealed class DeleteCommandHandlerTests
     [Fact]
     public async Task Handle_ForwardsCancellationTokenToSaveChanges()
     {
-        // TODO BUG (#2): SaveChangesAsync(default) instead of cancellationToken
         var (handler, uow, _, repo) = CreateSut();
         var entityId = Guid.NewGuid();
         repo.AddDirect(new TestEntity { Id = entityId });

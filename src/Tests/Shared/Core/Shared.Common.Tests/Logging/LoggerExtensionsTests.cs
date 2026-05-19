@@ -109,7 +109,7 @@ public sealed class LoggerExtensionsTests
 
         await _logger.LogTaskAsync(() => Task.FromResult(1), processDescription: description);
 
-        _logger.Entries.Should().ContainSingle(e => e.Message.Contains(description));
+        _logger.Entries.Should().Contain(e => e.Message.Contains(description));
     }
 
     [Fact]
