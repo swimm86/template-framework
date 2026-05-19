@@ -11,10 +11,14 @@ using Microsoft.Extensions.Logging;
 namespace Shared.Application.Cqrs.Core.Behaviours;
 
 /// <summary>
-/// Пайплайн валидации
+/// Pipeline-поведение для автоматической валидации запросов перед обработкой.
+/// Выполняет все зарегистрированные валидаторы FluentValidation и выбрасывает
+/// <see cref="ValidationException"/> при наличии ошибок.
 /// </summary>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
+/// <typeparam name="TRequest">Тип обрабатываемого запроса.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+/// <param name="logger">Логгер для записи событий валидации.</param>
+/// <param name="validators">Коллекция валидаторов для типа запроса.</param>
 internal sealed class ValidationPipelineBehaviour<TRequest, TResponse>(
     ILogger<ValidationPipelineBehaviour<TRequest, TResponse>> logger,
     IEnumerable<IValidator<TRequest>> validators) : IPipelineBehavior<TRequest, TResponse>

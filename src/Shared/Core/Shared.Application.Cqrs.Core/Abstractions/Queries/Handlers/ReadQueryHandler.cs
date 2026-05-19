@@ -14,13 +14,14 @@ using Shared.Domain.Core.Mapping.Interfaces;
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 
 /// <summary>
-/// Обработчик чтения.
+/// Базовый обработчик запроса на чтение сущности по ключу.
 /// </summary>
-/// <typeparam name="TQuery">Запроса.</typeparam>
-/// <typeparam name="TEntity">Сущность.</typeparam>
-/// <typeparam name="TResponse"> Ответ.</typeparam>
-/// <param name="loggerFactory">Логгер.</param>
-/// <param name="mapper">Сервис маппинга.</param>
+/// <typeparam name="TQuery">Тип запроса на чтение.</typeparam>
+/// <typeparam name="TEntity">Тип читаемой сущности.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
+/// <param name="mapper">Сервис маппинга объектов.</param>
+/// <param name="unitOfWork">Единица работы для управления транзакциями.</param>
 public abstract class ReadQueryHandler<TQuery, TEntity, TResponse>(
     ILoggerFactory loggerFactory,
     IMapper mapper,
@@ -29,13 +30,10 @@ public abstract class ReadQueryHandler<TQuery, TEntity, TResponse>(
     where TQuery : ReadByKeyQuery<TResponse>
     where TEntity : class, IEntity
 {
-    /// <summary>
-    /// Обработчик.
-    /// </summary>
-    /// <param name="query"> Запрос. </param>
-    /// <param name="cancellationToken"> Токен отмены. </param>
-    /// <returns> Dto. </returns>
-    public override async Task<TResponse> Handle(TQuery query, CancellationToken cancellationToken)
+    /// <inheritdoc />
+    public override async Task<TResponse> Handle(
+        TQuery query,
+        CancellationToken cancellationToken)
     {
         await GuardAsync(query, cancellationToken);
         var entity = await FindAsync(query, cancellationToken);
@@ -44,15 +42,21 @@ public abstract class ReadQueryHandler<TQuery, TEntity, TResponse>(
     }
 
     /// <summary>
-    /// Поиск сущности.
+    /// Выполняет поиск сущности по ключу.
     /// </summary>
-    /// <param name="query">  Запрос. </param>
-    /// <param name="cancellationToken"> Токен отмены. </param>
-    /// <returns> Сущность. </returns>
-    /// <exception cref="NullReferenceException"> Вызывается, когда сущность не найдена. </exception>
-    protected virtual async Task<TEntity> FindAsync(TQuery query, CancellationToken cancellationToken)
+    /// <param name="query">Запрос на чтение.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Найденная сущность.</returns>
+    /// <exception cref="NotFoundException">Выбрасывается, если сущность не найдена.</exception>
+    protected virtual async Task<TEntity> FindAsync(
+        TQuery query,
+        CancellationToken cancellationToken)
     {
-        var entity = await Repository.GetAsync(query.Key, ConstructOptions(query));
+        // TODO BUG (#4): Repository.GetAsync call does not pass cancellationToken — query execution will not be cancelled when the request is aborted
+        var entity = await Repository.GetAsync(
+            query.Key,
+            ConstructOptions(query),
+            cancellationToken);
         if (entity is null)
         {
             throw new NotFoundException($"Сущность не найдена. Поиск по ключу: {query.Key}");

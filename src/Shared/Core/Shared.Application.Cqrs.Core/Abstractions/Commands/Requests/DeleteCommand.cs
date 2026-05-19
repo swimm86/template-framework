@@ -9,7 +9,7 @@ using Shared.Application.Core.Dto.Responses;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 
 /// <summary>
-/// Команда на удаление
+/// Базовая команда удаления сущности.
 /// </summary>
-/// <param name="Key">Ключ.</param>
+/// <param name="Key">Ключ удаляемой сущности.</param>
 public abstract record DeleteCommand(object Key) : ICommand<Response>;

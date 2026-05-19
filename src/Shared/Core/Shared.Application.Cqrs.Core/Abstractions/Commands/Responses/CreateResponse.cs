@@ -10,25 +10,25 @@ using Shared.Application.Core.Dto.Responses;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
 
 /// <summary>
-/// Ответ создания.
+/// Ответ команды создания сущности.
 /// </summary>
-/// <typeparam name="TDto">Тип данных для ответа.</typeparam>
-public record CreateResponse<TDto> : Response<TDto>
+/// <typeparam name="TDto">Тип данных полезной нагрузки ответа.</typeparam>
+public record CreateResponse<TDto>
+    : Response<TDto>
 {
     /// <summary>
-    /// Конструктор для класса <see cref="CreateResponse{TDto}"/>.
+    /// Инициализирует новый экземпляр <see cref="CreateResponse{TDto}"/>.
     /// </summary>
     public CreateResponse()
     {
     }
 
     /// <summary>
-    /// Конструктор для класса <see cref="CreateResponse{TDto}"/>.
+    /// Инициализирует новый экземпляр <see cref="CreateResponse{TDto}"/> с указанными параметрами.
     /// </summary>
-    /// <typeparam name="TDto">Тип данных для ответа.</typeparam>
     /// <param name="Id">Идентификатор созданной сущности.</param>
-    /// <param name="Payload">Тело ответа.</param>
-    /// <param name="StatusCode">Статус ответа.</param>
+    /// <param name="Payload">Полезная нагрузка ответа.</param>
+    /// <param name="StatusCode">HTTP-код статуса ответа.</param>
     public CreateResponse(
         object Id,
         TDto Payload,

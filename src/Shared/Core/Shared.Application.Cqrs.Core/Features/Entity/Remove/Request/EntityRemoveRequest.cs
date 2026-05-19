@@ -7,12 +7,10 @@
 namespace Shared.Application.Cqrs.Core.Features.Entity.Remove.Request;
 
 /// <summary>
-/// Request для удаления сущности по идентификатору.
+/// Запрос на удаление сущности по идентификатору.
 /// </summary>
 public record EntityRemoveRequest
 {
-    /// <summary>
-    /// Идентификатор сущности, которую необходимативно удалить.
-    /// </summary>
+    /// <summary>Идентификатор сущности для удаления.</summary>
     public Guid Id { get; init; }
 }

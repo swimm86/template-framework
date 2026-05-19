@@ -12,50 +12,43 @@ using Microsoft.Extensions.Logging;
 namespace Shared.Application.Cqrs.Core.Abstractions;
 
 /// <summary>
-/// Базовый обработчик
+/// Базовый класс обработчика запросов MediatR.
 /// </summary>
-/// <param name="loggerFactory">Фабрика логгеров.</param>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
+/// <typeparam name="TRequest">Тип обрабатываемого запроса.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
 public abstract class RequestHandler<TRequest, TResponse>(
     ILoggerFactory loggerFactory)
     : IRequestHandler<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    /// <summary>
-    /// Инстанс логгера.
-    /// </summary>
+    /// <summary>Логгер для записи событий обработки запроса.</summary>
     protected readonly ILogger Logger = loggerFactory.CreateLogger<RequestHandler<TRequest, TResponse>>();
 
-    /// <summary>
-    /// Метод вызыва. Вызывается внутри IMediatr.
-    /// Вызывается первым.
-    /// </summary>
-    /// <param name="query">запрос</param>
-    /// <param name="cancellationToken">Cancellation Token</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <inheritdoc />
     public abstract Task<TResponse> Handle(TRequest query, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Гарды.
+    /// Выполняет предварительные проверки перед обработкой запроса.
+    /// Вызывается первым в цепочке обработки.
     /// </summary>
-    /// <param name="request">Запрос.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="request">Обрабатываемый запрос.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Задача выполнения проверок.</returns>
     protected virtual Task GuardAsync(TRequest request, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Поиск и вызов валидаторов для TEntity
+    /// Выполняет валидацию сущности с использованием всех зарегистрированных валидаторов.
     /// </summary>
-    /// <param name="entity">Сущность</param>
-    /// <param name="validators">Коллекция валидаторов</param>
-    /// <param name="cancellationToken">CancellationToken</param>
-    /// <exception cref="ValidationException">Ошибка валидации</exception>
-    /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <returns><see cref="Task"/></returns>
+    /// <typeparam name="TEntity">Тип валидируемой сущности.</typeparam>
+    /// <param name="entity">Сущность для валидации.</param>
+    /// <param name="validators">Коллекция валидаторов.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <exception cref="ValidationException">Выбрасывается при ошибках валидации.</exception>
+    /// <returns>Задача выполнения валидации.</returns>
     protected virtual async Task ValidateAsync<TEntity>(
         TEntity entity,
         IEnumerable<IValidator<TEntity>> validators,

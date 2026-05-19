@@ -7,9 +7,9 @@
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 
 /// <summary>
-/// Создание.
+/// Базовая команда создания новой сущности.
 /// </summary>
-/// <param name="Request">ДТО на создание.</param>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TResponse">Ответ из хендлера.</typeparam>
+/// <typeparam name="TRequest">Тип DTO с данными для создания.</typeparam>
+/// <typeparam name="TResponse">Тип ответа обработчика.</typeparam>
+/// <param name="Request">DTO с данными для создания.</param>
 public abstract record CreateCommand<TRequest, TResponse>(TRequest Request) : ICommand<TResponse>;
