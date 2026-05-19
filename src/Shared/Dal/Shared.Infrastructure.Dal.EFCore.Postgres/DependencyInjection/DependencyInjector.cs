@@ -12,7 +12,7 @@ using Shared.Infrastructure.Dal.EFCore.Interfaces;
 namespace Shared.Infrastructure.Dal.EFCore.Postgres.DependencyInjection;
 
 /// <summary>
-/// Регистрация DI-зависимостей слоя: <c>Shared.Infrastructure.Dal.EFCore.Postgres</c>.
+/// Регистрация DI-зависимостей слоя <c>Shared.Infrastructure.Dal.EFCore.Postgres</c>.
 /// </summary>
 /// <inheritdoc cref="EfCoreDependencyInjectorBase"/>
 /// <param name="loggerFactory"><inheritdoc cref="EfCoreDependencyInjectorBase(ILoggerFactory)" path="/param[@name='loggerFactory']"/></param>
