@@ -7,97 +7,158 @@ using Shared.Testing.Entities;
 
 namespace Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 
-public class TestEntityRequestHandler(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
-    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(unitOfWork, loggerFactory)
+public class TestEntityRequestHandler(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
+    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(
+        unitOfWork,
+        loggerFactory)
 {
     public new IRepository<TestEntity> Repository => base.Repository;
 
     public new QueryOptions<TestEntity> ConstructOptions(GetTestEntityRequest request)
         => base.ConstructOptions(request);
 
-    public new QueryOptions<TestEntity> ConstructOptions(GetTestEntityRequest request, bool withDeletable)
+    public new QueryOptions<TestEntity> ConstructOptions(
+        GetTestEntityRequest request,
+        bool withDeletable)
         => base.ConstructOptions(request, withDeletable);
 
-    public Task CallProcessEntityAsync(TestEntity entity, GetTestEntityRequest request)
-        => base.ProcessEntityAsync(entity, request);
+    public Task CallProcessEntityAsync(
+        TestEntity entity,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
+        => base.ProcessEntityAsync(entity, request, cancellationToken);
 
-    public Task CallProcessResponseAsync(TestEntity response, GetTestEntityRequest request)
-        => base.ProcessResponseAsync(response, request);
+    public Task CallProcessResponseAsync(
+        TestEntity response,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
+        => base.ProcessResponseAsync(response, request, cancellationToken);
 
-    public Task CallProcessEntitiesAsync(ICollection<TestEntity> entities, GetTestEntityRequest request)
-        => base.ProcessEntitiesAsync(entities, request);
+    public Task CallProcessEntitiesAsync(
+        ICollection<TestEntity> entities,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
+        => base.ProcessEntitiesAsync(entities, request, cancellationToken);
 
-    public override Task<TestEntity> Handle(GetTestEntityRequest query, CancellationToken cancellationToken)
+    public override Task<TestEntity> Handle(
+        GetTestEntityRequest query,
+        CancellationToken cancellationToken)
         => Task.FromResult(new TestEntity());
 }
 
-public sealed class TestEntityRequestHandlerWithTracking(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
+public sealed class TestEntityRequestHandlerWithTracking(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
     : TestEntityRequestHandler(unitOfWork, loggerFactory)
 {
     protected override bool WithTracking => true;
 }
 
-public sealed class TestEntityRequestHandlerWithSplitQuery(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
-    : TestEntityRequestHandler(unitOfWork, loggerFactory)
+public sealed class TestEntityRequestHandlerWithSplitQuery(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
+    : TestEntityRequestHandler(
+        unitOfWork,
+        loggerFactory)
 {
     protected override bool AsSplitQuery => true;
 }
 
-public sealed class TestEntityRequestHandlerWithProcessEntity(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
-    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(unitOfWork, loggerFactory)
+public sealed class TestEntityRequestHandlerWithProcessEntity(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
+    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(
+        unitOfWork,
+        loggerFactory)
 {
     public bool ProcessEntityCalled { get; private set; }
 
-    protected override async Task ProcessEntityAsync(TestEntity entity, GetTestEntityRequest request)
+    protected override Task ProcessEntityAsync(
+        TestEntity entity,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
     {
         ProcessEntityCalled = true;
-        await base.ProcessEntityAsync(entity, request);
+        return base.ProcessEntityAsync(entity, request, cancellationToken);
     }
 
-    public Task CallProcessEntityAsync(TestEntity entity, GetTestEntityRequest request)
-        => ProcessEntityAsync(entity, request);
+    public Task CallProcessEntityAsync(
+        TestEntity entity,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
+        => ProcessEntityAsync(entity, request, cancellationToken);
 
-    public override Task<TestEntity> Handle(GetTestEntityRequest query, CancellationToken cancellationToken)
+    public override Task<TestEntity> Handle(
+        GetTestEntityRequest query,
+        CancellationToken cancellationToken)
         => Task.FromResult(new TestEntity());
 }
 
-public sealed class TestEntityRequestHandlerWithProcessResponse(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
-    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(unitOfWork, loggerFactory)
+public sealed class TestEntityRequestHandlerWithProcessResponse(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
+    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(
+        unitOfWork,
+        loggerFactory)
 {
     public bool ProcessResponseCalled { get; private set; }
 
-    protected override async Task ProcessResponseAsync(TestEntity response, GetTestEntityRequest request)
+    protected override Task ProcessResponseAsync(
+        TestEntity response,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
     {
         ProcessResponseCalled = true;
-        await base.ProcessResponseAsync(response, request);
+        return base.ProcessResponseAsync(response, request, cancellationToken);
     }
 
-    public Task CallProcessResponseAsync(TestEntity response, GetTestEntityRequest request)
-        => ProcessResponseAsync(response, request);
+    public Task CallProcessResponseAsync(
+        TestEntity response,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
+        => ProcessResponseAsync(response, request, cancellationToken);
 
-    public override Task<TestEntity> Handle(GetTestEntityRequest query, CancellationToken cancellationToken)
+    public override Task<TestEntity> Handle(
+        GetTestEntityRequest query,
+        CancellationToken cancellationToken)
         => Task.FromResult(new TestEntity());
 }
 
-public sealed class TestEntityRequestHandlerWithProcessEntities(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
-    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(unitOfWork, loggerFactory)
+public sealed class TestEntityRequestHandlerWithProcessEntities(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
+    : EntityRequestHandler<GetTestEntityRequest, TestEntity, TestEntity>(
+        unitOfWork,
+        loggerFactory)
 {
     public bool ProcessEntitiesCalled { get; private set; }
 
-    protected override async Task ProcessEntitiesAsync(ICollection<TestEntity> entities, GetTestEntityRequest request)
+    protected override Task ProcessEntitiesAsync(
+        ICollection<TestEntity> entities,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
     {
         ProcessEntitiesCalled = true;
-        await base.ProcessEntitiesAsync(entities, request);
+        return base.ProcessEntitiesAsync(entities, request, cancellationToken);
     }
 
-    public Task CallProcessEntitiesAsync(ICollection<TestEntity> entities, GetTestEntityRequest request)
-        => ProcessEntitiesAsync(entities, request);
+    public Task CallProcessEntitiesAsync(
+        ICollection<TestEntity> entities,
+        GetTestEntityRequest request,
+        CancellationToken cancellationToken)
+        => ProcessEntitiesAsync(entities, request, cancellationToken);
 
-    public override Task<TestEntity> Handle(GetTestEntityRequest query, CancellationToken cancellationToken)
+    public override Task<TestEntity> Handle(
+        GetTestEntityRequest query,
+        CancellationToken cancellationToken)
         => Task.FromResult(new TestEntity());
 }
 
-public sealed class TestEntityWithoutDeletedHandler(IUnitOfWork unitOfWork, ILoggerFactory loggerFactory)
+public sealed class TestEntityWithoutDeletedHandler(
+    IUnitOfWork unitOfWork,
+    ILoggerFactory loggerFactory)
     : EntityRequestHandler<GetTestEntityWithoutDeletedRequest, TestEntityWithoutDeleted, TestEntityWithoutDeleted>(
         unitOfWork,
         loggerFactory)
@@ -105,6 +166,8 @@ public sealed class TestEntityWithoutDeletedHandler(IUnitOfWork unitOfWork, ILog
     public new QueryOptions<TestEntityWithoutDeleted> ConstructOptions(GetTestEntityWithoutDeletedRequest request)
         => base.ConstructOptions(request);
 
-    public override Task<TestEntityWithoutDeleted> Handle(GetTestEntityWithoutDeletedRequest query, CancellationToken cancellationToken)
+    public override Task<TestEntityWithoutDeleted> Handle(
+        GetTestEntityWithoutDeletedRequest query,
+        CancellationToken cancellationToken)
         => Task.FromResult(new TestEntityWithoutDeleted());
 }

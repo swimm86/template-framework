@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Auth;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
+using Shared.Domain.Core.Dal.Repository.Extensions;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
 using Shared.Domain.Core.Mapping.Interfaces;
@@ -65,9 +66,8 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
         CancellationToken cancellationToken)
     {
         var options = ConstructOptions(command);
-        var entityToClone = await Repository.GetAsync(command.Key, options, cancellationToken);
-        // TODO BUG (#3): entityToClone! null-forgiving operator suppresses potential NRE — GetAsync may return null, Map will throw ArgumentNullException without a clear message
-        var clone = mapper.Map<TEntity, TEntity>(entityToClone!);
+        var entityToClone = await Repository.GetByIdOrThrowAsync(command.Key, options, cancellationToken);
+        var clone = mapper.Map<TEntity, TEntity>(entityToClone);
         await ProcessEntityAsync(clone, command, cancellationToken);
         await ValidateAsync(clone, validators, cancellationToken);
         await Repository.AddAsync(clone, userProvider.UserId, userProvider.UserFullName, cancellationToken);

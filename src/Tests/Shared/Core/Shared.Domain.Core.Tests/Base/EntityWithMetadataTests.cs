@@ -57,12 +57,6 @@ public class EntityWithMetadataTests
     [Fact]
     public void SetCreatedByUserName_WhenChangingNonEmptyName_ThrowsBusinessLogicException()
     {
-        // TODO BUG (#5): Inverted condition in SetCreatedByUserName.
-        // The guard `!string.IsNullOrWhiteSpace(userName)` checks the new value
-        // instead of `!string.IsNullOrWhiteSpace(CreatedByUserName)` (the existing value).
-        // This causes SetCreatedByUserName("User1") to throw on the first call.
-        // When fixed, this test should pass: first call succeeds, second call throws.
-
         var entity = new TestEntityWithMetadata();
         entity.SetCreatedByUserName("User1");
 

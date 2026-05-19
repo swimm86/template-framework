@@ -70,7 +70,7 @@ public abstract class AppException
                 nameof(additionalData));
         }
 
-        if (additionalData?.Any(kvp => string.IsNullOrEmpty(kvp.Key)) is true)
+        if (additionalData?.Any(kvp => string.IsNullOrWhiteSpace(kvp.Key)) is true)
         {
             throw new ArgumentException(
                 "Keys can't be null or empty",

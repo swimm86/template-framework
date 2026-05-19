@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="InvalidScripts\001.epps.ddl_create_test_table_with_error.sql" />
-    <EmbeddedResource Include="Scripts\001.epps.ddl_create_test_table.sql" />
+    <EmbeddedResource Include="InvalidScripts\001.ddl_create_test_table_with_error.sql" />
+    <EmbeddedResource Include="Scripts\001.ddl_create_test_table.sql" />
   </ItemGroup>
 
   <ItemGroup>

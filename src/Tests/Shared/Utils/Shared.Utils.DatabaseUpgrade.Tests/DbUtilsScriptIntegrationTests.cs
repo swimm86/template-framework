@@ -12,10 +12,10 @@ namespace Shared.Utils.DatabaseUpgrade.Tests;
 [Trait("Category", "Integration")]
 public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
 {
-    private const string ValidScriptFileName = "001.epps.ddl_create_test_table.sql";
+    private const string ValidScriptFileName = "001.ddl_create_test_table.sql";
 
     private readonly PostgreSqlContainer _container = DbUtilsTestSupport.CreatePostgreSqlContainer(
-        $"epps_{nameof(DbUtilsScriptIntegrationTests)}");
+        nameof(DbUtilsScriptIntegrationTests));
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => _container.DisposeAsync();

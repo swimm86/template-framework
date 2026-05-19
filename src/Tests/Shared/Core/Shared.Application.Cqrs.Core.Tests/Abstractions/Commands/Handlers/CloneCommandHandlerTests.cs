@@ -1,5 +1,6 @@
 using FluentValidation;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
+using Shared.Domain.Core.Exceptions.Models;
 using Shared.Testing.Doubles.Mapping;
 using Shared.Testing.Doubles.Repository;
 using Shared.Testing.Entities;
@@ -51,12 +52,11 @@ public sealed class CloneCommandHandlerTests
     [Fact]
     public async Task Handle_EntityNotFound_ThrowsNotFoundException()
     {
-        // TODO BUG (#3): entityToClone! null-forgiving without null check leads to NRE
         var (handler, _, _, _, _) = CreateSut();
         var command = new TestCloneCommand(Guid.NewGuid(), new object());
 
         var act = () => handler.Handle(command, CancellationToken.None);
-        await act.Should().ThrowAsync<NullReferenceException>();
+        await act.Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]

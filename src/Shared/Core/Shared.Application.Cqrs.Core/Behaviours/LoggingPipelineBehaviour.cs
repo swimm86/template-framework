@@ -26,9 +26,13 @@ internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
     public Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
-        // TODO BUG (#1): CancellationToken discarded with '_' — token is not passed to `next()` delegate, cancelling the handler does not propagate to inner pipeline steps
-        CancellationToken _)
+        CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<TResponse>(cancellationToken);
+        }
+
         return logger.LogTaskAsync(
             () => next(),
             processDescription: $"'{request.GetType().Name}' handler");
