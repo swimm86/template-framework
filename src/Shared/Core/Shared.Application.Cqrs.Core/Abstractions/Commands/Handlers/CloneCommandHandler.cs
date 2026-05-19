@@ -17,15 +17,18 @@ using Shared.Domain.Core.Mapping.Interfaces;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 
 /// <summary>
-/// Создание обработчика.
+/// Базовый обработчик команды клонирования сущности.
 /// </summary>
-/// <typeparam name="TCommand">Тип команды.</typeparam>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TEntity">Тип сущности.</typeparam>
-/// <typeparam name="TResponsePayload">Payload.</typeparam>
-/// <typeparam name="TResponse">Тип Dto при создании.</typeparam>
-/// <param name="loggerFactory">Фабрика логгирования.</param>
-/// <param name="userProvider">Предоставляет информацию о текущем пользователе. См. <see cref="IUserProvider"/>.</param>
+/// <typeparam name="TCommand">Тип команды клонирования.</typeparam>
+/// <typeparam name="TRequest">Тип DTO с дополнительными данными для клонирования.</typeparam>
+/// <typeparam name="TEntity">Тип клонируемой сущности.</typeparam>
+/// <typeparam name="TResponsePayload">Тип данных полезной нагрузки ответа.</typeparam>
+/// <typeparam name="TResponse">Тип ответа команды клонирования.</typeparam>
+/// <param name="mapper">Сервис маппинга объектов.</param>
+/// <param name="unitOfWork">Единица работы для управления транзакциями.</param>
+/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
+/// <param name="validators">Коллекция валидаторов сущности.</param>
+/// <param name="userProvider">Сервис получения информации о текущем пользователе.</param>
 public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponsePayload, TResponse>(
     IMapper mapper,
     IUnitOfWork unitOfWork,
@@ -40,12 +43,7 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
     where TResponse : CreateResponse<TResponsePayload>, new()
     where TEntity : class, IEntity
 {
-    /// <summary>
-    /// Обработка.
-    /// </summary>
-    /// <param name="command"> Запрос. </param>
-    /// <param name="cancellationToken"> Токен ответа. </param>
-    /// <returns> Ответ. </returns>
+    /// <inheritdoc />
     public override async Task<TResponse> Handle(
         TCommand command,
         CancellationToken cancellationToken)
@@ -57,19 +55,20 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
     }
 
     /// <summary>
-    /// Создание ответа.
+    /// Клонирует сущность и сохраняет копию в базе данных.
     /// </summary>
-    /// <param name="command"> Запрос. </param>
-    /// <param name="cancellationToken"> Токен ответа. </param>
-    /// <returns> Ответ. </returns>
+    /// <param name="command">Команда клонирования.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Ответ с данными клонированной сущности.</returns>
     protected virtual async Task<TResponse> CloneAsync(
         TCommand command,
         CancellationToken cancellationToken)
     {
         var options = ConstructOptions(command);
         var entityToClone = await Repository.GetAsync(command.Key, options, cancellationToken);
+        // TODO BUG (#3): entityToClone! null-forgiving operator suppresses potential NRE — GetAsync may return null, Map will throw ArgumentNullException without a clear message
         var clone = mapper.Map<TEntity, TEntity>(entityToClone!);
-        await ProcessEntityAsync(clone, command);
+        await ProcessEntityAsync(clone, command, cancellationToken);
         await ValidateAsync(clone, validators, cancellationToken);
         await Repository.AddAsync(clone, userProvider.UserId, userProvider.UserFullName, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
@@ -77,10 +76,10 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
     }
 
     /// <summary>
-    /// Создание dto ответа.
+    /// Формирует ответ с данными клонированной сущности.
     /// </summary>
-    /// <param name="entity"> Сущность. </param>
-    /// <returns> Dto ответа. </returns>
+    /// <param name="entity">Клонированная сущность.</param>
+    /// <returns>Ответ команды клонирования.</returns>
     protected virtual TResponse CreateResponseDto(TEntity entity) =>
         new()
         {

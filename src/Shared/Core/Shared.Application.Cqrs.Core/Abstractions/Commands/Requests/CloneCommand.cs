@@ -7,11 +7,11 @@
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 
 /// <summary>
-/// Команда клонирования.
+/// Базовая команда клонирования сущности.
 /// </summary>
-/// <param name="Key">Ключ по которому будет производиться поиск.</param>
-/// <param name="Request">DTO с дополнительной информацией для клонирование.</param>
-/// <typeparam name="TRequest">Тип DTO.</typeparam>
-/// <typeparam name="TResponse">Ответ хендлера.</typeparam>
+/// <typeparam name="TRequest">Тип DTO с дополнительными данными для клонирования.</typeparam>
+/// <typeparam name="TResponse">Тип ответа обработчика.</typeparam>
+/// <param name="Key">Ключ исходной сущности для клонирования.</param>
+/// <param name="Request">DTO с дополнительными данными для клонирования.</param>
 public abstract record CloneCommand<TRequest, TResponse>(object Key, TRequest Request)
     : ICommand<TResponse>;

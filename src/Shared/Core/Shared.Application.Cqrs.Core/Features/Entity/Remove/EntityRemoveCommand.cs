@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Cqrs.Core.Abstractions.Commands;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 using Shared.Application.Cqrs.Core.Features.Entity.Remove.Request;
 using Shared.Domain.Core.Interfaces;
@@ -12,9 +11,10 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Application.Cqrs.Core.Features.Entity.Remove;
 
 /// <summary>
-/// <see cref="ICommand"/> для удаления сущности.
+/// Команда удаления сущности по идентификатору.
 /// </summary>
-/// <param name="Request"><see cref="EntityRemoveRequest"/>.</param>
+/// <typeparam name="TEntity">Тип удаляемой сущности.</typeparam>
+/// <param name="Request">Запрос с идентификатором сущности.</param>
 public record EntityRemoveCommand<TEntity>(EntityRemoveRequest Request)
     : DeleteCommand(Request.Id)
     where TEntity : class, IEntity<Guid>;

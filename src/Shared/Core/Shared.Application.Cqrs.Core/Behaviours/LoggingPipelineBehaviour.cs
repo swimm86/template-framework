@@ -11,11 +11,12 @@ using Shared.Common.Logging.Extensions;
 namespace Shared.Application.Cqrs.Core.Behaviours;
 
 /// <summary>
-/// Пайплайн логирования
+/// Pipeline-поведение для логирования выполнения запросов и команд.
+/// Записывает время выполнения и результат обработки каждого запроса.
 /// </summary>
-/// <param name="logger">Логгер.</param>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
+/// <typeparam name="TRequest">Тип обрабатываемого запроса.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+/// <param name="logger">Логгер для записи событий.</param>
 internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
     ILogger<LoggingPipelineBehaviour<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
@@ -25,6 +26,7 @@ internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
     public Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
+        // TODO BUG (#1): CancellationToken discarded with '_' — token is not passed to `next()` delegate, cancelling the handler does not propagate to inner pipeline steps
         CancellationToken _)
     {
         return logger.LogTaskAsync(

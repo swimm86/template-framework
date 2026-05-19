@@ -9,9 +9,10 @@ using Shared.Application.Core.Dto.Interfaces;
 namespace Shared.Application.Cqrs.Core.Abstractions;
 
 /// <summary>
-/// Базовый фильтр для сущностей с идентификаторами.
+/// Базовый фильтр для запросов с выборкой сущностей по идентификаторам.
 /// </summary>
-public abstract record ListFilterBase : IWithIdsFilter<Guid>
+public abstract record ListFilterBase
+    : IWithIdsFilter<Guid>
 {
     /// <inheritdoc />
     public ICollection<Guid>? Ids { get; init; }

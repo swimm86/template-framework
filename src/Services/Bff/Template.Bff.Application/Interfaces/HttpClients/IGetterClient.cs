@@ -20,7 +20,7 @@ public interface IGetterClient
     /// </summary>
     /// <param name="request">Параметры списка (пагинация, фильтры и сортировка).</param>
     /// <param name="pattern">Режим маршрута Getter: сервисный слой или CQRS.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Коллекция сущностей 'Person'.</returns>
     Task<PersonListResponse> GetPersonsAsync(
         PersonListRequest request,

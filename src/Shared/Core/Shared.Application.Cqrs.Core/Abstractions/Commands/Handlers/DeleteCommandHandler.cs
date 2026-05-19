@@ -16,11 +16,13 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 
 /// <summary>
-/// Обработчик команды удаления.
+/// Базовый обработчик команды удаления сущности.
 /// </summary>
-/// <param name="loggerFactory">Фабрика логгеров.</param>
-/// <typeparam name="TCommand">Тип команды.</typeparam>
-/// <typeparam name="TEntity">Тип сущности.</typeparam>
+/// <typeparam name="TCommand">Тип команды удаления.</typeparam>
+/// <typeparam name="TEntity">Тип удаляемой сущности.</typeparam>
+/// <param name="unitOfWork">Единица работы для управления транзакциями.</param>
+/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
+/// <param name="userProvider">Сервис получения информации о текущем пользователе.</param>
 public abstract class DeleteCommandHandler<TCommand, TEntity>(
     IUnitOfWork unitOfWork,
     ILoggerFactory loggerFactory,
@@ -30,38 +32,54 @@ public abstract class DeleteCommandHandler<TCommand, TEntity>(
     where TEntity : class, IEntity
 {
     /// <inheritdoc />
-    public override async Task<Response> Handle(TCommand command, CancellationToken cancellationToken)
+    public override async Task<Response> Handle(
+        TCommand command,
+        CancellationToken cancellationToken)
     {
         await GuardAsync(command, cancellationToken);
-        var entity = await FindAsync(command);
-        var response = await DeleteAsync(entity, command);
+        var entity = await FindAsync(command, cancellationToken);
+        var response = await DeleteAsync(entity, command, cancellationToken);
 
         return response;
     }
 
     /// <summary>
-    /// Поиск ентити.
+    /// Выполняет поиск сущности по ключу.
     /// </summary>
-    /// <param name="command">Запрос</param>
-    /// <returns>Ентити</returns>
-    protected virtual async Task<TEntity> FindAsync(TCommand command)
+    /// <param name="command">Команда удаления.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Найденная сущность.</returns>
+    protected virtual async Task<TEntity> FindAsync(
+        TCommand command,
+        CancellationToken cancellationToken)
     {
         var options = ConstructOptions(command);
         options.WithTracking = true;
-        var entity = await Repository.GetByIdOrThrowAsync(command.Key, options);
+        var entity = await Repository.GetByIdOrThrowAsync(
+            command.Key,
+            options,
+            cancellationToken: cancellationToken);
         return entity;
     }
 
     /// <summary>
-    /// Удаление ентити.
+    /// Удаляет сущность из базы данных.
     /// </summary>
-    /// <param name="entity">Ентити</param>
-    /// <param name="command">Запрос</param>
-    /// <returns>Ответ</returns>
-    protected virtual async Task<Response> DeleteAsync(TEntity entity, TCommand command)
+    /// <param name="entity">Сущность для удаления.</param>
+    /// <param name="command">Команда удаления.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Ответ команды удаления.</returns>
+    protected virtual async Task<Response> DeleteAsync(
+        TEntity entity,
+        TCommand command,
+        CancellationToken cancellationToken)
     {
-        await Repository.RemoveAsync(entity, userId: userProvider.UserId);
-        await unitOfWork.SaveChangesAsync(default);
+        await Repository.RemoveAsync(
+            entity,
+            userId: userProvider.UserId,
+            cancellationToken: cancellationToken);
+        // TODO BUG (#2): SaveChangesAsync(default) uses default(CancellationToken) instead of the cancellationToken from Handle — delete operation cannot be cancelled
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         return new Response { StatusCode = StatusCodes.Status200OK };
     }
 }

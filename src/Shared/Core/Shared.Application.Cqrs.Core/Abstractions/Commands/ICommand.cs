@@ -9,29 +9,26 @@ using MediatR;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands;
 
 /// <summary>
-/// Интерфейс команды без ответа
+/// Маркер-интерфейс команды без возвращаемого значения.
 /// </summary>
-public interface ICommand : IRequest<Unit>
-{
-}
+public interface ICommand
+    : IRequest<Unit>;
 
 /// <summary>
-/// Интерфейс команды с ответом
+/// Интерфейс команды с возвращаемым значением.
 /// </summary>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
-public interface ICommand<TResponse> : IRequest<TResponse>
-{
-}
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+public interface ICommand<out TResponse>
+    : IRequest<TResponse>;
 
 /// <summary>
-/// Интерфейс команды с ответом
+/// Интерфейс команды с отдельным объектом запроса и возвращаемым значением.
 /// </summary>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
-public interface ICommand<TRequest, TResponse> : ICommand<TResponse>
+/// <typeparam name="TRequest">Тип объекта запроса.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+public interface ICommand<out TRequest, out TResponse>
+    : ICommand<TResponse>
 {
-    /// <summary>
-    /// Запрос.
-    /// </summary>
+    /// <summary>Объект запроса с данными для выполнения команды.</summary>
     TRequest Request { get; }
 }

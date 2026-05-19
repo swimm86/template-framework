@@ -9,9 +9,8 @@ using MediatR;
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries;
 
 /// <summary>
-/// Интерфейс запроса на чтение
+/// Интерфейс запроса на чтение данных.
 /// </summary>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
-public interface IQuery<TResponse> : IRequest<TResponse>
-{
-}
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+public interface IQuery<out TResponse>
+    : IRequest<TResponse>;

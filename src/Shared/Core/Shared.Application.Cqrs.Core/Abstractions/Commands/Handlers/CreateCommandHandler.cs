@@ -17,14 +17,18 @@ using Shared.Domain.Core.Mapping.Interfaces;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 
 /// <summary>
-/// Создание обработчика.
+/// Базовый обработчик команды создания сущности.
 /// </summary>
-/// <typeparam name="TCommand">Тип команды.</typeparam>
-/// <typeparam name="TRequest">Тип запроса.</typeparam>
-/// <typeparam name="TEntity">Тип сущности.</typeparam>
-/// <typeparam name="TResponsePayload">Payload.</typeparam>
-/// <typeparam name="TResponse">Тип Dto при создании.</typeparam>
-/// <param name="loggerFactory">Фабрика логгирования.</param>
+/// <typeparam name="TCommand">Тип команды создания.</typeparam>
+/// <typeparam name="TRequest">Тип DTO с данными для создания.</typeparam>
+/// <typeparam name="TEntity">Тип создаваемой сущности.</typeparam>
+/// <typeparam name="TResponsePayload">Тип данных полезной нагрузки ответа.</typeparam>
+/// <typeparam name="TResponse">Тип ответа команды создания.</typeparam>
+/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
+/// <param name="mapper">Сервис маппинга объектов.</param>
+/// <param name="unitOfWork">Единица работы для управления транзакциями.</param>
+/// <param name="validators">Коллекция валидаторов сущности.</param>
+/// <param name="userProvider">Сервис получения информации о текущем пользователе.</param>
 public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TResponsePayload, TResponse>(
     ILoggerFactory loggerFactory,
     IMapper mapper,
@@ -37,12 +41,7 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
     where TCommand : CreateCommand<TRequest, TResponse>
     where TEntity : class, IEntity
 {
-    /// <summary>
-    /// Обработка.
-    /// </summary>
-    /// <param name="command"><see cref="TCommand"/>.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
-    /// <returns><see cref="TResponse"/>.</returns>
+    /// <inheritdoc />
     public override async Task<TResponse> Handle(
         TCommand command,
         CancellationToken cancellationToken)
@@ -54,17 +53,17 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
     }
 
     /// <summary>
-    /// Создание ответа.
+    /// Создаёт новую сущность и сохраняет её в базе данных.
     /// </summary>
-    /// <param name="command"><see cref="TCommand"/>.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
-    /// <returns><see cref="TResponse"/>.</returns>
+    /// <param name="command">Команда создания.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Ответ с данными созданной сущности.</returns>
     protected virtual async Task<TResponse> CreateAsync(
         TCommand command,
         CancellationToken cancellationToken)
     {
         var entity = mapper.Map<TRequest, TEntity>(command.Request);
-        await ProcessEntityAsync(entity, command);
+        await ProcessEntityAsync(entity, command, cancellationToken);
         await ValidateAsync(entity, validators, cancellationToken);
         var newEntity = await Repository
             .AddAsync(entity, userProvider.UserId, userProvider.UserFullName, cancellationToken);
@@ -73,10 +72,10 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
     }
 
     /// <summary>
-    /// Создание dto ответа.
+    /// Формирует ответ с данными созданной сущности.
     /// </summary>
-    /// <param name="entity"><see cref="TEntity"/>.</param>
-    /// <returns><see cref="TResponse"/>.</returns>
+    /// <param name="entity">Созданная сущность.</param>
+    /// <returns>Ответ команды создания.</returns>
     protected virtual TResponse CreateResponseDto(TEntity entity) =>
         new()
         {

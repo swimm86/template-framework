@@ -20,16 +20,16 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 
 /// <summary>
-/// Базовый Handler множественного чтения
+/// Базовый обработчик запроса на чтение коллекции сущностей с пагинацией.
 /// </summary>
-/// <param name="loggerFactory">Фабрика логирования</param>
-/// <param name="unitOfWork"><see cref="IUnitOfWork"/>.</param>
-/// <typeparam name="TQuery">Query.</typeparam>
-/// <typeparam name="TRequest">Запрос.</typeparam>
-/// <typeparam name="TFilter">Фильтр.</typeparam>
-/// <typeparam name="TResponse">Ответ.</typeparam>
-/// <typeparam name="TPayload">ДТО.</typeparam>
-/// <typeparam name="TEntity">Сущность.</typeparam>
+/// <typeparam name="TQuery">Тип запроса на чтение.</typeparam>
+/// <typeparam name="TRequest">Тип запроса с параметрами пагинации.</typeparam>
+/// <typeparam name="TFilter">Тип фильтра для отбора данных.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+/// <typeparam name="TPayload">Тип данных полезной нагрузки ответа.</typeparam>
+/// <typeparam name="TEntity">Тип читаемой сущности.</typeparam>
+/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
+/// <param name="unitOfWork">Единица работы для управления транзакциями.</param>
 public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse, TPayload, TEntity>(
     ILoggerFactory loggerFactory,
     IUnitOfWork unitOfWork)
@@ -40,7 +40,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     where TEntity : class, IEntity
     where TFilter : new()
 {
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public override async Task<TResponse> Handle(
         TQuery query,
         CancellationToken cancellationToken)
@@ -51,11 +51,11 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     }
 
     /// <summary>
-    /// Виртуальный метод поиска.
+    /// Выполняет поиск сущностей с применением пагинации и сортировки.
     /// </summary>
-    /// <param name="query"> Запрос. </param>
-    /// <param name="cancellationToken"> Токен отмены. </param>
-    /// <returns> Ответ. </returns>
+    /// <param name="query">Запрос на чтение.</param>
+    /// <param name="cancellationToken">Токен отмены операции.</param>
+    /// <returns>Ответ с пагинированной коллекцией данных.</returns>
     protected virtual async Task<TResponse> FindAsync(
         TQuery query,
         CancellationToken cancellationToken)
@@ -76,18 +76,18 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
             TotalPages = pagesCount,
             PageNumber = query.PageNumber,
         };
-        await ProcessResponseAsync(response, query);
+        await ProcessResponseAsync(response, query, cancellationToken);
         return response;
     }
 
     /// <summary>
-    /// Возвращает коллекцию проекций сущностей <see cref="TEntity"/> к <see cref="TPayload"/>.
+    /// Возвращает коллекцию проекций сущностей <see cref="TEntity"/> к типу <see cref="TPayload"/>.
     /// </summary>
-    /// <param name="repository"><see cref="IRepository{TEntity}"/>.</param>
-    /// <param name="options"><inheritdoc cref="QueryOptions{TEntity}"/>.</param>
+    /// <param name="repository">Репозиторий для работы с сущностями.</param>
+    /// <param name="options">Параметры запроса к базе данных.</param>
     /// <param name="skip">Количество пропускаемых элементов.</param>
     /// <param name="take">Количество возвращаемых элементов.</param>
-    /// <returns>Коллекция проекций сущностей <see cref="TEntity"/> к <see cref="TPayload"/>.</returns>
+    /// <returns>Коллекция проекций сущностей.</returns>
     protected virtual async Task<ICollection<TPayload>> GetPayloadAsync(
         IRepository<TEntity> repository,
         QueryOptions<TEntity> options,
@@ -98,21 +98,21 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     }
 
     /// <summary>
-    /// Пост обработка Payload-а.
+    /// Выполняет постобработку полезной нагрузки ответа.
     /// </summary>
-    /// <param name="dtoCollection">Payload.</param>
-    /// <param name="query"><see cref="TQuery"/>.</param>
-    /// <returns><see cref="Task"/>.</returns>
+    /// <param name="dtoCollection">Коллекция DTO для постобработки.</param>
+    /// <param name="query">Исходный запрос.</param>
+    /// <returns>Задача выполнения постобработки.</returns>
     protected virtual Task PostProcessAsync(ICollection<TPayload> dtoCollection, TQuery query)
     {
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Добавление сортировки.
+    /// Применяет параметры сортировки к запросу.
     /// </summary>
-    /// <param name="sortOptions">Настройки сортировки.</param>
-    /// <param name="options">Настройки запроса.</param>
+    /// <param name="sortOptions">Параметры сортировки.</param>
+    /// <param name="options">Параметры запроса к базе данных.</param>
     protected virtual void ApplySortOptions(
         IEnumerable<SortOption> sortOptions,
         QueryOptions<TEntity> options)
@@ -130,7 +130,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
         options.AddOrderBy(x => (x as IWithDateCreated)!.DateCreated, OrderDirectionType.Ascending, 0);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected override QueryOptions<TEntity> ConstructOptions(TQuery request)
     {
         var options = base.ConstructOptions(request);

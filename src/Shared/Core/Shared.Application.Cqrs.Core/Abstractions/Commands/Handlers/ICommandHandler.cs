@@ -9,20 +9,18 @@ using MediatR;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 
 /// <summary>
-/// Интерфейс обработчика команды без ответа
+/// Интерфейс обработчика команды без возвращаемого значения.
 /// </summary>
-/// <typeparam name="TCommand">Тип команды</typeparam>
-public interface ICommandHandler<TCommand> : IRequestHandler<TCommand, Unit>
-    where TCommand : ICommand
-{
-}
+/// <typeparam name="TCommand">Тип обрабатываемой команды.</typeparam>
+public interface ICommandHandler<in TCommand>
+    : IRequestHandler<TCommand, Unit>
+    where TCommand : ICommand;
 
 /// <summary>
-/// Обработчик команды
+/// Интерфейс обработчика команды с возвращаемым значением.
 /// </summary>
-/// <typeparam name="TCommand">Тип команды.</typeparam>
-/// <typeparam name="TResponse">Тип ответа.</typeparam>
-public interface ICommandHandler<TCommand, TResponse> : IRequestHandler<TCommand, TResponse>
-    where TCommand : ICommand<TResponse>
-{
-}
+/// <typeparam name="TCommand">Тип обрабатываемой команды.</typeparam>
+/// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
+public interface ICommandHandler<in TCommand, TResponse>
+    : IRequestHandler<TCommand, TResponse>
+    where TCommand : ICommand<TResponse>;

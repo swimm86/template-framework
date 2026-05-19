@@ -59,7 +59,7 @@ public class PersonsService(
     /// <param name="request">Запрос.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsUnitOfWorkAsync(
         PersonListRequest request,
@@ -84,7 +84,7 @@ public class PersonsService(
     /// <param name="request">Запрос.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsRepositoryAsync(
         PersonListRequest request,
@@ -111,7 +111,7 @@ public class PersonsService(
     /// <param name="request">Запрос.</param>
     /// <param name="skip">Количество сущностей, которые необходимо пропустить.</param>
     /// <param name="take">Количество сущностей, которые необходимо извлечь.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Объект GetPersonsResponseDto, содержащий список всех 'Person-ов'.</returns>
     private async Task<(ICollection<PersonListPayload> collection, int totalCount)> GetPersonsSpecificationAsync(
         PersonListRequest request,

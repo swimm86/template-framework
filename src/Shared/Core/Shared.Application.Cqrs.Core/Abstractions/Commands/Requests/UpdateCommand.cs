@@ -7,10 +7,10 @@
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 
 /// <summary>
-/// Команда обновления
+/// Базовая команда обновления существующей сущности.
 /// </summary>
-/// <param name="Key">Ключ по которому будет производиться поиск.</param>
-/// <param name="Request">ДТО на обновление.</param>
-/// <typeparam name="TRequest">Тип ДТО.</typeparam>
-/// <typeparam name="TResponse">Ответ хендлера.</typeparam>
+/// <typeparam name="TRequest">Тип DTO с данными для обновления.</typeparam>
+/// <typeparam name="TResponse">Тип ответа обработчика.</typeparam>
+/// <param name="Key">Ключ для поиска обновляемой сущности.</param>
+/// <param name="Request">DTO с данными для обновления.</param>
 public abstract record UpdateCommand<TRequest, TResponse>(object Key, TRequest Request) : ICommand<TResponse>;

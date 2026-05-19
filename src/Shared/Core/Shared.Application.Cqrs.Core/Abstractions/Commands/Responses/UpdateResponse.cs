@@ -9,13 +9,12 @@ using Shared.Application.Core.Dto.Responses;
 namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Responses;
 
 /// <summary>
-/// Ответ команды обновления
+/// Ответ команды обновления сущности.
 /// </summary>
-/// <typeparam name="TDto">Тип Dto.</typeparam>
-public record UpdateResponse<TDto> : Response<TDto>
+/// <typeparam name="TDto">Тип данных полезной нагрузки ответа.</typeparam>
+public record UpdateResponse<TDto>
+    : Response<TDto>
 {
-    /// <summary>
-    /// Ключ
-    /// </summary>
+    /// <summary>Ключ обновлённой сущности.</summary>
     public object Key { get; init; }
 }
