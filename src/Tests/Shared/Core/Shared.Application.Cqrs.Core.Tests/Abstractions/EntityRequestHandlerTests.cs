@@ -107,7 +107,10 @@ public sealed class EntityRequestHandlerTests
     {
         var handler = new TestEntityRequestHandlerWithProcessEntity(UnitOfWork, LoggerFactory);
 
-        await handler.CallProcessEntityAsync(new TestEntity(), new GetTestEntityRequest());
+        await handler.CallProcessEntityAsync(
+            new TestEntity(),
+            new GetTestEntityRequest(),
+            TestContext.Current.CancellationToken);
 
         handler.ProcessEntityCalled.Should().BeTrue();
     }
@@ -117,7 +120,10 @@ public sealed class EntityRequestHandlerTests
     {
         var handler = new TestEntityRequestHandlerWithProcessResponse(UnitOfWork, LoggerFactory);
 
-        await handler.CallProcessResponseAsync(new TestEntity(), new GetTestEntityRequest());
+        await handler.CallProcessResponseAsync(
+            new TestEntity(),
+            new GetTestEntityRequest(),
+            TestContext.Current.CancellationToken);
 
         handler.ProcessResponseCalled.Should().BeTrue();
     }
@@ -127,7 +133,10 @@ public sealed class EntityRequestHandlerTests
     {
         var handler = new TestEntityRequestHandlerWithProcessEntities(UnitOfWork, LoggerFactory);
 
-        await handler.CallProcessEntitiesAsync(new List<TestEntity> { new() }, new GetTestEntityRequest());
+        await handler.CallProcessEntitiesAsync(
+            new List<TestEntity> { new() },
+            new GetTestEntityRequest(),
+            TestContext.Current.CancellationToken);
 
         handler.ProcessEntitiesCalled.Should().BeTrue();
     }

@@ -49,7 +49,7 @@
 
 ```
 src/
-├── Template.sln                         # Solution (34 projects)
+├── Template.sln                         # Solution (42 projects)
 │
 ├── Shared/                              # Унифицированный фреймворк
 │   ├── Core/                            # Базовые компоненты ядра (6 проектов)
@@ -74,11 +74,27 @@ src/
 │   ├── Common/                          # Общие компоненты сервисов — 5 проектов
 │   └── DatabaseUpgrade/                 # Миграции БД
 │
-└── Tests/                               # Тесты (4 проекта)
-    ├── Shared.Application.Core.Tests
-    ├── Shared.Common.Tests
-    ├── Shared.Testing
-    └── Shared.Utils.DatabaseUpgrade.Tests
+└── Tests/                               # Тесты (11 проектов + Shared.Testing)
+    ├── test.runsettings                  # Конфигурация запуска (покрытие, фильтры)
+    └── Shared/
+        ├── Shared.Testing                # Библиотека тестовых helpers (FakeMapper, FakeRepository, и т.д.)
+        ├── Core/
+        │   ├── Shared.Common.Tests
+        │   ├── Shared.Domain.Core.Tests
+        │   ├── Shared.Application.Core.Tests
+        │   ├── Shared.Application.Cqrs.Core.Tests
+        │   ├── Shared.Presentation.Core.Tests
+        │   └── Shared.Infrastructure.Core.Tests
+        ├── Dal/
+        │   └── Shared.Infrastructure.Dal.EFCore.Tests
+        ├── Job/
+        │   └── Shared.Infrastructure.Job.Quartz.Tests
+        ├── Logging/
+        │   └── Shared.Infrastructure.Logging.Tests
+        ├── Mapper/
+        │   └── Shared.Infrastructure.Mapper.AutoMapper.Tests
+        └── Utils/
+            └── Shared.Utils.DatabaseUpgrade.Tests
 ```
 
 ---
@@ -173,10 +189,18 @@ Service/
 
 | Проект | Описание |
 |--------|----------|
+| `Shared.Common.Tests` | Unit-тесты для Common (утилиты, расширения, helpers, пагинация) |
+| `Shared.Domain.Core.Tests` | Unit-тесты для Domain.Core (BaseEntity, IWithDomainEvents, спецификации) |
 | `Shared.Application.Core.Tests` | Unit-тесты для Application.Core (CQRS handlers, validators, behaviors) |
-| `Shared.Common.Tests` | Unit-тесты для Common (утилиты, расширения, helpers) |
-| `Shared.Testing` | Инфраструктура тестирования (базовые классы, фикстуры, helpers) |
-| `Shared.Utils.DatabaseUpgrade.Tests` | Тесты для DatabaseUpgrade утилит |
+| `Shared.Application.Cqrs.Core.Tests` | Unit-тесты для CQRS Core (команды, запросы, pipeline) |
+| `Shared.Presentation.Core.Tests` | Unit-тесты для Presentation.Core (ExceptionHandler, мапперы исключений) |
+| `Shared.Infrastructure.Core.Tests` | Unit-тесты для Infrastructure.Core (ApiClient, DI, сервисы) |
+| `Shared.Infrastructure.Dal.EFCore.Tests` | Unit-тесты для EF Core (Repository, UnitOfWork) |
+| `Shared.Infrastructure.Job.Quartz.Tests` | Unit-тесты для Quartz (планировщик, JobContext) |
+| `Shared.Infrastructure.Logging.Tests` | Unit-тесты для Logging (LogTask, логирование) |
+| `Shared.Infrastructure.Mapper.AutoMapper.Tests` | Unit-тесты для AutoMapper (конфигурация, IMapper) |
+| `Shared.Utils.DatabaseUpgrade.Tests` | Тесты для DatabaseUpgrade утилит (включая интеграционные) |
+| `Shared.Testing` | Библиотека helpers (FakeMapper, FakeRepository, FakeLogger, FakeUnitOfWork, TestEntity, ServiceProviderBuilder) |
 
 ### Запуск тестов
 
@@ -185,13 +209,19 @@ Service/
 dotnet test src/Template.sln
 
 # Конкретный проект
-dotnet test src/Tests/Shared.Application.Core.Tests
+dotnet test src/Tests/Shared/Core/Shared.Application.Core.Tests
 
-# С покрытием (требуется coverlet)
-dotnet test src/Template.sln --collect:"XPlat Code Coverage"
+# С покрытием (через test.runsettings)
+dotnet test src/Template.sln --settings src/Tests/test.runsettings --collect:"XPlat Code Coverage"
+
+# Только unit-тесты (интеграционные исключаются по умолчанию)
+dotnet test --settings src/Tests/test.runsettings
 
 # Фильтрация по имени
 dotnet test src/Template.sln --filter "DisplayName~Cqrs"
+
+# Запуск интеграционных тестов
+dotnet test src/Tests/Shared/Utils/Shared.Utils.DatabaseUpgrade.Tests --filter "Category=Integration"
 
 # Verbose output
 dotnet test src/Template.sln -v n
@@ -201,8 +231,10 @@ dotnet test src/Template.sln -v n
 
 - **Naming:** `MethodUnderTest_State_ExpectedBehavior`
 - **Pattern:** AAA (Arrange-Act-Assert)
-- **Фреймворки:** xUnit, FluentAssertions, Moq, AutoFixture
-- **Shared.Testing** предоставляет базовые классы и фикстуры для переиспользования
+- **Фреймворки:** xUnit, FluentAssertions 7.x, Moq, AutoFixture
+- **Покрытие:** coverlet (cobertura + lcov), настройка в `src/Tests/test.runsettings`
+- **Фильтрация:** интеграционные тесты помечаются `[Trait("Category", "Integration")]` и исключаются из PR gate
+- **Shared.Testing** предоставляет helpers: FakeMapper, FakeRepository, FakeLogger, FakeUnitOfWork, TestEntity, ServiceProviderBuilder, TestConfigurationBuilder
 
 ---
 
