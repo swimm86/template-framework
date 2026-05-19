@@ -4,4 +4,5 @@ using Shared.Testing.Entities;
 
 namespace Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 
-public sealed record TestEntityRemoveCommand(EntityRemoveRequest Request) : EntityRemoveCommand<TestEntity>(Request);
+public sealed record TestEntityRemoveCommand(EntityRemoveRequest Request)
+    : EntityRemoveCommand<TestEntity>(Request);

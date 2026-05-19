@@ -31,7 +31,6 @@
     <Compile Remove="Features\**" />
     <Compile Include="Infrastructure\TestDoubles\TestModels.cs" />
     <Compile Include="Infrastructure\TestDoubles\FakeValidator.cs" />
-    <Compile Include="Infrastructure\TestDoubles\FakeLoggerFactory.cs" />
     <Compile Include="Infrastructure\TestDoubles\CountingUnitOfWork.cs" />
     <Compile Include="Infrastructure\TestDoubles\TestRequestHandler.cs" />
     <Compile Include="Infrastructure\TestDoubles\TestRequestHandlerThatThrows.cs" />
@@ -68,9 +67,13 @@
     <Compile Include="Abstractions\Commands\Handlers\DeleteCommandHandlerTests.cs" />
     <Compile Include="Abstractions\Commands\Handlers\CloneCommandHandlerTests.cs" />
     <Compile Include="Abstractions\Commands\Handlers\UpdateCommandHandlerTests.cs" />
+    <Compile Include="Abstractions\Commands\Responses\ResponseRecordsTests.cs" />
+    <Compile Include="Features\Entity\Remove\EntityRemoveCommandTests.cs" />
+    <Compile Include="Features\Entity\Remove\EntityRemoveCommandHandlerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="FluentAssertions" />
+    <Using Include="Shared.Testing.Doubles.Infrastructure" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

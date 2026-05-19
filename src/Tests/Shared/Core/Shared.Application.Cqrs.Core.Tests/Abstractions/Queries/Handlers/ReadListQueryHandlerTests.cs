@@ -1,16 +1,27 @@
+using Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 using Shared.Domain.Core.Dal;
-using Shared.Domain.Core.Dal.Models;
-using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Doubles.Repository;
 using Shared.Testing.Entities;
 
 namespace Shared.Application.Cqrs.Core.Tests.Abstractions.Queries.Handlers;
 
+/// <summary>
+/// Тесты <see cref="ReadListQueryHandler{TQuery,TRequest,TFilter,TResponse,TPayload,TEntity}"/>.
+/// Проверяют пагинацию, фильтрацию по <c>Ids</c>,
+/// сортировку по <c>DateCreated</c>, вызов <c>PostProcessAsync</c>
+/// и корректность ответа.
+/// </summary>
 public sealed class ReadListQueryHandlerTests
 {
+    /// <summary>
+    /// Создаёт фабрику логгеров для тестов.
+    /// </summary>
     private static FakeLoggerFactory CreateLoggerFactory() => new();
 
+    /// <summary>
+    /// Создаёт тестовую сущность с заданным индексом и опциональной датой.
+    /// </summary>
     private static TestEntity CreateEntity(int id, DateTime? dateCreated = null)
     {
         var entity = new TestEntity
@@ -22,9 +33,16 @@ public sealed class ReadListQueryHandlerTests
         return entity;
     }
 
+    #region Handle Tests
+
+    /// <summary>
+    /// <c>Handle</c> вызывает <c>PaginationHelper</c> для расчёта skip/take
+    /// и возвращает корректную страницу с пагинацией.
+    /// </summary>
     [Fact]
     public async Task Handle_CallsPaginationHelperForSkipTake()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -38,17 +56,24 @@ public sealed class ReadListQueryHandlerTests
         var request = new TestPageableRequest { PageNumber = 2, PageSize = 3 };
         var query = new TestReadListQuery(request);
 
-        var response = await sut.Handle(query, CancellationToken.None);
+        // Act
+        var response = await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         response.Payload.Should().NotBeNull();
         response.Payload!.Count.Should().Be(3);
         response.PageNumber.Should().Be(2);
         response.TotalPages.Should().Be(4);
     }
 
+    /// <summary>
+    /// <c>ListFilterBase</c> с заполненным массивом <c>Ids</c>
+    /// добавляет фильтр по идентификаторам в <c>QueryOptions</c>.
+    /// </summary>
     [Fact]
     public async Task Handle_ListFilterBaseWithIds_AddsIdsFilter()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -65,15 +90,22 @@ public sealed class ReadListQueryHandlerTests
         var request = new TestPageableRequest { Filter = filter, PageSize = 100 };
         var query = new TestReadListQuery(request);
 
-        var response = await sut.Handle(query, CancellationToken.None);
+        // Act
+        var response = await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         response.Payload.Should().NotBeNull();
         response.Payload!.Select(e => e.Id).Should().BeEquivalentTo([entityA.Id, entityC.Id]);
     }
 
+    /// <summary>
+    /// <c>ListFilterBase</c> с <c>Ids = null</c> не добавляет фильтр,
+    /// возвращаются все сущности.
+    /// </summary>
     [Fact]
     public async Task Handle_ListFilterBaseWithoutIds_NoIdsFilter()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -90,15 +122,22 @@ public sealed class ReadListQueryHandlerTests
         var request = new TestPageableRequest { Filter = filter, PageSize = 100 };
         var query = new TestReadListQuery(request);
 
-        var response = await sut.Handle(query, CancellationToken.None);
+        // Act
+        var response = await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         response.Payload.Should().NotBeNull();
         response.Payload!.Should().HaveCount(3);
     }
 
+    /// <summary>
+    /// Для сущностей, реализующих <c>IWithDateCreated</c>,
+    /// без явной сортировки добавляется <c>DateCreated ASC</c> по умолчанию.
+    /// </summary>
     [Fact]
     public async Task Handle_IWithDateCreated_NoExplicitSort_AddsDateCreatedAscending()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -114,16 +153,23 @@ public sealed class ReadListQueryHandlerTests
         var request = new TestPageableRequest { PageSize = 100 };
         var query = new TestReadListQuery(request);
 
-        await sut.Handle(query, CancellationToken.None);
+        // Act
+        await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         sut.LastOptions.Should().NotBeNull();
         sut.LastOptions!.OrderBy.Should().ContainSingle(o =>
             o.Direction == OrderDirectionType.Ascending);
     }
 
+    /// <summary>
+    /// Явная сортировка по <c>DateCreated.desc</c> не дублирует
+    /// автоматическую сортировку для <c>IWithDateCreated</c>.
+    /// </summary>
     [Fact]
     public async Task Handle_IWithDateCreated_ExplicitSortByDateCreated_DoesNotDuplicateOrder()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -143,16 +189,23 @@ public sealed class ReadListQueryHandlerTests
         };
         var query = new TestReadListQuery(request);
 
-        var response = await sut.Handle(query, CancellationToken.None);
+        // Act
+        var response = await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         response.Payload.Should().NotBeNull();
         response.Payload!.Select(e => e.DateCreated).Should()
             .BeInDescendingOrder();
     }
 
+    /// <summary>
+    /// Для сущностей, НЕ реализующих <c>IWithDateCreated</c>,
+    /// автоматическая сортировка не добавляется.
+    /// </summary>
     [Fact]
     public async Task Handle_NonIWithDateCreatedEntity_NoDefaultSort()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntityWithoutDateCreated>();
 
@@ -163,14 +216,20 @@ public sealed class ReadListQueryHandlerTests
         var request = new NoDateCreatedPageableRequest { PageSize = 100 };
         var query = new NoDateCreatedReadListQuery(request);
 
-        await sut.Handle(query, CancellationToken.None);
+        // Act
+        await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         sut.LastOptions.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Хук <c>PostProcessAsync</c> вызывается один раз после обработки запроса.
+    /// </summary>
     [Fact]
     public async Task Handle_PostProcessAsync_HookIsCalled()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -180,14 +239,20 @@ public sealed class ReadListQueryHandlerTests
         var request = new TestPageableRequest { PageSize = 100 };
         var query = new TestReadListQuery(request);
 
-        await sut.Handle(query, CancellationToken.None);
+        // Act
+        await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         sut.PostProcessAsyncCallCount.Should().Be(1);
     }
 
+    /// <summary>
+    /// Ответ содержит <c>StatusCode = 200</c> и корректные поля пагинации.
+    /// </summary>
     [Fact]
     public async Task Handle_Response_StatusCodeIs200_AndPaginationFieldsFilled()
     {
+        // Arrange
         var unitOfWork = new FakeUnitOfWork();
         var repo = unitOfWork.GetOrCreateRepository<TestEntity>();
 
@@ -200,12 +265,16 @@ public sealed class ReadListQueryHandlerTests
         var request = new TestPageableRequest { PageNumber = 1, PageSize = 2 };
         var query = new TestReadListQuery(request);
 
-        var response = await sut.Handle(query, CancellationToken.None);
+        // Act
+        var response = await sut.Handle(query, TestContext.Current.CancellationToken);
 
+        // Assert
         response.StatusCode.Should().Be(200);
         response.PageNumber.Should().Be(1);
         response.TotalPages.Should().Be(3);
         response.Payload.Should().NotBeNull();
         response.Payload!.Should().HaveCount(2);
     }
+
+    #endregion
 }
