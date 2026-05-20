@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Common.Extensions;
-using Xunit;
 
 namespace Shared.Common.Tests.Extensions;
 
@@ -39,7 +38,7 @@ public sealed class StringExtensionsTests
     [InlineData("getHTTPResponse", "get-http-response")]
     public void ToKebabCase_ValidInput_ConvertsToKebabCase(string input, string expected)
     {
-        // Act
+        // Arrange & Act
         var result = input.ToKebabCase();
 
         // Assert
@@ -71,7 +70,7 @@ public sealed class StringExtensionsTests
     [InlineData("getHTTPResponse", "get_http_response")]
     public void ToSnakeCase_ValidInput_ConvertsToSnakeCase(string input, string expected)
     {
-        // Act
+        // Arrange & Act
         var result = input.ToSnakeCase();
 
         // Assert
@@ -104,7 +103,7 @@ public sealed class StringExtensionsTests
     [InlineData("getHTTPResponse", "getHTTPResponse")]
     public void ToCamelCase_ValidInput_ConvertsToCamelCase(string input, string expected)
     {
-        // Act
+        // Arrange & Act
         var result = input.ToCamelCase();
 
         // Assert
@@ -130,7 +129,7 @@ public sealed class StringExtensionsTests
     [InlineData("!special", "!special")]
     public void ToUpperFirstChar_ValidInput_ConvertsFirstCharToUpper(string input, string expected)
     {
-        // Act
+        // Arrange & Act
         var result = input.ToUpperFirstChar();
 
         // Assert
@@ -159,7 +158,7 @@ public sealed class StringExtensionsTests
     [InlineData("Special! @# Characters", "Special!@#Characters")]
     public void RemoveWhiteSpaces_ValidInput_RemovesAllWhitespaceCharacters(string? input, string? expected)
     {
-        // Act
+        // Arrange & Act
         var result = input.RemoveWhiteSpaces();
 
         // Assert

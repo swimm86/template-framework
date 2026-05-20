@@ -29,10 +29,12 @@ public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
     [Fact]
     public void Upgrade_ThrowsInvalidOperation_WhenScriptHasSqlError()
     {
+        // Act
         var act = () => DbUtils.Upgrade(
             connectionString: _container.GetConnectionString(),
             scriptsPath: DbUtilsTestSupport.InvalidScriptsResourcePath);
 
+        // Assert
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -42,12 +44,15 @@ public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
     [Fact]
     public void Upgrade_AppliesMigration_WhenScriptsAndConnectionAreValid()
     {
+        // Arrange
         var cs = _container.GetConnectionString();
 
+        // Act
         var act = () => DbUtils.Upgrade(
             connectionString: cs,
             scriptsPath: DbUtilsTestSupport.ScriptsResourcePath);
 
+        // Assert
         act.Should().NotThrow();
         DbUtilsTestSupport.CountMigrationAppliedForScriptFile(cs, ValidScriptFileName)
             .Should().Be(1);
