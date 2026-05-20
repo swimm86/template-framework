@@ -42,12 +42,12 @@ namespace Shared.Application.Core.DependencyInjection.Base
             try
             {
                 var result = Process(serviceCollection);
-                Logger.LogInformation("Dependencies injected.");
+                Logger.LogInformation(DependencyInjectionLogMessages.DependenciesInjected);
                 return result;
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Dependencies not injected.");
+                Logger.LogError(ex, DependencyInjectionLogMessages.DependenciesNotInjected);
                 throw;
             }
         }

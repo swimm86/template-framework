@@ -1,42 +1,61 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Core.Configuration.Extensions;
 using Shared.Common.Helpers;
 using Shared.Infrastructure.Logging.Extensions;
 using Shared.Testing.Configuration;
 
 namespace Shared.Infrastructure.Logging.Tests.Extensions;
 
+/// <summary>
+/// Тесты для расширения <see cref="DependencyInjectionExtensions"/>,
+/// регистрирующего NLog в DI-контейнере.
+/// </summary>
 public sealed class DependencyInjectionExtensionsTests
 {
+    /// <summary>
+    /// Проверяет, что метод возвращает тот же экземпляр <see cref="IServiceCollection"/> (fluent API).
+    /// </summary>
     [Fact]
     public void AddNlog_ReturnsSameServiceCollection()
     {
+        // Arrange
         var services = new ServiceCollection();
         var config = TestConfigurationBuilder.Empty();
 
+        // Act
         var result = services.AddNlog(config);
 
+        // Assert
         result.Should().BeSameAs(services);
     }
 
+    /// <summary>
+    /// Проверяет, что после регистрации NLog сервисы логирования доступны через DI.
+    /// </summary>
     [Fact]
     public void AddNlog_RegistersLoggingServices()
     {
+        // Arrange
         var services = new ServiceCollection();
         var config = CreateConfigWithNlogPath();
 
+        // Act
         services.AddNlog(config);
         var provider = services.BuildServiceProvider();
 
+        // Assert
         var loggerFactory = provider.GetService<ILoggerFactory>();
         loggerFactory.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Проверяет, что добавление NLog с абсолютным путём к конфигурационному файлу не вызывает исключений.
+    /// </summary>
     [Fact]
     public void AddNlog_WithAbsolutePathInSettings_DoesNotThrow()
     {
+        // Arrange
         var tempConfig = CreateTempNlogConfig();
         try
         {
@@ -50,6 +69,7 @@ public sealed class DependencyInjectionExtensionsTests
                 .Build();
             var services = new ServiceCollection();
 
+            // Act & Assert
             var act = () => services.AddNlog(config);
 
             act.Should().NotThrow();
@@ -60,12 +80,17 @@ public sealed class DependencyInjectionExtensionsTests
         }
     }
 
+    /// <summary>
+    /// Проверяет, что добавление NLog с пустой конфигурацией (используется конфигурация по умолчанию) не вызывает исключений.
+    /// </summary>
     [Fact]
     public void AddNlog_WithDefaultConfig_DoesNotThrow()
     {
+        // Arrange
         var services = new ServiceCollection();
         var config = TestConfigurationBuilder.Empty();
 
+        // Act & Assert
         var act = () => services.AddNlog(config);
 
         act.Should().NotThrow();

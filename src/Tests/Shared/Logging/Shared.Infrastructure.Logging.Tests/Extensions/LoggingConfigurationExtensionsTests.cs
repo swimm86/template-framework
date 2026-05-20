@@ -6,11 +6,19 @@ using Shared.Infrastructure.Logging.Extensions;
 
 namespace Shared.Infrastructure.Logging.Tests.Extensions;
 
+/// <summary>
+/// Тесты для расширения <see cref="LoggingConfigurationExtensions"/>,
+/// добавляющего placeholders correlationId в layouts NLog-таргетов.
+/// </summary>
 public sealed class LoggingConfigurationExtensionsTests
 {
+    /// <summary>
+    /// Проверяет, что после вызова метода в layout добавляется placeholder для HTTP correlationId.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_AddsHttpPlaceholder()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var target = new FileTarget("testTarget")
         {
@@ -18,15 +26,21 @@ public sealed class LoggingConfigurationExtensionsTests
         };
         config.AddTarget(target);
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         var layout = (SimpleLayout)((TargetWithLayout)config.AllTargets[0]).Layout;
         layout.Text.Should().Contain(CorrelationIdScopePropertyKeys.Http);
     }
 
+    /// <summary>
+    /// Проверяет, что после вызова метода в layout добавляется placeholder для Job correlationId.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_AddsJobPlaceholder()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var target = new FileTarget("testTarget")
         {
@@ -34,15 +48,21 @@ public sealed class LoggingConfigurationExtensionsTests
         };
         config.AddTarget(target);
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         var layout = (SimpleLayout)((TargetWithLayout)config.AllTargets[0]).Layout;
         layout.Text.Should().Contain(CorrelationIdScopePropertyKeys.Job);
     }
 
+    /// <summary>
+    /// Проверяет, что таргет с именем "coloredSystemEventConsole" (исключённый) не модифицируется.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_ExcludedTargets_NotModified()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var originalLayout = "${longdate} | ${level} | msg=${message}";
         var excludedTarget = new FileTarget("coloredSystemEventConsole")
@@ -51,15 +71,21 @@ public sealed class LoggingConfigurationExtensionsTests
         };
         config.AddTarget(excludedTarget);
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         var layout = (SimpleLayout)((TargetWithLayout)config.AllTargets[0]).Layout;
         layout.Text.Should().Be(originalLayout);
     }
 
+    /// <summary>
+    /// Проверяет, что таргет с именем "coloredBusinessEventConsole" (исключённый) не модифицируется.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_SecondExcludedTarget_NotModified()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var originalLayout = "${longdate} | msg=${message}";
         var excludedTarget = new FileTarget("coloredBusinessEventConsole")
@@ -68,15 +94,22 @@ public sealed class LoggingConfigurationExtensionsTests
         };
         config.AddTarget(excludedTarget);
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         var layout = (SimpleLayout)((TargetWithLayout)config.AllTargets[0]).Layout;
         layout.Text.Should().Be(originalLayout);
     }
 
+    /// <summary>
+    /// Проверяет, что если layout уже содержит placeholders correlationId,
+    /// повторный вызов не дублирует их.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_AlreadyContainsCorrelationId_NotDuplicated()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var httpKey = CorrelationIdScopePropertyKeys.Http;
         var jobKey = CorrelationIdScopePropertyKeys.Job;
@@ -90,16 +123,22 @@ public sealed class LoggingConfigurationExtensionsTests
         };
         config.AddTarget(target);
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         var layout = (SimpleLayout)((TargetWithLayout)config.AllTargets[0]).Layout;
         var count = CountSubstring(layout.Text, CorrelationIdScopePropertyKeys.Http);
         count.Should().Be(2, "placeholder should appear exactly twice (as in original layout)");
     }
 
+    /// <summary>
+    /// Проверяет идемпотентность метода: повторный вызов не выбрасывает исключение.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_IsIdempotent_NoExceptionOnSecondCall()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var target = new FileTarget("testTarget")
         {
@@ -108,14 +147,20 @@ public sealed class LoggingConfigurationExtensionsTests
         config.AddTarget(target);
 
         config.AddCorrelationIdToTargetLayouts();
+
+        // Act & Assert
         var act = () => config.AddCorrelationIdToTargetLayouts();
 
         act.Should().NotThrow();
     }
 
+    /// <summary>
+    /// Проверяет, что если layout не содержит шаблон "${message}", placeholder добавляется в конец.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_WithoutMessagePattern_AppendsToEnd()
     {
+        // Arrange
         var config = new LoggingConfiguration();
         var target = new FileTarget("testTarget")
         {
@@ -123,21 +168,29 @@ public sealed class LoggingConfigurationExtensionsTests
         };
         config.AddTarget(target);
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         var layout = (SimpleLayout)((TargetWithLayout)config.AllTargets[0]).Layout;
         layout.Text.Should().StartWith("${longdate} | ${level}");
         layout.Text.Should().Contain(CorrelationIdScopePropertyKeys.Http);
         layout.Text.Should().Contain(CorrelationIdScopePropertyKeys.Job);
     }
 
+    /// <summary>
+    /// Проверяет, что при отсутствии таргетов в конфигурации метод не падает.
+    /// </summary>
     [Fact]
     public void AddCorrelationIdToTargetLayouts_NonTargetWithLayout_Skipped()
     {
+        // Arrange
         var config = new LoggingConfiguration();
 
+        // Act
         config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         config.AllTargets.Should().BeEmpty();
     }
 

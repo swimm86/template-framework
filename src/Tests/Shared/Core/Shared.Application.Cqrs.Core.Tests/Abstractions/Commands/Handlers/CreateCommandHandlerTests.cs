@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 using Shared.Testing.Doubles.Mapping;
 using Shared.Testing.Doubles.Repository;
@@ -7,8 +8,15 @@ using Shared.Testing.Entities;
 
 namespace Shared.Application.Cqrs.Core.Tests.Abstractions.Commands.Handlers;
 
+/// <summary>
+/// Тесты <see cref="CreateCommandHandler{TCommand,TRequest,TEntity,TResponsePayload,TResponse}"/>.
+/// Проверяют создание сущности, маппинг, валидацию и проброс исключений.
+/// </summary>
 public sealed class CreateCommandHandlerTests
 {
+    /// <summary>
+    /// Создаёт тестируемый обработчик, mapper, unit of work, user provider и репозиторий.
+    /// </summary>
     private static (
         TestCreateCommandHandler Handler,
         FakeMapper Mapper,
@@ -32,14 +40,23 @@ public sealed class CreateCommandHandlerTests
         return (handler, mapper, uow, userProvider, repo);
     }
 
+    #region Handle Tests
+
+    /// <summary>
+    /// При валидном запросе — сущность создаётся через mapper,
+    /// добавляется в репозиторий и сохраняется.
+    /// </summary>
     [Fact]
     public async Task Handle_ValidRequest_CreatesEntityAndReturnsSuccess()
     {
+        // Arrange
         var (handler, mapper, uow, _, repo) = CreateSut();
         var command = new TestCreateCommand(new object());
 
-        var result = await handler.Handle(command, CancellationToken.None);
+        // Act
+        var result = await handler.Handle(command, TestContext.Current.CancellationToken);
 
+        // Assert
         mapper.MapCallCount.Should().Be(2);
         repo.AddCallCount.Should().Be(1);
         uow.SaveChangesAsyncCallCount.Should().Be(1);
@@ -47,20 +64,31 @@ public sealed class CreateCommandHandlerTests
         result.Id.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Ответ команды создания содержит <c>StatusCode = 201 Created</c>.
+    /// </summary>
     [Fact]
     public async Task Handle_ReturnsStatusCode201()
     {
+        // Arrange
         var (handler, _, _, _, _) = CreateSut();
         var command = new TestCreateCommand(new object());
 
-        var result = await handler.Handle(command, CancellationToken.None);
+        // Act
+        var result = await handler.Handle(command, TestContext.Current.CancellationToken);
 
+        // Assert
         result.StatusCode.Should().Be(StatusCodes.Status201Created);
     }
 
+    /// <summary>
+    /// Если валидация фейлится — выбрасывается <see cref="ValidationException"/>,
+    /// сущность не создаётся.
+    /// </summary>
     [Fact]
     public async Task Handle_ValidationFails_ThrowsValidationException()
     {
+        // Arrange
         var (handler, mapper, uow, userProvider, _) = CreateSut();
         mapper.RegisterMap<object, TestEntity>(_ => new TestEntity { Id = Guid.NewGuid(), Name = string.Empty });
 
@@ -71,23 +99,33 @@ public sealed class CreateCommandHandlerTests
             new FakeLoggerFactory(), mapper, uow, new[] { validator }, userProvider);
         var command = new TestCreateCommand(new object());
 
-        var act = () => sut.Handle(command, CancellationToken.None);
+        // Act
+        var act = () => sut.Handle(command, TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<ValidationException>();
     }
 
+    /// <summary>
+    /// Если mapper выбрасывает исключение — оно пробрасывается наружу без перехвата.
+    /// </summary>
     [Fact]
     public async Task Handle_MapperThrows_PropagatesException()
     {
+        // Arrange
         var (handler, mapper, uow, userProvider, _) = CreateSut();
         mapper.RegisterMap<object, TestEntity>(_ => throw new InvalidOperationException("Map failed"));
 
         var sut = new TestCreateCommandHandler(
-            new FakeLoggerFactory(), mapper, uow, Array.Empty<IValidator<TestEntity>>(), userProvider);
+            new FakeLoggerFactory(), mapper, uow, [], userProvider);
         var command = new TestCreateCommand(new object());
 
-        var act = () => sut.Handle(command, CancellationToken.None);
+        // Act
+        var act = () => sut.Handle(command, TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Map failed");
     }
+
+    #endregion
 }

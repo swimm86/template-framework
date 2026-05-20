@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Infrastructure.Core.DependencyInjection;
 
@@ -18,14 +17,17 @@ public sealed class DependencyInjectorTests
     [Fact]
     public void Inject_InitializesApiClientBuilderConfiguratorContext()
     {
+        // Arrange
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
         var loggerFactory = NullLoggerFactory.Instance;
 
         var injector = new DependencyInjector(configuration, loggerFactory);
 
+        // Act
         var act = () => injector.Inject(services);
 
+        // Assert
         act.Should().NotThrow();
     }
 
@@ -36,13 +38,17 @@ public sealed class DependencyInjectorTests
     [Fact]
     public void Inject_RegistersDelegatingHandlers()
     {
+        // Arrange
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
         var loggerFactory = NullLoggerFactory.Instance;
 
         var injector = new DependencyInjector(configuration, loggerFactory);
+
+        // Act
         injector.Inject(services);
 
+        // Assert
         var descriptor = services.FirstOrDefault(d =>
             d.ServiceType == typeof(Shared.Infrastructure.Core.ApiClient.Handlers.CorrelationIdHeaderDelegatingHandler));
         descriptor.Should().NotBeNull();
@@ -56,13 +62,17 @@ public sealed class DependencyInjectorTests
     [Fact]
     public void Inject_ReturnsSameServiceCollectionInstance()
     {
+        // Arrange
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
         var loggerFactory = NullLoggerFactory.Instance;
 
         var injector = new DependencyInjector(configuration, loggerFactory);
+
+        // Act
         var result = injector.Inject(services);
 
+        // Assert
         result.Should().BeSameAs(services);
     }
 }

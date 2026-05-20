@@ -7,7 +7,10 @@ using Shared.Testing.Doubles.Logging;
 
 namespace Shared.Infrastructure.Job.Quartz.Tests;
 
-public sealed class QuartzJobWrapperTests : IDisposable
+/// <summary>
+/// Модульные тесты для QuartzJobWrapper.
+/// </summary>
+public sealed class QuartzJobWrapperTests
 {
     private readonly FakeLogger _fakeLogger;
     private readonly FakeLogger<QuartzJobWrapper> _logger;
@@ -21,14 +24,13 @@ public sealed class QuartzJobWrapperTests : IDisposable
         JobCorrelationContext.ClearCorrelationId();
     }
 
-    public void Dispose()
-    {
-        JobCorrelationContext.ClearCorrelationId();
-    }
-
+    /// <summary>
+    /// Успешное выполнение вызывает делегат из JobDataMap.
+    /// </summary>
     [Fact]
     public async Task Execute_HappyPath_InvokesDelegateFromJobDataMap()
     {
+        // Arrange
         var invoked = false;
         Func<IServiceProvider, CancellationToken, Task> jobAction = (_, _) =>
         {
@@ -51,14 +53,20 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act
         await wrapper.Execute(context);
 
+        // Assert
         invoked.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Успешное выполнение не планирует повторную попытку.
+    /// </summary>
     [Fact]
     public async Task Execute_HappyPath_DoesNotScheduleRetry()
     {
+        // Arrange
         var jobAction = (IServiceProvider _, CancellationToken _) => Task.CompletedTask;
         var scheduler = new StubScheduler();
 
@@ -77,14 +85,20 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act
         await wrapper.Execute(context);
 
+        // Assert
         scheduler.ScheduleJobCalled.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Исключение в делегате планирует повтор и выбрасывает JobExecutionException.
+    /// </summary>
     [Fact]
     public async Task Execute_DelegateThrows_SchedulesRetryAndThrowsJobExecutionException()
     {
+        // Arrange
         var exception = new InvalidOperationException("test error");
         Func<IServiceProvider, CancellationToken, Task> jobAction = (_, _) => throw exception;
 
@@ -105,6 +119,7 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act & Assert
         var act = () => wrapper.Execute(context);
 
         var ex = (await act.Should().ThrowAsync<JobExecutionException>()).Which;
@@ -114,9 +129,13 @@ public sealed class QuartzJobWrapperTests : IDisposable
         scheduler.ScheduleJobCalled.Should().BeTrue();
     }
 
+    /// <summary>
+    /// CancellationToken передаётся без изменений.
+    /// </summary>
     [Fact]
     public async Task Execute_PreservesCancellationToken()
     {
+        // Arrange
         CancellationToken passedToken = default;
         Func<IServiceProvider, CancellationToken, Task> jobAction = (_, ct) =>
         {
@@ -140,14 +159,20 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act
         await wrapper.Execute(context);
 
+        // Assert
         passedToken.Should().Be(cts.Token);
     }
 
+    /// <summary>
+    /// Устанавливает и очищает Correlation ID.
+    /// </summary>
     [Fact]
     public async Task Execute_SetsAndClearsCorrelationId()
     {
+        // Arrange
         var jobAction = (IServiceProvider _, CancellationToken _) => Task.CompletedTask;
 
         var jobDetail = new StubJobDetail
@@ -166,13 +191,21 @@ public sealed class QuartzJobWrapperTests : IDisposable
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
         JobCorrelationContext.GetCorrelationId().Should().BeNull();
+
+        // Act
         await wrapper.Execute(context);
+
+        // Assert
         JobCorrelationContext.GetCorrelationId().Should().BeNull();
     }
 
+    /// <summary>
+    /// Если Correlation ID уже установлен — логирует предупреждение.
+    /// </summary>
     [Fact]
     public async Task Execute_CorrelationAlreadySet_LogsWarning()
     {
+        // Arrange
         JobCorrelationContext.TrySetCorrelationId().Should().BeTrue();
 
         var jobAction = (IServiceProvider _, CancellationToken _) => Task.CompletedTask;
@@ -193,16 +226,23 @@ public sealed class QuartzJobWrapperTests : IDisposable
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
         _fakeLogger.Clear();
+
+        // Act
         await wrapper.Execute(context);
 
+        // Assert
         _fakeLogger.Entries.Should().ContainSingle(e =>
             e.Level == LogLevel.Warning &&
             e.Message.Contains("Correlation ID already set"));
     }
 
+    /// <summary>
+    /// Не очищает чужой Correlation ID.
+    /// </summary>
     [Fact]
     public async Task Execute_DoesNotClearForeignCorrelationId()
     {
+        // Arrange
         JobCorrelationContext.TrySetCorrelationId().Should().BeTrue();
         var foreignId = JobCorrelationContext.GetCorrelationId();
 
@@ -223,14 +263,20 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act
         await wrapper.Execute(context);
 
+        // Assert
         JobCorrelationContext.GetCorrelationId().Should().Be(foreignId);
     }
 
+    /// <summary>
+    /// Отсутствие делегата в JobDataMap вызывает JobExecutionException.
+    /// </summary>
     [Fact]
     public async Task Execute_DelegateMissing_ThrowsJobExecutionException()
     {
+        // Arrange
         var jobDetail = new StubJobDetail
         {
             JobDataMap = new JobDataMap()
@@ -246,15 +292,20 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act & Assert
         var act = () => wrapper.Execute(context);
 
         (await act.Should().ThrowAsync<JobExecutionException>()).Which
             .InnerException.Should().BeOfType<NullReferenceException>();
     }
 
+    /// <summary>
+    /// Отмена операции вызывает JobExecutionException с внутренним OperationCanceledException.
+    /// </summary>
     [Fact]
     public async Task Execute_CancellationRequested_ThrowsJobExecutionExceptionWithInnerCancellation()
     {
+        // Arrange
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -283,15 +334,20 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act & Assert
         var act = () => wrapper.Execute(context);
 
         (await act.Should().ThrowAsync<JobExecutionException>()).Which
             .InnerException.Should().BeOfType<OperationCanceledException>();
     }
 
+    /// <summary>
+    /// ProcessAsync по умолчанию делегирует вызов JobDataMap.
+    /// </summary>
     [Fact]
     public async Task ProcessAsync_DefaultImplementation_DelegatesToJobDataMap()
     {
+        // Arrange
         var invoked = false;
         Func<IServiceProvider, CancellationToken, Task> jobAction = (_, _) =>
         {
@@ -314,18 +370,21 @@ public sealed class QuartzJobWrapperTests : IDisposable
 
         var testableWrapper = new TestableQuartzJobWrapper(_serviceProvider, _logger);
 
+        // Act
         await testableWrapper.InvokeProcessAsync(context, CancellationToken.None);
 
+        // Assert
         invoked.Should().BeTrue();
     }
 
-    private sealed class TestableQuartzJobWrapper : QuartzJobWrapper
+    /// <summary>
+    /// Тестируемая обёртка QuartzJobWrapper, предоставляющая доступ к protected методу ProcessAsync.
+    /// </summary>
+    private sealed class TestableQuartzJobWrapper(
+        IServiceProvider serviceProvider,
+        ILogger<QuartzJobWrapper> logger)
+        : QuartzJobWrapper(serviceProvider, logger)
     {
-        public TestableQuartzJobWrapper(IServiceProvider serviceProvider, ILogger<QuartzJobWrapper> logger)
-            : base(serviceProvider, logger)
-        {
-        }
-
         public Task InvokeProcessAsync(IJobExecutionContext context, CancellationToken ct)
             => ProcessAsync(context, ct);
     }

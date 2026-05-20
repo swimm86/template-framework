@@ -4,7 +4,11 @@ using Quartz.Spi;
 
 namespace Shared.Infrastructure.Job.Quartz.Tests.Infrastructure;
 
-internal sealed class StubJobDetail : IJobDetail
+/// <summary>
+/// Заглушка IJobDetail для модульных тестов.
+/// </summary>
+internal sealed class StubJobDetail
+    : IJobDetail
 {
     public JobKey Key { get; set; } = new("stub");
     public string? Description { get; set; }
@@ -19,7 +23,11 @@ internal sealed class StubJobDetail : IJobDetail
     public IJobDetail Clone() => throw new NotSupportedException();
 }
 
-internal sealed class StubScheduler : IScheduler
+/// <summary>
+/// Заглушка IScheduler для модульных тестов. Отслеживает вызовы ScheduleJob.
+/// </summary>
+internal sealed class StubScheduler
+    : IScheduler
 {
     public bool ScheduleJobCalled { get; private set; }
     public ITrigger? LastScheduledTrigger { get; private set; }
@@ -101,7 +109,11 @@ internal sealed class StubScheduler : IScheduler
     Task IScheduler.Standby(CancellationToken ct) => throw new NotSupportedException();
 }
 
-internal sealed class StubTrigger : ITrigger
+/// <summary>
+/// Заглушка ITrigger для модульных тестов.
+/// </summary>
+internal sealed class StubTrigger
+    : ITrigger
 {
     public TriggerKey Key => throw new NotSupportedException();
     public JobKey JobKey { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
@@ -125,7 +137,11 @@ internal sealed class StubTrigger : ITrigger
     public int CompareTo(ITrigger? other) => throw new NotSupportedException();
 }
 
-internal sealed class StubJobExecutionContext : IJobExecutionContext
+/// <summary>
+/// Заглушка IJobExecutionContext для модульных тестов.
+/// </summary>
+internal sealed class StubJobExecutionContext
+    : IJobExecutionContext
 {
     public IScheduler Scheduler { get; set; } = null!;
     public ITrigger Trigger { get; set; } = null!;

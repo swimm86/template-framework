@@ -3,11 +3,18 @@ using Shared.Application.Core.Exceptions.Models;
 
 namespace Shared.Application.Core.Tests;
 
+/// <summary>
+/// Модульные тесты для <see cref="ProxiedException"/>.
+/// </summary>
 public sealed class ProxiedExceptionTests
 {
+    /// <summary>
+    /// Проверяет, что конструктор корректно присваивает <see cref="ProblemDetails"/> и HTTP-статус код.
+    /// </summary>
     [Fact]
     public void Constructor_AssignsProblemDetailsAndStatusCode()
     {
+        // Arrange
         var problemDetails = new ProblemDetails
         {
             Title = "Not Found",
@@ -16,15 +23,21 @@ public sealed class ProxiedExceptionTests
         };
         const int statusCode = 404;
 
+        // Act
         var ex = new ProxiedException(problemDetails, statusCode);
 
+        // Assert
         ex.ProblemDetails.Should().BeSameAs(problemDetails);
         ex.StatusCode.Should().Be(statusCode);
     }
 
+    /// <summary>
+    /// Проверяет, что метод <see cref="ProxiedException.TryGetAdditionalData{T}"/> извлекает значение по ключу, когда тип значения совпадает.
+    /// </summary>
     [Fact]
     public void TryGetAdditionalData_WithDirectType_ReturnsValue()
     {
+        // Arrange
         const string key = "testKey";
         const int expectedValue = 42;
         var additionalData = new Dictionary<string, object>
@@ -36,7 +49,10 @@ public sealed class ProxiedExceptionTests
 
         var ex = new ProxiedException(problemDetails, statusCode, additionalData);
 
+        // Act
         var found = ex.TryGetAdditionalData<int>(key, out var value);
+
+        // Assert
         found.Should().BeTrue();
         value.Should().Be(expectedValue);
     }

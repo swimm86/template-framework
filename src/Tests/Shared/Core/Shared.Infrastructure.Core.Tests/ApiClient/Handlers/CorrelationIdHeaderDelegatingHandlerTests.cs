@@ -19,6 +19,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
     [Fact]
     public async Task SendAsync_HeaderAlreadyPresent_PassesThrough()
     {
+        // Arrange
         var existingCorrelationId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var request = new HttpRequestMessage();
         request.Headers.Add(CorrelationIdHeader, existingCorrelationId.ToString("D"));
@@ -28,8 +29,10 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var handler = CreateHandler(httpContextAccessor, logger, stub);
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
+        // Act
         await invoker.SendAsync(request, CancellationToken.None);
 
+        // Assert
         stub.CapturedRequest.Should().NotBeNull();
         stub.CapturedRequest!.Headers.GetValues(CorrelationIdHeader).Single().Should().Be(existingCorrelationId.ToString("D"));
     }
@@ -41,6 +44,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
     [Fact]
     public async Task SendAsync_HeaderMissing_AddsHeaderFromHttpContext()
     {
+        // Arrange
         var correlationId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers[CorrelationIdHeader] = correlationId.ToString("D");
@@ -52,8 +56,11 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
         var request = new HttpRequestMessage();
+
+        // Act
         await invoker.SendAsync(request, CancellationToken.None);
 
+        // Assert
         stub.CapturedRequest!.Headers.GetValues(CorrelationIdHeader).Single().Should().Be(correlationId.ToString("D"));
     }
 
@@ -64,6 +71,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
     [Fact]
     public async Task SendAsync_HeaderMissingAndNoHttpContext_FallsBackToJobCorrelation()
     {
+        // Arrange
         JobCorrelationContext.TrySetCorrelationId();
         var jobCorrelationId = JobCorrelationContext.GetCorrelationId()!.Value;
         try
@@ -75,8 +83,11 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
             var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
             var request = new HttpRequestMessage();
+
+            // Act
             await invoker.SendAsync(request, CancellationToken.None);
 
+            // Assert
             stub.CapturedRequest!.Headers.GetValues(CorrelationIdHeader).Single().Should().Be(jobCorrelationId.ToString("D"));
         }
         finally
@@ -92,6 +103,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
     [Fact]
     public async Task SendAsync_NoCorrelationSource_LogsErrorAndPassesThrough()
     {
+        // Arrange
         var httpContextAccessor = new StubHttpContextAccessor { HttpContext = null };
         var logger = new FakeLogger<CorrelationIdHeaderDelegatingHandler>();
         var stub = new StubHttpMessageHandler();
@@ -99,8 +111,11 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
         var request = new HttpRequestMessage { RequestUri = new Uri("https://example.com/test") };
+
+        // Act
         await invoker.SendAsync(request, CancellationToken.None);
 
+        // Assert
         logger.LogEntries.Should().ContainSingle(entry => entry.Level == LogLevel.Error);
         stub.CapturedRequest!.Headers.Contains(CorrelationIdHeader).Should().BeFalse();
         stub.CapturedRequest.Should().NotBeNull();
@@ -112,6 +127,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
     [Fact]
     public async Task SendAsync_PreservesOriginalRequestHeaders()
     {
+        // Arrange
         var correlationId = Guid.Parse("33333333-3333-3333-3333-333333333333");
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers[CorrelationIdHeader] = correlationId.ToString("D");
@@ -125,8 +141,10 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var handler = CreateHandler(httpContextAccessor, logger, stub);
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
+        // Act
         await invoker.SendAsync(request, CancellationToken.None);
 
+        // Assert
         stub.CapturedRequest!.Headers.GetValues("X-Custom-Header").Single().Should().Be("custom-value");
         stub.CapturedRequest.Headers.GetValues(CorrelationIdHeader).Single().Should().Be(correlationId.ToString("D"));
     }
@@ -137,6 +155,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
     [Fact]
     public async Task SendAsync_ReturnsInnerHandlerResponse()
     {
+        // Arrange
         var correlationId = Guid.Parse("44444444-4444-4444-4444-444444444444");
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers[CorrelationIdHeader] = correlationId.ToString("D");
@@ -148,8 +167,11 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
         var request = new HttpRequestMessage();
+
+        // Act
         var response = await invoker.SendAsync(request, CancellationToken.None);
 
+        // Assert
         response.Should().NotBeNull();
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
     }
@@ -173,31 +195,43 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         return (httpContextAccessor, logger);
     }
 
-    private sealed class StubHttpContextAccessor : IHttpContextAccessor
+    private sealed class StubHttpContextAccessor
+        : IHttpContextAccessor
     {
         public HttpContext? HttpContext { get; set; }
     }
 
-    private sealed class StubHttpMessageHandler : HttpMessageHandler
+    private sealed class StubHttpMessageHandler
+        : HttpMessageHandler
     {
         public HttpRequestMessage? CapturedRequest { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken ct)
         {
             CapturedRequest = request;
             return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
         }
     }
 
-    private sealed class FakeLogger<T> : ILogger<T>
+    private sealed class FakeLogger<T>
+        : ILogger<T>
     {
         public List<(LogLevel Level, string Message)> LogEntries { get; } = new();
 
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(
+            TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
         {
             LogEntries.Add((logLevel, formatter(state, exception)));
         }

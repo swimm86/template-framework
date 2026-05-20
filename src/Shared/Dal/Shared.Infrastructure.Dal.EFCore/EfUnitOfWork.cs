@@ -51,9 +51,24 @@ public class EfUnitOfWork<TDbContext>
     private bool _useTransaction;
 
     /// <summary>
+    /// Признак того, что необходимо использовать транзакцию.
+    /// </summary>
+    protected bool UseTransaction => _useTransaction;
+
+    /// <summary>
     /// Текущая транзакция.
     /// </summary>
     private IDbContextTransaction? _currentTransaction;
+
+    /// <summary>
+    /// Текущая транзакция.
+    /// </summary>
+    protected IDbContextTransaction? CurrentDbTransaction => _currentTransaction;
+
+    /// <summary>
+    /// Признак того, что включён хотя бы один тип доменных событий.
+    /// </summary>
+    protected bool AreAnyDomainEventsEnabled => _domainEventSettings.AnyEnabled;
 
     /// <summary>
     /// Конструктор по умолчанию.
