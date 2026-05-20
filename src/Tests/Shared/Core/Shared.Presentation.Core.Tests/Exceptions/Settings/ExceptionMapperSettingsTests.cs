@@ -16,7 +16,9 @@ public sealed class ExceptionMapperSettingsTests
     [Fact]
     public void DefaultConstructor_AppliesDocumentedDefaults()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var settings = new ExceptionMapperSettings();
 
         // Assert
@@ -31,7 +33,9 @@ public sealed class ExceptionMapperSettingsTests
     [Fact]
     public void Constructor_WithExplicitValues_StoresThem()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var settings = new ExceptionMapperSettings(
             ShouldEnrichWithTrace: false,
             StackTraceDepth: 3,
@@ -54,8 +58,11 @@ public sealed class ExceptionMapperSettingsTests
         var a = new ExceptionMapperSettings(false, 3, 2);
         var b = new ExceptionMapperSettings(false, 3, 2);
 
-        // Act & Assert
+        // Act
+        var equals = a == b;
+
+        // Assert
         a.Should().Be(b);
-        (a == b).Should().BeTrue();
+        equals.Should().BeTrue();
     }
 }

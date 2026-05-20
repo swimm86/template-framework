@@ -47,9 +47,10 @@ public sealed class PropertyUtilTests
         // Arrange
         var obj = new TestPoco();
 
-        // Act & Assert
+        // Act
         Action act = () => _sut.GetProperty(obj, "NonExistent", throwIfNotFound: true);
 
+        // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Property NonExistent not found");
     }
@@ -76,9 +77,12 @@ public sealed class PropertyUtilTests
     [Fact]
     public void GetProperty_NullObject_ThrowsArgumentNullException()
     {
-        // Act & Assert
+        // Arrange
+
+        // Act
         Action act = () => _sut.GetProperty(null!, "Name");
 
+        // Assert
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -107,9 +111,10 @@ public sealed class PropertyUtilTests
         // Arrange
         var obj = new TestPoco();
 
-        // Act & Assert
+        // Act
         Action act = () => _sut.SetProperty(obj, "NonExistent", "value", throwIfNotFound: true);
 
+        // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Property NonExistent not found");
     }
@@ -136,9 +141,12 @@ public sealed class PropertyUtilTests
     [Fact]
     public void SetProperty_NullObject_ThrowsArgumentNullException()
     {
-        // Act & Assert
+        // Arrange
+
+        // Act
         Action act = () => _sut.SetProperty(null!, "Name", "value");
 
+        // Assert
         act.Should().Throw<ArgumentNullException>();
     }
 

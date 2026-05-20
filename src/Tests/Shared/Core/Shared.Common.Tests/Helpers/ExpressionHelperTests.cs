@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Linq.Expressions;
 using Shared.Common.Helpers;
 
 namespace Shared.Common.Tests.Helpers;
@@ -172,12 +171,12 @@ public sealed class ExpressionHelperTests
         const string propertyName = "StringProperty";
         TestObject? testObject = null;
 
-        // Act & Assert
+        // Act
         var expression = ExpressionHelper.GetPropExpression<TestObject>(propertyName);
         var compiledFunc = expression.Compile();
-
         var act = () => compiledFunc(testObject!);
 
+        // Assert
         act.Should().Throw<NullReferenceException>();
     }
 

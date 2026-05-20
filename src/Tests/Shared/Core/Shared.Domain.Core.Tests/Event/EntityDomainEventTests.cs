@@ -67,9 +67,10 @@ public sealed class EntityDomainEventTests
         // Arrange
         var stub = new EntityDomainEventStub(TestEnum.BeforeCreate, (_, _) => Task.CompletedTask);
 
-        // Act & Assert
+        // Act
         var act = () => stub.CallDisableEntitiesEvents(DomainEventType.BeforeSave, []);
 
+        // Assert
         act.Should().NotThrow();
     }
 }

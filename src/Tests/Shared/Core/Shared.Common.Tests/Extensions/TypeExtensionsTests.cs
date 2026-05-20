@@ -36,7 +36,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_GenericList_ReturnsTrue()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(List<int>).ImplementsIEnumerable();
 
         // Assert
@@ -49,7 +49,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_String_ReturnsTrue()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(string).ImplementsIEnumerable();
 
         // Assert
@@ -62,7 +62,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_Array_ReturnsTrue()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(int[]).ImplementsIEnumerable();
 
         // Assert
@@ -75,7 +75,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_NonCollectionType_ReturnsFalse()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(TestClass).ImplementsIEnumerable();
 
         // Assert
@@ -88,7 +88,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_DirectlyImplementsIEnumerable_ReturnsTrue()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(IEnumerable).ImplementsIEnumerable();
 
         // Assert
@@ -101,7 +101,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_GenericIEnumerable_ReturnsTrue()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(IEnumerable<int>).ImplementsIEnumerable();
 
         // Assert
@@ -114,7 +114,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void ImplementsIEnumerable_NullType_ReturnsFalse()
     {
-        // Arrange & Act
+        // Act
         var result = ((Type)null!).ImplementsIEnumerable();
 
         // Assert
@@ -131,7 +131,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void GetPropertyIgnoreCase_ExactCaseMatch_ReturnsProperty()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(TestClass).GetPropertyIgnoreCase("Name");
 
         // Assert
@@ -145,7 +145,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void GetPropertyIgnoreCase_LowerCase_ReturnsProperty()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(TestClass).GetPropertyIgnoreCase("name");
 
         // Assert
@@ -159,7 +159,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void GetPropertyIgnoreCase_UpperCase_ReturnsProperty()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(TestClass).GetPropertyIgnoreCase("NAME");
 
         // Assert
@@ -173,7 +173,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void GetPropertyIgnoreCase_NonExistent_ReturnsNull()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(TestClass).GetPropertyIgnoreCase("NonExistent");
 
         // Assert
@@ -186,7 +186,7 @@ public sealed class TypeExtensionsTests
     [Fact]
     public void GetPropertyIgnoreCase_WithWhitespace_TrimsInput()
     {
-        // Arrange & Act
+        // Act
         var result = typeof(TestClass).GetPropertyIgnoreCase("  Name  ");
 
         // Assert

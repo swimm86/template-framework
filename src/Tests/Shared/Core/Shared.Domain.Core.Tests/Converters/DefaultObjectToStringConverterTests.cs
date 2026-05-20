@@ -16,7 +16,9 @@ public sealed class DefaultObjectToStringConverterTests
     [Fact]
     public void Convert_Null_ReturnsEmpty()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var result = _sut.Convert(null);
 
         // Assert
@@ -29,7 +31,9 @@ public sealed class DefaultObjectToStringConverterTests
     [Fact]
     public void Convert_StringValue_ReturnsSame()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var result = _sut.Convert("Hello World");
 
         // Assert
@@ -42,7 +46,9 @@ public sealed class DefaultObjectToStringConverterTests
     [Fact]
     public void Convert_BoolTrue_ReturnsLocalizedYes()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var result = _sut.Convert(true);
 
         // Assert
@@ -55,7 +61,9 @@ public sealed class DefaultObjectToStringConverterTests
     [Fact]
     public void Convert_BoolFalse_ReturnsLocalizedNo()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var result = _sut.Convert(false);
 
         // Assert
@@ -86,7 +94,9 @@ public sealed class DefaultObjectToStringConverterTests
     [Fact]
     public void Convert_EnumWithDescription_ReturnsDescriptionText()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var result = _sut.Convert(TestEnumWithDescription.FirstValue);
 
         // Assert

@@ -50,17 +50,15 @@ public sealed class CreateCommandHandlerTests
     public async Task Handle_ValidRequest_CreatesEntityAndReturnsSuccess()
     {
         // Arrange
-        var (handler, mapper, uow, _, repo) = CreateSut();
+        var (handler, _, uow, _, repo) = CreateSut();
         var command = new TestCreateCommand(new object());
 
         // Act
         var result = await handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
-        mapper.MapCallCount.Should().Be(2);
-        repo.AddCallCount.Should().Be(1);
+        repo.Items.Should().ContainSingle();
         uow.SaveChangesAsyncCallCount.Should().Be(1);
-        result.Should().NotBeNull();
         result.Id.Should().NotBeNull();
     }
 

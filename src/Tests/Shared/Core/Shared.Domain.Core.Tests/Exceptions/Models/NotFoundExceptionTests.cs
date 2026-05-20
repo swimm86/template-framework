@@ -16,6 +16,8 @@ public sealed class NotFoundExceptionTests
     [Fact]
     public void Constructor_Default_DoesNotThrow()
     {
+        // Arrange
+
         // Act
         Action act = () => new NotFoundException();
 

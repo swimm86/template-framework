@@ -119,9 +119,10 @@ public sealed class QuartzJobWrapperTests
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
-        // Act & Assert
+        // Act
         var act = () => wrapper.Execute(context);
 
+        // Assert
         var ex = (await act.Should().ThrowAsync<JobExecutionException>()).Which;
         ex.InnerException.Should().Be(exception);
         ex.RefireImmediately.Should().BeFalse();
@@ -292,9 +293,10 @@ public sealed class QuartzJobWrapperTests
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
-        // Act & Assert
+        // Act
         var act = () => wrapper.Execute(context);
 
+        // Assert
         (await act.Should().ThrowAsync<JobExecutionException>()).Which
             .InnerException.Should().BeOfType<NullReferenceException>();
     }
@@ -307,7 +309,7 @@ public sealed class QuartzJobWrapperTests
     {
         // Arrange
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         var jobDetail = new StubJobDetail
         {
@@ -334,9 +336,10 @@ public sealed class QuartzJobWrapperTests
 
         var wrapper = new QuartzJobWrapper(_serviceProvider, _logger);
 
-        // Act & Assert
+        // Act
         var act = () => wrapper.Execute(context);
 
+        // Assert
         (await act.Should().ThrowAsync<JobExecutionException>()).Which
             .InnerException.Should().BeOfType<OperationCanceledException>();
     }

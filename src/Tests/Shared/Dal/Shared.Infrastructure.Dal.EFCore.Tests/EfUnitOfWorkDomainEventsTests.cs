@@ -339,8 +339,10 @@ public sealed class EfUnitOfWorkDomainEventsTests
         var entity = new TestEntityWithCreatedDeleted { Id = Guid.NewGuid(), Name = "no-domain" };
         context.Entities.Add(entity);
 
-        // Act & Assert — should complete without any event-related errors
+        // Act
         var result = await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+
+        // Assert
         result.Should().Be(1);
     }
 

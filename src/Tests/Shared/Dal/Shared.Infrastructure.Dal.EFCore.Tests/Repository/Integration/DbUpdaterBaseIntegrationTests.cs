@@ -73,8 +73,10 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
         var updater = new TestDbUpdater(context);
         updater.CreateDbIfNotExists();
 
-        // Act & Assert
+        // Act
         var act = () => updater.CreateDbIfNotExists();
+
+        // Assert
         act.Should().NotThrow();
     }
 
@@ -110,8 +112,10 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
         using var context = CreateContext();
         var updater = new TestDbUpdater(context);
 
-        // Act & Assert
+        // Act
         var act = () => updater.Migrate();
+
+        // Assert
         act.Should().NotThrow();
     }
 
@@ -129,8 +133,10 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
         using var context = CreateContext();
         var updater = new TestDbUpdater(context);
 
-        // Act & Assert
+        // Act
         var act = () => updater.Initialize();
+
+        // Assert
         act.Should().NotThrow();
     }
 

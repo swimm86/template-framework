@@ -29,6 +29,8 @@ public sealed class DbUtilsScriptIntegrationTests : IAsyncLifetime
     [Fact]
     public void Upgrade_ThrowsInvalidOperation_WhenScriptHasSqlError()
     {
+        // Arrange
+
         // Act
         var act = () => DbUtils.Upgrade(
             connectionString: _container.GetConnectionString(),

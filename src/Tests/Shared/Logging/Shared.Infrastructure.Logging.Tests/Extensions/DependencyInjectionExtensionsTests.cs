@@ -69,9 +69,10 @@ public sealed class DependencyInjectionExtensionsTests
                 .Build();
             var services = new ServiceCollection();
 
-            // Act & Assert
+            // Act
             var act = () => services.AddNlog(config);
 
+            // Assert
             act.Should().NotThrow();
         }
         finally
@@ -90,9 +91,10 @@ public sealed class DependencyInjectionExtensionsTests
         var services = new ServiceCollection();
         var config = TestConfigurationBuilder.Empty();
 
-        // Act & Assert
+        // Act
         var act = () => services.AddNlog(config);
 
+        // Assert
         act.Should().NotThrow();
     }
 

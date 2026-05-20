@@ -41,8 +41,11 @@ public sealed class ProfileExtensionsTests
         // Arrange
         var config = new MapperConfiguration(cfg => cfg.AddProfile<CollectionTestProfile>());
 
-        // Act & Assert
-        config.AssertConfigurationIsValid();
+        // Act
+        var act = () => config.AssertConfigurationIsValid();
+
+        // Assert
+        act.Should().NotThrow();
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ public sealed class DependencyInjectionExtensionsTests
     [Fact]
     public void AddMediatR_ServiceProvider_BuildsSuccessfully()
     {
-        // Arrange
+        // Act
         using var provider = ServiceProviderBuilder.Build(services =>
         {
             services.AddLogging();

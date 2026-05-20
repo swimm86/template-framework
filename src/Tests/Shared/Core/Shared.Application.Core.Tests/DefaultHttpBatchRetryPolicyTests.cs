@@ -577,8 +577,10 @@ public sealed class PageableBatchRetryOptionsTests
             }
         };
 
-        // Act & Assert
-        HttpBatchRetryHelper.TryGetRetryAfterMaxFromChain(ex)
-            .Should().Be(TimeSpan.FromSeconds(expectedSeconds));
+        // Act
+        var hint = HttpBatchRetryHelper.TryGetRetryAfterMaxFromChain(ex);
+
+        // Assert
+        hint.Should().Be(TimeSpan.FromSeconds(expectedSeconds));
     }
 }

@@ -7,7 +7,6 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Core.Dal.Settings.Models.Base;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
-using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 using Shared.Testing.Doubles.Repository;
@@ -120,11 +119,13 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
-        // Act & Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => uow.SaveChangesAsync(cts.Token, commitTransaction: false));
+        // Act
+        var act = () => uow.SaveChangesAsync(cts.Token, commitTransaction: false);
+
+        // Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
     }
 
     /// <summary>Проверяет что SaveChangesAsync с commitTransaction=false не коммитит транзакцию.</summary>
@@ -207,10 +208,11 @@ public sealed class EfUnitOfWorkTests
         var entity = new TestEntityWithCreatedDeleted { Id = Guid.NewGuid(), Name = "rollback-test" };
         context.Entities.Add(entity);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => uow.SaveChangesAsync(CancellationToken.None));
+        // Act
+        var act = () => uow.SaveChangesAsync(CancellationToken.None);
 
+        // Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(act);
         context.Entities.Should().NotContain(e => e.Name == "rollback-test");
     }
 

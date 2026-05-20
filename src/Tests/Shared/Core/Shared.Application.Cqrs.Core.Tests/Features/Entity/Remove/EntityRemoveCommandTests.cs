@@ -85,7 +85,7 @@ public sealed class EntityRemoveCommandTests
     [Fact]
     public void Command_IsCorrectRecordType()
     {
-        // Arrange
+        // Act
         var command = new TestEntityRemoveCommand(new EntityRemoveRequest { Id = Guid.NewGuid() });
 
         // Assert

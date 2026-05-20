@@ -6,12 +6,14 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Common.Logging;
+using Xunit;
 
 namespace Shared.Common.Tests.Logging;
 
-/// <summary>
-/// Тесты для <see cref="LoggingServiceAccessor"/>.
-/// </summary>
+[CollectionDefinition(nameof(LoggingServiceAccessorCollection), DisableParallelization = true)]
+public class LoggingServiceAccessorCollection;
+
+[Collection(nameof(LoggingServiceAccessorCollection))]
 public sealed class LoggingServiceAccessorTests
 {
     /// <summary>

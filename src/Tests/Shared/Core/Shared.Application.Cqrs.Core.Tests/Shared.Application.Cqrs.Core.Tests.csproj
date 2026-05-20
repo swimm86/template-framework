@@ -31,7 +31,6 @@
     <Compile Remove="Features\**" />
     <Compile Include="Infrastructure\TestDoubles\TestModels.cs" />
     <Compile Include="Infrastructure\TestDoubles\FakeValidator.cs" />
-    <Compile Include="Infrastructure\TestDoubles\CountingUnitOfWork.cs" />
     <Compile Include="Infrastructure\TestDoubles\TestRequestHandler.cs" />
     <Compile Include="Infrastructure\TestDoubles\TestRequestHandlerThatThrows.cs" />
     <Compile Include="Infrastructure\TestDoubles\TestEntityRequestHandlers.cs" />

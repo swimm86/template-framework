@@ -19,8 +19,11 @@ public sealed class LogMessagesTests
     [Fact]
     public void Started_ContainsExpectedTemplate()
     {
-        // Act & Assert
-        LogMessages.Started.Should().Be("{process} started.");
+        // Act
+        var result = LogMessages.Started;
+
+        // Assert
+        result.Should().Be("{process} started.");
     }
 
     /// <summary>
@@ -29,8 +32,11 @@ public sealed class LogMessagesTests
     [Fact]
     public void Completed_ContainsExpectedTemplate()
     {
-        // Act & Assert
-        LogMessages.Completed.Should().Be("{process} completed.");
+        // Act
+        var result = LogMessages.Completed;
+
+        // Assert
+        result.Should().Be("{process} completed.");
     }
 
     /// <summary>
@@ -39,8 +45,11 @@ public sealed class LogMessagesTests
     [Fact]
     public void Failed_ContainsExpectedTemplate()
     {
-        // Act & Assert
-        LogMessages.Failed.Should().Be("{process} failed.");
+        // Act
+        var result = LogMessages.Failed;
+
+        // Assert
+        result.Should().Be("{process} failed.");
     }
 
     /// <summary>
@@ -49,8 +58,11 @@ public sealed class LogMessagesTests
     [Fact]
     public void Elapsed_ContainsTimePlaceholder()
     {
-        // Act & Assert
-        LogMessages.Elapsed.Should().Contain("{time}");
-        LogMessages.Elapsed.Should().Contain("ms");
+        // Act
+        var result = LogMessages.Elapsed;
+
+        // Assert
+        result.Should().Contain("{time}");
+        result.Should().Contain("ms");
     }
 }

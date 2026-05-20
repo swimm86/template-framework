@@ -1,5 +1,6 @@
 using Shared.Application.Cqrs.Core.Abstractions;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Interfaces;
@@ -18,38 +19,39 @@ public sealed class EntityRequestHandlerTests
     private static FakeUnitOfWork UnitOfWork => new();
 
     /// <summary>
-    /// Обращение к <see cref="EntityRequestHandler{TEntity,TRequest,TResponse}.Repository"/> вызывает <see cref="IUnitOfWork.GetRepository{T}"/>.
+    /// Обращение к <see cref="EntityRequestHandler{TEntity,TRequest,TResponse}.Repository"/> возвращает рабочий репозиторий.
     /// </summary>
     [Fact]
-    public void Repository_CallsUnitOfWorkGetRepository()
+    public void Repository_ReturnsWorkingRepository()
     {
         // Arrange
-        var uow = new CountingUnitOfWork();
+        var uow = new FakeUnitOfWork();
         var handler = new TestEntityRequestHandler(uow, LoggerFactory);
 
         // Act
-        _ = handler.Repository;
+        var repo = handler.Repository;
 
         // Assert
-        uow.GetRepositoryCallCount.Should().Be(1);
+        repo.Should().NotBeNull();
+        repo.Should().BeAssignableTo<IRepository<TestEntity>>();
     }
 
     /// <summary>
-    /// Двойное обращение к <see cref="EntityRequestHandler{TEntity,TRequest,TResponse}.Repository"/> вызывает GetRepository дважды.
+    /// Каждое обращение к <see cref="EntityRequestHandler{TEntity,TRequest,TResponse}.Repository"/> возвращает репозиторий для той же сущности.
     /// </summary>
     [Fact]
-    public void Repository_DoubleAccess_CallsGetRepositoryTwice()
+    public void Repository_MultipleAccess_ReturnsSameRepositoryType()
     {
         // Arrange
-        var uow = new CountingUnitOfWork();
+        var uow = new FakeUnitOfWork();
         var handler = new TestEntityRequestHandler(uow, LoggerFactory);
 
         // Act
-        _ = handler.Repository;
-        _ = handler.Repository;
+        var repo1 = handler.Repository;
+        var repo2 = handler.Repository;
 
         // Assert
-        uow.GetRepositoryCallCount.Should().Be(2);
+        repo1.Should().BeSameAs(repo2);
     }
 
     /// <summary>

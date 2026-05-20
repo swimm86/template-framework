@@ -17,7 +17,7 @@ public sealed class ReadByKeyQueryTests
         // Arrange
         var query = new TestReadByKeyQuery("key-123");
 
-        // Act & Assert
+        // Assert
         query.Key.Should().Be("key-123");
     }
 
@@ -30,7 +30,7 @@ public sealed class ReadByKeyQueryTests
         // Arrange
         var query = new TestReadByKeyQuery(null!);
 
-        // Act & Assert
+        // Act
         query.Key.Should().BeNull();
     }
 

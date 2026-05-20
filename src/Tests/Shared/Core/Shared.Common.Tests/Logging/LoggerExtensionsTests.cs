@@ -18,31 +18,30 @@ public sealed class LoggerExtensionsTests
     private readonly FakeLogger _logger = new();
 
     /// <summary>
-    /// LogTaskAsync с результатом логирует start и completed, возвращает значение.
-    /// </summary>
-    [Fact]
-    public void LogTaskAsync_WithResult_Success_LogsStartAndCompleted()
-    {
-        // Act
-        var result = _logger.LogTaskAsync(() => Task.FromResult(42)).GetAwaiter().GetResult();
-
-        // Assert
-        result.Should().Be(42);
-        _logger.Entries.Should().ContainSingle(e => e.Message.Contains("started"));
-        _logger.Entries.Should().ContainSingle(e => e.Message.Contains("completed"));
-    }
-
-    /// <summary>
     /// LogTaskAsync с результатом возвращает правильное значение.
     /// </summary>
     [Fact]
     public async Task LogTaskAsync_WithResult_ReturnsCorrectValue()
     {
         // Act
-        var result = await _logger.LogTaskAsync(() => Task.FromResult("hello"));
+        var result = await _logger.LogTaskAsync(() => Task.FromResult(42));
 
         // Assert
-        result.Should().Be("hello");
+        result.Should().Be(42);
+    }
+
+    /// <summary>
+    /// LogTaskAsync с результатом логирует start и completed.
+    /// </summary>
+    [Fact]
+    public async Task LogTaskAsync_WithResult_LogsStartAndCompleted()
+    {
+        // Act
+        await _logger.LogTaskAsync(() => Task.FromResult(42));
+
+        // Assert
+        _logger.Entries.Should().ContainSingle(e => e.Message.Contains("started"));
+        _logger.Entries.Should().ContainSingle(e => e.Message.Contains("completed"));
     }
 
     /// <summary>
@@ -69,7 +68,7 @@ public sealed class LoggerExtensionsTests
         var cts = new CancellationTokenSource();
 
         // Act
-        await _logger.LogTaskAsync(() => Task.Delay(10, cts.Token), cts.Token);
+        await _logger.LogTaskAsync(() => Task.CompletedTask, cts.Token);
 
         // Assert
         _logger.Entries.Should().ContainSingle(e => e.Message.Contains("started"));
@@ -77,16 +76,28 @@ public sealed class LoggerExtensionsTests
     }
 
     /// <summary>
-    /// LogTask (синхронный) логирует start и completed, возвращает результат.
+    /// LogTask (синхронный) возвращает результат.
     /// </summary>
     [Fact]
-    public void LogTask_Sync_Success_LogsStartAndCompleted()
+    public void LogTask_Sync_ReturnsCorrectValue()
     {
         // Act
         var result = _logger.LogTask(() => 99);
 
         // Assert
         result.Should().Be(99);
+    }
+
+    /// <summary>
+    /// LogTask (синхронный) логирует start и completed.
+    /// </summary>
+    [Fact]
+    public void LogTask_Sync_LogsStartAndCompleted()
+    {
+        // Act
+        _logger.LogTask(() => 99);
+
+        // Assert
         _logger.Entries.Should().ContainSingle(e => e.Message.Contains("started"));
         _logger.Entries.Should().ContainSingle(e => e.Message.Contains("completed"));
     }
@@ -106,10 +117,10 @@ public sealed class LoggerExtensionsTests
     }
 
     /// <summary>
-    /// LogTask (void) логирует start и completed.
+    /// LogTask (void) выполняет переданный action.
     /// </summary>
     [Fact]
-    public void LogTask_VoidAction_Success_LogsStartAndCompleted()
+    public void LogTask_VoidAction_ExecutesAction()
     {
         // Arrange
         var executed = false;
@@ -119,6 +130,18 @@ public sealed class LoggerExtensionsTests
 
         // Assert
         executed.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// LogTask (void) логирует start и completed.
+    /// </summary>
+    [Fact]
+    public void LogTask_VoidAction_LogsStartAndCompleted()
+    {
+        // Act
+        _logger.LogTask(() => { });
+
+        // Assert
         _logger.Entries.Should().ContainSingle(e => e.Message.Contains("started"));
         _logger.Entries.Should().ContainSingle(e => e.Message.Contains("completed"));
     }

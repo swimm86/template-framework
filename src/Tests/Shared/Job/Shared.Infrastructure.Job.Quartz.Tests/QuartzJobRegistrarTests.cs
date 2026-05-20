@@ -140,9 +140,10 @@ public sealed class QuartzJobRegistrarTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act & Assert
+        // Act
         var act = () => services.RegisterJob("testJob", "  ", (_, _) => Task.CompletedTask);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("cronExpression");
     }
@@ -156,9 +157,10 @@ public sealed class QuartzJobRegistrarTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act & Assert
+        // Act
         var act = () => services.RegisterJob("testJob", "0 0/5 * * * ?", null!);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("job");
     }
@@ -172,9 +174,10 @@ public sealed class QuartzJobRegistrarTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act & Assert
+        // Act
         var act = () => services.RegisterJob("  ", "0 0/5 * * * ?", (_, _) => Task.CompletedTask);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("jobKey");
     }

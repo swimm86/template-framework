@@ -101,7 +101,9 @@ public sealed class QueryOptionsTests
     [Fact]
     public void Constructor_AcceptsWithTrackingAndSplitQueryAndDistinctFlags()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var options = new QueryOptions<TestEntity>(withTracking: true, asSplitQuery: true, distinct: true);
 
         // Assert
@@ -116,7 +118,9 @@ public sealed class QueryOptionsTests
     [Fact]
     public void Constructor_DefaultFlagsAreFalse()
     {
-        // Arrange & Act
+        // Arrange
+
+        // Act
         var options = new QueryOptions<TestEntity>();
 
         // Assert

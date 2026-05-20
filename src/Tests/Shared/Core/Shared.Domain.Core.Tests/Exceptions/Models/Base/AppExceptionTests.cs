@@ -53,6 +53,8 @@ public sealed class AppExceptionTests
     [Fact]
     public void Constructor_Default_DoesNotThrow()
     {
+        // Arrange
+
         // Act
         Action act = () => _ = new TestAppException();
 

@@ -73,10 +73,11 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
         var entity = CreateEntity(name: "rollback-test");
         context.Entities.Add(entity);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => uow.SaveChangesAsync(CancellationToken.None));
+        // Act
+        var act = () => uow.SaveChangesAsync(CancellationToken.None);
 
+        // Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(act);
         context.Entities.Should().NotContain(e => e.Name == "rollback-test");
     }
 
@@ -92,8 +93,10 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
         await using var context = CreateContext();
         var uow = CreateUnitOfWorkWrapper(context, transactionsEnabled: true);
 
-        // Act & Assert — after commit, ResetTransactionAsync creates a new transaction
+        // Act
         var act = () => uow.CommitTransactionAsync(CancellationToken.None);
+
+        // Assert
         await act.Should().NotThrowAsync();
     }
 
@@ -109,8 +112,10 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
         await using var context = CreateContext();
         var uow = CreateUnitOfWorkWrapper(context, transactionsEnabled: true);
 
-        // Act & Assert — after rollback, ResetTransactionAsync creates a new transaction
+        // Act
         var act = () => uow.RollbackTransactionAsync(CancellationToken.None);
+
+        // Assert
         await act.Should().NotThrowAsync();
     }
 
