@@ -1,3 +1,5 @@
+using Shared.Domain.Core.Interfaces;
+
 namespace Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 
 public class TestEfEntity
@@ -8,12 +10,15 @@ public class TestEfEntity
 }
 
 public class TestParentEntity
+    : IEntity<Guid>
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public Guid? ChildId { get; set; }
     public TestChildEntity? Child { get; set; }
     public ICollection<TestChildEntity> Children { get; set; } = new List<TestChildEntity>();
+
+    object IEntity.Id => Id;
 }
 
 public class TestChildEntity

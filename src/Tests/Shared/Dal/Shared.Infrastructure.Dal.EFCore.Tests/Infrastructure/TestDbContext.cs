@@ -1,28 +1,37 @@
 using Microsoft.EntityFrameworkCore;
-using Shared.Infrastructure.Dal.EFCore.Conventions;
+using Microsoft.Extensions.Hosting;
+using Shared.Application.Core.DependencyInjection.Attributes;
 
 namespace Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 
-public class TestDbContext : DbContext
+/// <summary>
+/// Тестовый DbContext наследующий DbContextBase для корректной работы EfUnitOfWork.
+/// </summary>
+[ManualConfiguration]
+public sealed class TestDbContext
+    : DbContextBase
 {
-    public TestDbContext(DbContextOptions<TestDbContext> options)
-        : base(options)
+    public TestDbContext(
+        DbContextOptions<TestDbContext> options,
+        IHostEnvironment environment)
+        : base(options, environment)
     {
     }
 
-    public DbSet<TestEfEntity> TestEntities => Set<TestEfEntity>();
+    public TestDbContext(
+        DbContextOptions<TestDbContext> options)
+        : base(options, new FakeHostEnvironment())
+    {
+    }
+
+    public DbSet<TestEntityWithCreatedDeleted> Entities => Set<TestEntityWithCreatedDeleted>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TestEfEntity>(e =>
+        modelBuilder.Entity<TestEntityWithCreatedDeleted>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).ValueGeneratedNever();
         });
-    }
-
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-    {
-        configurationBuilder.Conventions.Add(_ => new ColumnsNamesConvention());
     }
 }

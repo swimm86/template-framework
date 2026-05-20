@@ -3,10 +3,10 @@ using Microsoft.Extensions.Hosting;
 
 namespace Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 
-internal sealed class FakeHostEnvironment
+public sealed class FakeHostEnvironment(string? environmentName = null)
     : IHostEnvironment
 {
-    public string EnvironmentName { get; set; } = Environments.Development;
+    public string EnvironmentName { get; set; } = environmentName ?? Environments.Development;
 
     public string ApplicationName { get; set; } = "Shared.Infrastructure.Dal.EFCore.Tests";
 
