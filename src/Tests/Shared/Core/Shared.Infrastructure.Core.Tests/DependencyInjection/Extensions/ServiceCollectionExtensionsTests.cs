@@ -27,10 +27,13 @@ public sealed class ServiceCollectionExtensionsTests
     [Fact]
     public void AddReferencedDependencyInjectors_RegistersServices()
     {
+        // Arrange
         var services = CreateServices();
 
+        // Act
         var act = () => services.AddReferencedDependencyInjectors();
 
+        // Assert
         act.Should().NotThrow();
     }
 
@@ -42,10 +45,13 @@ public sealed class ServiceCollectionExtensionsTests
     [Fact]
     public void AddReferencedDependencyInjectors_RegistersDelegatingHandlersFromInjector()
     {
+        // Arrange
         var services = CreateServices();
 
+        // Act
         services.AddReferencedDependencyInjectors();
 
+        // Assert
         var descriptor = services.FirstOrDefault(d =>
             d.ServiceType == typeof(Shared.Infrastructure.Core.ApiClient.Handlers.CorrelationIdHeaderDelegatingHandler));
         descriptor.Should().NotBeNull();
@@ -58,10 +64,13 @@ public sealed class ServiceCollectionExtensionsTests
     [Fact]
     public void AddReferencedDependencyInjectors_DoesNotThrowWithPreparedCollection()
     {
+        // Arrange
         var services = CreateServices();
 
+        // Act
         var act = () => services.AddReferencedDependencyInjectors();
 
+        // Assert
         act.Should().NotThrow();
     }
 
@@ -72,10 +81,13 @@ public sealed class ServiceCollectionExtensionsTests
     [Fact]
     public void AddReferencedDependencyInjectors_ReturnsSameServiceCollectionInstance()
     {
+        // Arrange
         var services = CreateServices();
 
+        // Act
         var result = services.AddReferencedDependencyInjectors();
 
+        // Assert
         result.Should().BeSameAs(services);
     }
 
@@ -86,11 +98,14 @@ public sealed class ServiceCollectionExtensionsTests
     [Fact]
     public void AddReferencedDependencyInjectors_CanBeCalledMultipleTimes()
     {
+        // Arrange
         var services = CreateServices();
-
         services.AddReferencedDependencyInjectors();
+
+        // Act
         var act = () => services.AddReferencedDependencyInjectors();
 
+        // Assert
         act.Should().NotThrow();
     }
 }

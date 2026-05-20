@@ -5,11 +5,18 @@ using Shared.Domain.Core.Tests.Infrastructure.TestDoubles;
 
 namespace Shared.Domain.Core.Tests.Event;
 
+/// <summary>
+/// Тесты для доменных событий, основанных на типе, проверяющие передачу делегатов и параметров.
+/// </summary>
 public sealed class TypeDomainEventTests
 {
+    /// <summary>
+    /// Проверяет, что ProcessActionAsync вызывает делегат с переданными ServiceProvider и коллекцией сущностей.
+    /// </summary>
     [Fact]
     public async Task ProcessActionAsync_CallsDelegateWithServiceProviderAndEntities()
     {
+        // Arrange
         IServiceProvider? receivedServiceProvider = null;
         ICollection<IWithDomainEvents>? receivedEntities = null;
         var stub = new TypeDomainEventStub(
@@ -23,15 +30,22 @@ public sealed class TypeDomainEventTests
 
         var serviceProvider = new TestServiceProvider();
         var entities = new List<IWithDomainEvents>();
+
+        // Act
         await stub.CallProcessActionAsync(serviceProvider, entities, CancellationToken.None);
 
+        // Assert
         receivedServiceProvider.Should().BeSameAs(serviceProvider);
         receivedEntities.Should().BeSameAs(entities);
     }
 
+    /// <summary>
+    /// Проверяет, что коллекция сущностей передаётся в делегат без изменений.
+    /// </summary>
     [Fact]
     public async Task Entities_CollectionIsPassedToDelegate()
     {
+        // Arrange
         ICollection<IWithDomainEvents>? receivedEntities = null;
         var stub = new TypeDomainEventStub(
             TestEnum.BeforeCreate,
@@ -42,15 +56,22 @@ public sealed class TypeDomainEventTests
             });
 
         var entities = new List<IWithDomainEvents> { new TestEntityWithDomainEvents() };
+
+        // Act
         await stub.CallProcessActionAsync(null!, entities, CancellationToken.None);
 
+        // Assert
         receivedEntities.Should().NotBeNull();
         receivedEntities.Should().HaveCount(1);
     }
 
+    /// <summary>
+    /// Проверяет, что DisableEntitiesEvents отключает события у переданных сущностей.
+    /// </summary>
     [Fact]
     public async Task DisableEntitiesEvents_DisablesEntities()
     {
+        // Arrange
         var stub = new TypeDomainEventStub(
             TestEnum.BeforeCreate,
             (_, _, _) => Task.CompletedTask);
@@ -58,8 +79,10 @@ public sealed class TypeDomainEventTests
         var entity = new TestEntityWithDomainEvents();
         entity.AddEvent(DomainEventType.BeforeSave, TestEnum.BeforeCreate, stub);
 
+        // Act
         await stub.ProcessAsync(DomainEventType.BeforeSave, null!, [entity], CancellationToken.None);
 
+        // Assert
         var disabledEvent = entity.GetEvent(DomainEventType.BeforeSave, TestEnum.BeforeCreate);
         disabledEvent.Should().NotBeNull();
     }
@@ -74,9 +97,12 @@ public sealed class TypeDomainEventTests
             => _events[(eventType, key)] = domainEvent;
 
         public IDomainEvent? GetEvent(DomainEventType eventType, Enum key)
-            => _events.TryGetValue((eventType, key), out var e) ? e : null;
+            => _events.GetValueOrDefault((eventType, key));
 
-        public bool TryGetEvent(DomainEventType domainEventType, Enum key, out IDomainEvent domainEvent)
+        public bool TryGetEvent(
+            DomainEventType domainEventType,
+            Enum key,
+            out IDomainEvent domainEvent)
         {
             if (_events.TryGetValue((domainEventType, key), out var e))
             {

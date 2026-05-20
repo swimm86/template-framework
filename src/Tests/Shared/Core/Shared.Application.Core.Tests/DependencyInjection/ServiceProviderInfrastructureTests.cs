@@ -45,6 +45,7 @@ public sealed class ServiceProviderInfrastructureTests
     [MemberData(nameof(ProbeResolutionCases))]
     public void Build_WithOptionalReplaceSingleton_ResolvesExpectedValue(int expectedValue, bool replaceWithB)
     {
+        // Arrange
         using var provider = ServiceProviderBuilder.Build(services =>
         {
             services.AddSingleton<IProbe, ProbeA>();
@@ -54,7 +55,11 @@ public sealed class ServiceProviderInfrastructureTests
             }
         });
 
-        provider.GetRequiredService<IProbe>().Value.Should().Be(expectedValue);
+        // Act
+        var probe = provider.GetRequiredService<IProbe>();
+
+        // Assert
+        probe.Value.Should().Be(expectedValue);
     }
 
     /// <summary>
@@ -63,6 +68,7 @@ public sealed class ServiceProviderInfrastructureTests
     [Fact]
     public void Build_RegistersPageableRetryOptionsAsInAppComposition()
     {
+        // Arrange
         using var provider = ServiceProviderBuilder.Build(services =>
         {
             services.AddSingleton(_ => new RetryConfiguration
@@ -75,7 +81,10 @@ public sealed class ServiceProviderInfrastructureTests
             });
         });
 
+        // Act
         var options = provider.GetRequiredService<RetryConfiguration>();
+
+        // Assert
         options.Backoff.MaxAttempts.Should().Be(3);
     }
 }
