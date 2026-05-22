@@ -15,8 +15,8 @@ public interface IUnitOfWork : IDisposable
     IRepository<TEntity> GetRepository<TEntity>() where TEntity : class, IEntity;
 
     // Сохранение изменений
-    int SaveChanges(bool commitTransaction = true, bool resetEventSettingsAfterSave = true);
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default, bool commitTransaction = true, bool resetEventSettingsAfterSave = true);
+    int SaveChanges(bool commitTransaction = true, bool resetLifecycleActionSettingsAfterSave = true);
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default, bool commitTransaction = true, bool resetLifecycleActionSettingsAfterSave = true);
 
     // Управление транзакциями
     Task CommitTransactionAsync(CancellationToken cancellationToken);
@@ -25,14 +25,14 @@ public interface IUnitOfWork : IDisposable
     IUnitOfWork EnableTransaction();
     IUnitOfWork DisableTransaction();
 
-    // Управление доменными событиями
-    IUnitOfWork EnableEvents();
-    IUnitOfWork DisableEvents();
-    IUnitOfWork DisableEvents<TEntity>(DomainEventType? eventType = default) where TEntity : IEntity, IWithDomainEvents;
-    IUnitOfWork EnableEvents<TEntity>(DomainEventType? eventType = default) where TEntity : IEntity, IWithDomainEvents;
-    IUnitOfWork DisableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags) where TEntity : IEntity, IWithDomainEvents;
-    IUnitOfWork EnableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags) where TEntity : IEntity, IWithDomainEvents;
-    IUnitOfWork ResetEventSettings();
+    // Управление действиями перехвата
+    IUnitOfWork EnableLifecycleActions();
+    IUnitOfWork DisableLifecycleActions();
+    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default) where TEntity : IEntity, IWithLifecycleActions;
+    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default) where TEntity : IEntity, IWithLifecycleActions;
+    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags) where TEntity : IEntity, IWithLifecycleActions;
+    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags) where TEntity : IEntity, IWithLifecycleActions;
+    IUnitOfWork ResetLifecycleActionSettings();
 
     // Управление отслеживанием
     void ClearTracking();
@@ -140,38 +140,37 @@ public async Task TransferMoney(Guid fromAccountId, Guid toAccountId, decimal am
 }
 ```
 
-### 4. Управление доменными событиями
+### 4. Управление действиями перехвата
 
-Гибкий контроль над генерацией и обработкой доменных событий:
+Гибкий контроль над генерацией и обработкой действий перехвата:
 
 ```csharp
-// Глобальное отключение событий
+// Глобальное отключение действий
 using var uow = _unitOfWorkFactory.Create();
-uow.DisableEvents();
+uow.DisableLifecycleActions();
 
 await userRepository.AddAsync(user);
-await uow.SaveChangesAsync(); // События не будут сгенерированы
+await uow.SaveChangesAsync(); // Действия не будут сгенерированы
 
-// Отключение событий для конкретного типа сущности
-uow.DisableEvents<User>();
+// Отключение действий для конкретного типа сущности
+uow.DisableLifecycleActions<User>();
 
-// Отключение событий определенного типа для сущности
-uow.DisableEvents<User>(DomainEventType.Created);
+// Отключение BeforeSave-действий для сущности
+uow.DisableLifecycleActions<User>(LifecycleHookType.BeforeSave);
 
-// Отключение событий по флагам
-uow.DisableEvents<User>(DomainEventType.Updated, UserUpdateFlags.EmailChanged);
+// Отключение действий по флагам
+uow.DisableLifecycleActions<User>(LifecycleHookType.BeforeSave, UserUpdateFlags.EmailChanged);
 
-// Включение событий обратно
-uow.EnableEvents<User>();
+// Включение действий обратно
+uow.EnableLifecycleActions<User>();
 
-// Сброс всех настроек событий
-uow.ResetEventSettings();
+// Сброс всех настроек действий
+uow.ResetLifecycleActionSettings();
 ```
 
-**Типы доменных событий:**
-- `DomainEventType.Created` — событие создания сущности
-- `DomainEventType.Updated` — событие обновления сущности
-- `DomainEventType.Deleted` — событие удаления сущности
+**Типы действий перехвата:**
+- `LifecycleHookType.BeforeSave` — действие до сохранения сущности
+- `LifecycleHookType.AfterSave` — действие после сохранения сущности
 
 ### 5. Управление отслеживанием изменений
 
@@ -268,8 +267,8 @@ public async Task BulkUpdatePrices(IEnumerable<PriceUpdate> updates)
 {
     using var uow = _unitOfWorkFactory.Create();
 
-    // Отключаем события обновления для массовой операции
-    uow.DisableEvents<Product>(DomainEventType.Updated);
+    // Отключаем действия обновления для массовой операции
+    uow.DisableLifecycleActions<Product>(LifecycleHookType.BeforeSave);
 
     var productRepo = uow.GetRepository<Product>();
 
@@ -438,7 +437,7 @@ foreach (var batch in batches)
 | **Ответственность** | Доступ к данным конкретной сущности | Координация нескольких репозиториев |
 | **Транзакции** | Поддержка на уровне одной сущности | Управление транзакциями между сущностями |
 | **Scope** | Один тип сущности | Контекст выполнения (use case) |
-| **События** | Генерация событий сущности | Контроль над всеми событиями |
+| **Действия** | Генерация действий сущности | Контроль над всеми действиями |
 
 ## См. также
 

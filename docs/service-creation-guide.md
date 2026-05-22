@@ -321,23 +321,23 @@ public class Product : IEntity<Guid>, IWithCreated, IWithUpdated, IWithDeleted
 }
 ```
 
-### Доменные события — `IWithDomainEvents`
+### Действия перехвата — `IWithLifecycleActions`
 
-Если сущности должна поддерживать domain events, реализуйте `IWithDomainEvents`:
+Если сущности должна поддерживать lifecycle actions, реализуйте `IWithLifecycleActions`:
 
 ```csharp
-public class Product : IEntity<Guid>, IWithDomainEvents
+public class Product : IEntity<Guid>, IWithLifecycleActions
 {
     // ... свойства ...
 
     public string[] RequiredToSaveNavigationPropertiesNames => [];
-    public bool TryGetEvent(DomainEventType type, Enum key, out IDomainEvent? domainEvent) { /* ... */ }
-    public void ResetEvents() { /* ... */ }
-    public ICollection<Enum> GetAllKeys(DomainEventType domainEventType) { /* ... */ }
+    public bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction? lifecycleAction) { /* ... */ }
+    public void ResetActions() { /* ... */ }
+    public ICollection<Enum> GetAllKeys(LifecycleHookType hookType) { /* ... */ }
 }
 ```
 
-> **Важно:** `EntityConfigurationBase` автоматически вызывает `builder.Ignore(nameof(IWithDomainEvents.RequiredToSaveNavigationPropertiesNames))` для сущностей, реализующих `IWithDomainEvents`.
+> **Важно:** `EntityConfigurationBase` автоматически вызывает `builder.Ignore(nameof(IWithLifecycleActions.RequiredToSaveNavigationPropertiesNames))` для сущностей, реализующих `IWithLifecycleActions`.
 
 ---
 
@@ -607,7 +607,7 @@ public class EntityConfiguration : EntityConfigurationBase<Product>
 - `UseTptMappingStrategy()` — TPT-стратегию наследования
 - Первичный ключ `Id` с `ValueGeneratedNever()`
 - Поля аудита (`CreatedByUserId`, `DateCreated`, ...) если сущность реализует соответствующие интерфейсы
-- Свойство `RequiredToSaveNavigationPropertiesNames` игнорируется для `IWithDomainEvents`
+- Свойство `RequiredToSaveNavigationPropertiesNames` игнорируется для `IWithLifecycleActions`
 
 ### Конвенция имён колонок — snake_case
 
