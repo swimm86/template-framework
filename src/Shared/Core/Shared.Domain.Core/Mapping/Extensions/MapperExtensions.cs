@@ -15,7 +15,7 @@ namespace Shared.Domain.Core.Mapping.Extensions;
 public static class MapperExtensions
 {
     /// <summary>
-    /// Маппинг исходного типа <see cref="TSource"/> в целевой тип <see cref="TResult"/>.
+    /// Маппинг исходного типа <typeparamref name="TSource"/> в целевой тип <typeparamref name="TResult"/>.
     /// </summary>
     /// <typeparam name="TSource">Исходный тип для маппинга.</typeparam>
     /// <typeparam name="TResult">Целевой тип результата маппинга.</typeparam>
@@ -46,7 +46,7 @@ public static class MapperExtensions
     }
 
     /// <summary>
-    /// Маппинг параметров из экземпляра исходного типа <see cref="TSource"/> в экземпляр целевого типа <see cref="TResult"/>.
+    /// Маппинг параметров из экземпляра исходного типа <typeparamref name="TSource"/> в экземпляр целевого типа <typeparamref name="TResult"/>.
     /// </summary>
     /// <typeparam name="TSource">Тип исходного экземпляра для маппинга.</typeparam>
     /// <typeparam name="TResult">Тип целевого экземпляра для маппинга.</typeparam>
