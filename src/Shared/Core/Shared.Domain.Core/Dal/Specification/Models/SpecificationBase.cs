@@ -7,7 +7,6 @@
 using System.Linq.Expressions;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Models;
-using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.Specification.Interfaces;
 using Shared.Domain.Core.Interfaces;
@@ -19,7 +18,7 @@ namespace Shared.Domain.Core.Dal.Specification.Models;
 /// </summary>
 /// <typeparam name="TEntity"></typeparam>
 public abstract record SpecificationBase<TEntity>(
-    ICollection<SortOption>? SortOptions = default)
+    ICollection<SortOption>? SortOptions = null)
     : ISpecification<TEntity>
     where TEntity : class, IEntity
 {

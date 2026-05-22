@@ -138,7 +138,7 @@ public class QueryOptions<TEntity>(
     public QueryOptions<TEntity> AddOrderBy(
         Expression<Func<TEntity, object>> expression,
         OrderDirectionType orderDirectionType,
-        int? index = default)
+        int? index = null)
     {
         if (OrderBy.Any(e => e.Expression.Equals(expression)))
         {
@@ -172,7 +172,9 @@ public class QueryOptions<TEntity>(
         }
 
         if (!ApplySorting(propToSort, sortOption.DirectionType))
+        {
             ApplySorting(propToSort, sortOption.DirectionType);
+        }
     }
 
     /// <summary>
@@ -187,7 +189,7 @@ public class QueryOptions<TEntity>(
         bool condition,
         Expression<Func<TEntity, object>> expression,
         OrderDirectionType orderDirectionType,
-        int? index = default)
+        int? index = null)
     {
         if (condition)
         {

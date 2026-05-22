@@ -1,5 +1,5 @@
-﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="IDomainEvent.cs" company="swimm86@yandex.ru">
+// ----------------------------------------------------------------------------------------------
+// <copyright file="IEntityLifecycleAction.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -7,39 +7,39 @@
 using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
 
-namespace Shared.Domain.Core.Event.Interfaces;
+namespace Shared.Domain.Core.LifecycleAction;
 
 /// <summary>
-/// Определяет контракт для доменного события.
+/// Определяет контракт для действия перехвата жизненного цикла сущности.
 /// </summary>
-public interface IDomainEvent
+public interface IEntityLifecycleAction
 {
     /// <summary>
-    /// Ключ события.
+    /// Ключ действия.
     /// </summary>
     Enum Key { get; }
 
     /// <summary>
-    /// Выполняет событие.
+    /// Выполняет действие перехвата.
     /// </summary>
-    /// <param name="eventType">Тип доменного события.</param>
+    /// <param name="hookType">Тип перехвата жизненного цикла.</param>
     /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
     /// <param name="entities">Сущности для обработки.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>
-    Task ProcessAsync(
-        DomainEventType eventType,
+    Task ExecuteAsync(
+        LifecycleHookType hookType,
         IServiceProvider serviceProvider,
-        ICollection<IWithDomainEvents> entities,
+        ICollection<IWithLifecycleActions> entities,
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Сбрасывает статус события.
+    /// Включает действие.
     /// </summary>
     void Enable();
 
     /// <summary>
-    /// Отключает событие.
+    /// Отключает действие.
     /// </summary>
     void Disable();
 }

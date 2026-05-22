@@ -20,23 +20,23 @@ public interface IUnitOfWork
     /// Сохраняет изменения.
     /// </summary>
     /// <param name="commitTransaction">Признак того, что необходимо закоммитить транзакцию.</param>
-    /// <param name="resetEventSettingsAfterSave">Сбросить настройки доменных событий после сохранения.</param>
+    /// <param name="resetLifecycleActionSettingsAfterSave">Сбросить настройки действий перехвата после сохранения.</param>
     /// <returns>Код результата.</returns>
     int SaveChanges(
         bool commitTransaction = true,
-        bool resetEventSettingsAfterSave = true);
+        bool resetLifecycleActionSettingsAfterSave = true);
 
     /// <summary>
     /// Асинхронно сохраняет изменения.
     /// </summary>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <param name="commitTransaction">Признак того, что необходимо закоммитить транзакцию.</param>
-    /// <param name="resetEventSettingsAfterSave">Сбросить настройки доменных событий после сохранения.</param>
+    /// <param name="resetLifecycleActionSettingsAfterSave">Сбросить настройки действий перехвата после сохранения.</param>
     /// <returns>Код результата.</returns>
     Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default,
         bool commitTransaction = true,
-        bool resetEventSettingsAfterSave = true);
+        bool resetLifecycleActionSettingsAfterSave = true);
 
     /// <summary>
     /// Возвращает репозиторий с сущностями типа <typeparamref name="TEntity"/>.
@@ -80,60 +80,60 @@ public interface IUnitOfWork
     IUnitOfWork DisableTransaction();
 
     /// <summary>
-    /// Отключает доменные события.
+    /// Отключает действия перехвата жизненного цикла.
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork DisableEvents();
+    IUnitOfWork DisableLifecycleActions();
 
     /// <summary>
-    /// Включает доменные события.
+    /// Включает действия перехвата жизненного цикла.
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork EnableEvents();
+    IUnitOfWork EnableLifecycleActions();
 
     /// <summary>
-    /// Отключает доменные события.
+    /// Отключает действия перехвата жизненного цикла для типа сущности.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип события (если <see langword="null"/>, то отключаются события для всего типа).</param>
+    /// <param name="hookType">Тип перехвата (если <see langword="null"/>, то отключаются действия для всего типа).</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork DisableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents;
+    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
+        where TEntity : IEntity, IWithLifecycleActions;
 
     /// <summary>
-    /// Включает доменные события.
+    /// Включает действия перехвата жизненного цикла для типа сущности.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип события (если <see langword="null"/>, то отключаются события для всего типа).</param>
+    /// <param name="hookType">Тип перехвата (если <see langword="null"/>, то включаются действия для всего типа).</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork EnableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents;
+    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
+        where TEntity : IEntity, IWithLifecycleActions;
 
     /// <summary>
-    /// Отключает доменные события.
+    /// Отключает действия перехвата жизненного цикла для типа сущности по флагам.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип события.</param>
-    /// <param name="eventKeyFlags">Флаги событий.</param>
+    /// <param name="hookType">Тип перехвата.</param>
+    /// <param name="actionKeyFlags">Флаги действий.</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork DisableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents;
+    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions;
 
     /// <summary>
-    /// Включает доменные события.
+    /// Включает действия перехвата жизненного цикла для типа сущности по флагам.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="eventType">Тип события.</param>
-    /// <param name="eventKeyFlags">Флаги событий.</param>
+    /// <param name="hookType">Тип перехвата.</param>
+    /// <param name="actionKeyFlags">Флаги действий.</param>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork EnableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents;
+    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions;
 
     /// <summary>
-    /// Сбрасывает настройки доменных событий.
+    /// Сбрасывает настройки действий перехвата жизненного цикла.
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork ResetEventSettings();
+    IUnitOfWork ResetLifecycleActionSettings();
 
     /// <summary>
     /// Очищает отслеживание всех сущностей.

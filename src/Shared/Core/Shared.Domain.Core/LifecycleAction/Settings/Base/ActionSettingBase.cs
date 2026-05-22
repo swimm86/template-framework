@@ -1,17 +1,17 @@
-﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="EventSettingBase.cs" company="swimm86@yandex.ru">
+// ----------------------------------------------------------------------------------------------
+// <copyright file="ActionSettingBase.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Domain.Core.Event.Settings.Base;
+namespace Shared.Domain.Core.LifecycleAction.Settings.Base;
 
 /// <summary>
-/// Базовая модель настройки событий.
+/// Базовая модель настройки действий перехвата.
 /// </summary>
 /// <typeparam name="TItems">Тип исключенных элементов.</typeparam>
 /// <typeparam name="TKey">Тип ключа исключенного элемента.</typeparam>
-public abstract record EventSettingBase<TItems, TKey>
+public abstract record ActionSettingBase<TItems, TKey>
 {
     /// <summary>
     /// Признак того, что по умолчанию настройка включена.
@@ -47,7 +47,7 @@ public abstract record EventSettingBase<TItems, TKey>
     /// Конструктор.
     /// </summary>
     /// <param name="enabled">Признак того, что элемент включен.</param>
-    protected EventSettingBase(bool enabled)
+    protected ActionSettingBase(bool enabled)
     {
         Enabled = enabled;
         ClearExceptItems();

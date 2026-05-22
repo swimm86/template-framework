@@ -14,8 +14,8 @@ using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Enums;
-using Shared.Domain.Core.Event.Settings;
 using Shared.Domain.Core.Interfaces;
+using Shared.Domain.Core.LifecycleAction.Settings;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore;
@@ -25,10 +25,10 @@ public class EfUnitOfWork<TDbContext>
     : IUnitOfWork
     where TDbContext : DbContextBase
 {
-    private readonly DomainEventSettings _domainEventSettings = new();
+    private readonly LifecycleActionSettings _lifecycleActionSettings = new();
 
-    private EntityEntry<IWithDomainEvents>[] EntriesWithDomainEvents =>
-        DbContext.ChangeTracker.Entries<IWithDomainEvents>().ToArray();
+    private EntityEntry<IWithLifecycleActions>[] EntriesWithLifecycleActions =>
+        DbContext.ChangeTracker.Entries<IWithLifecycleActions>().ToArray();
 
     /// <summary>
     /// DbContext.
@@ -66,9 +66,9 @@ public class EfUnitOfWork<TDbContext>
     protected IDbContextTransaction? CurrentDbTransaction => _currentTransaction;
 
     /// <summary>
-    /// Признак того, что включён хотя бы один тип доменных событий.
+    /// Признак того, что включено хотя бы одно действие перехвата жизненного цикла.
     /// </summary>
-    protected bool AreAnyDomainEventsEnabled => _domainEventSettings.AnyEnabled;
+    protected bool AreAnyLifecycleActionsEnabled => _lifecycleActionSettings.AnyEnabled;
 
     /// <summary>
     /// Конструктор по умолчанию.
@@ -81,7 +81,7 @@ public class EfUnitOfWork<TDbContext>
         TDbContext dbContext,
         IServiceProvider serviceProvider,
         DbSettingsBase settings,
-        IBeforeSaveChangesService? beforeSaveChangesService = default)
+        IBeforeSaveChangesService? beforeSaveChangesService = null)
     {
         DbContext = dbContext;
         _beforeSaveChangesService = beforeSaveChangesService;
@@ -96,13 +96,13 @@ public class EfUnitOfWork<TDbContext>
 
     /// <inheritdoc />
     public int SaveChanges(
-        bool commitTransaction,
-        bool resetEventSettingsAfterSave = true)
+        bool commitTransaction = true,
+        bool resetLifecycleActionSettingsAfterSave = true)
     {
         return SaveChangesAsync(
-                cancellationToken: default,
+                cancellationToken: CancellationToken.None,
                 commitTransaction,
-                resetEventSettingsAfterSave)
+                resetLifecycleActionSettingsAfterSave)
             .GetAwaiter()
             .GetResult();
     }
@@ -111,17 +111,17 @@ public class EfUnitOfWork<TDbContext>
     public async Task<int> SaveChangesAsync(
         CancellationToken cancellationToken,
         bool commitTransaction = true,
-        bool resetEventSettingsAfterSave = true)
+        bool resetLifecycleActionSettingsAfterSave = true)
     {
-        var entryTypeGroups = EntriesWithDomainEvents
+        var entryTypeGroups = EntriesWithLifecycleActions
             .GroupBy(e => e.Entity.GetType())
             .ToArray();
 
         try
         {
-            await ProcessDomainEventsAsync(
+            await ProcessLifecycleActionsAsync(
                 entryTypeGroups,
-                DomainEventType.BeforeSave,
+                LifecycleHookType.BeforeSave,
                 cancellationToken);
 
             await ProcessBeforeSaveChangesActionsAsync(cancellationToken);
@@ -133,9 +133,9 @@ public class EfUnitOfWork<TDbContext>
                 await CommitTransactionAsync(cancellationToken);
             }
 
-            await ProcessDomainEventsAsync(
+            await ProcessLifecycleActionsAsync(
                 entryTypeGroups,
-                DomainEventType.AfterSave,
+                LifecycleHookType.AfterSave,
                 cancellationToken);
 
             return result;
@@ -151,14 +151,14 @@ public class EfUnitOfWork<TDbContext>
         }
         finally
         {
-            if (_domainEventSettings.AnyEnabled)
+            if (_lifecycleActionSettings.AnyEnabled)
             {
-                entryTypeGroups.SelectMany(x => x).ForEach(e => e.Entity.ResetEvents());
+                entryTypeGroups.SelectMany(x => x).ForEach(e => e.Entity.ResetActions());
             }
 
-            if (resetEventSettingsAfterSave)
+            if (resetLifecycleActionSettingsAfterSave)
             {
-                ResetEventSettings();
+                ResetLifecycleActionSettings();
             }
 
             if (commitTransaction)
@@ -198,37 +198,37 @@ public class EfUnitOfWork<TDbContext>
     }
 
     /// <inheritdoc />
-    public IUnitOfWork DisableEvents() =>
-        SwitchEvents(false);
+    public IUnitOfWork DisableLifecycleActions() =>
+        SwitchLifecycleActions(false);
 
     /// <inheritdoc />
-    public IUnitOfWork EnableEvents() =>
-        SwitchEvents(true);
+    public IUnitOfWork EnableLifecycleActions() =>
+        SwitchLifecycleActions(true);
 
     /// <inheritdoc />
-    public IUnitOfWork DisableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents =>
-        SwitchEvents<TEntity>(eventType, false);
+    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = null)
+        where TEntity : IEntity, IWithLifecycleActions =>
+        SwitchLifecycleActions<TEntity>(hookType, false);
 
     /// <inheritdoc />
-    public IUnitOfWork EnableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents =>
-        SwitchEvents<TEntity>(eventType, true);
+    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = null)
+        where TEntity : IEntity, IWithLifecycleActions =>
+        SwitchLifecycleActions<TEntity>(hookType, true);
 
     /// <inheritdoc />
-    public IUnitOfWork DisableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents =>
-        SwitchEvents<TEntity>(eventType, eventKeyFlags, false);
+    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions =>
+        SwitchLifecycleActions<TEntity>(hookType, actionKeyFlags, false);
 
     /// <inheritdoc />
-    public IUnitOfWork EnableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents =>
-        SwitchEvents<TEntity>(eventType, eventKeyFlags, true);
+    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions =>
+        SwitchLifecycleActions<TEntity>(hookType, actionKeyFlags, true);
 
     /// <inheritdoc />
-    public IUnitOfWork ResetEventSettings()
+    public IUnitOfWork ResetLifecycleActionSettings()
     {
-        EnableEvents();
+        EnableLifecycleActions();
 
         return this;
     }
@@ -269,32 +269,32 @@ public class EfUnitOfWork<TDbContext>
         DisposeTransaction();
     }
 
-    private IUnitOfWork SwitchEvents(bool enable)
+    private IUnitOfWork SwitchLifecycleActions(bool enable)
     {
-        _domainEventSettings.Switch(enable);
+        _lifecycleActionSettings.Switch(enable);
 
         return this;
     }
 
-    private IUnitOfWork SwitchEvents<TEntity>(DomainEventType? eventType, bool enable)
-        where TEntity : IEntity, IWithDomainEvents
+    private IUnitOfWork SwitchLifecycleActions<TEntity>(LifecycleHookType? hookType, bool enable)
+        where TEntity : IEntity, IWithLifecycleActions
     {
-        if (eventType.HasValue)
+        if (hookType.HasValue)
         {
-            _domainEventSettings.Switch(typeof(TEntity), eventType.Value, enable);
+            _lifecycleActionSettings.Switch(typeof(TEntity), hookType.Value, enable);
         }
         else
         {
-            _domainEventSettings.Switch(typeof(TEntity), enable);
+            _lifecycleActionSettings.Switch(typeof(TEntity), enable);
         }
 
         return this;
     }
 
-    private IUnitOfWork SwitchEvents<TEntity>(DomainEventType eventType, Enum flags, bool enable)
-        where TEntity : IEntity, IWithDomainEvents
+    private IUnitOfWork SwitchLifecycleActions<TEntity>(LifecycleHookType hookType, Enum flags, bool enable)
+        where TEntity : IEntity, IWithLifecycleActions
     {
-        _domainEventSettings.Switch(typeof(TEntity), eventType, flags, enable);
+        _lifecycleActionSettings.Switch(typeof(TEntity), hookType, flags, enable);
 
         return this;
     }
@@ -304,38 +304,38 @@ public class EfUnitOfWork<TDbContext>
             ? _beforeSaveChangesService.ProcessAsync(DbContext, cancellationToken)
             : Task.CompletedTask;
 
-    private async Task ProcessDomainEventsAsync(
-        IGrouping<Type, EntityEntry<IWithDomainEvents>>[] entryGroups,
-        DomainEventType eventType,
+    private async Task ProcessLifecycleActionsAsync(
+        IGrouping<Type, EntityEntry<IWithLifecycleActions>>[] entryGroups,
+        LifecycleHookType hookType,
         CancellationToken cancellationToken)
     {
-        if (!_domainEventSettings.AnyEnabled)
+        if (!_lifecycleActionSettings.AnyEnabled)
         {
             return;
         }
 
         foreach (var entryGroup in entryGroups)
         {
-            if (!_domainEventSettings.AnyElementEnabled(entryGroup.Key, eventType))
+            if (!_lifecycleActionSettings.AnyElementEnabled(entryGroup.Key, hookType))
             {
                 continue;
             }
 
-            await ProcessDomainEventsAsync(entryGroup, eventType, cancellationToken);
+            await ProcessLifecycleActionsAsync(entryGroup, hookType, cancellationToken);
         }
     }
 
-    private async Task ProcessDomainEventsAsync(
-        IGrouping<Type, EntityEntry<IWithDomainEvents>> typeEntryGroup,
-        DomainEventType eventType,
+    private async Task ProcessLifecycleActionsAsync(
+        IGrouping<Type, EntityEntry<IWithLifecycleActions>> typeEntryGroup,
+        LifecycleHookType hookType,
         CancellationToken cancellationToken)
     {
         var entities = typeEntryGroup.Select(e => e.Entity).ToArray();
 
         var keys = entities
-            .SelectMany(x => x.GetAllKeys(eventType))
+            .SelectMany(x => x.GetAllKeys(hookType))
             .Distinct()
-            .Where(key => _domainEventSettings.AnyElementEnabled(typeEntryGroup.Key, eventType, key))
+            .Where(key => _lifecycleActionSettings.AnyElementEnabled(typeEntryGroup.Key, hookType, key))
             .ToArray();
 
         if (!keys.Any())
@@ -348,8 +348,8 @@ public class EfUnitOfWork<TDbContext>
         foreach (var key in keys)
         {
             await entities.ForeachAsync(
-                x => x.ProcessDomainEventAsync(
-                    eventType,
+                x => x.ProcessLifecycleActionAsync(
+                    hookType,
                     key,
                     _serviceProvider,
                     entities,
@@ -359,11 +359,11 @@ public class EfUnitOfWork<TDbContext>
     }
 
     private Task IncludeRequiredNavigationPropertiesAsync(
-        IGrouping<Type, EntityEntry<IWithDomainEvents>> typeEntryGroup,
-        IWithDomainEvents[] entities,
+        IGrouping<Type, EntityEntry<IWithLifecycleActions>> typeEntryGroup,
+        IWithLifecycleActions[] entities,
         CancellationToken cancellationToken)
     {
-        // Получаем обязательные для доменных событий незагруженные навигационные совйства.
+        // Получаем обязательные для действий перехвата незагруженные навигационные свойства.
         var navigationGroups = typeEntryGroup
             .SelectMany(entry => entry.Navigations
                 .Where(nav =>
@@ -394,7 +394,7 @@ public class EfUnitOfWork<TDbContext>
         Type type,
         Type navType,
         string name,
-        IEnumerable<IWithDomainEvents> entities,
+        IEnumerable<IWithLifecycleActions> entities,
         CancellationToken cancellationToken)
     {
         var method = GetType()
@@ -409,7 +409,7 @@ public class EfUnitOfWork<TDbContext>
     private Task IncludeNavigationPropertyCollectionAsync<TEntity, TNavigation>(
         Type type,
         string name,
-        IEnumerable<IWithDomainEvents> entities,
+        IEnumerable<IWithLifecycleActions> entities,
         CancellationToken cancellationToken)
         where TEntity : class
     {

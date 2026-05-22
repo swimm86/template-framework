@@ -1,5 +1,5 @@
-﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DomainEventType.cs" company="swimm86@yandex.ru">
+// ----------------------------------------------------------------------------------------------
+// <copyright file="LifecycleHookType.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -7,9 +7,9 @@
 namespace Shared.Domain.Core.Enums;
 
 /// <summary>
-/// Тип доменного события.
+/// Тип перехвата жизненного цикла сущности.
 /// </summary>
-public enum DomainEventType
+public enum LifecycleHookType
 {
     /// <summary>
     /// До сохранения.

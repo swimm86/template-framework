@@ -80,8 +80,7 @@ public static class EntityExtensions
     (
         srcItems.Where(source => !destItems.Select(destinationSelector).Contains(sourceSelector(source))).ToArray(),
         destItems.ExceptBy(srcItems.Select(sourceSelector), destinationSelector).ToArray(),
-        srcItems.Join(destItems, sourceSelector, destinationSelector, (src, dest) => (src, dest)).ToArray()
-    );
+        srcItems.Join(destItems, sourceSelector, destinationSelector, (src, dest) => (src, dest)).ToArray());
 
     /// <summary>
     /// Объединяет две коллекции, выполняя операции добавления, удаления и обновления элементов в соответствии с делегатами.
@@ -155,4 +154,3 @@ public static class EntityExtensions
         }
     }
 }
-
