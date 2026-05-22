@@ -14,7 +14,7 @@ using Shared.Infrastructure.Dal.EFCore.Extensions;
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
 
 /// <summary>
-/// Реализация интерфейса <see cref="IQueryEvaluator"/> на основе ORM "Entity Framework Core"
+/// Реализация интерфейса <see cref="IQueryEvaluator"/> на основе ORM "Entity Framework Core".
 /// </summary>
 public class EfQueryEvaluator(
     IMapper mapper)

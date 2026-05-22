@@ -15,7 +15,7 @@ using Shared.Domain.Core.Interfaces;
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
 
 /// <summary>
-/// Реализация интерфейса <see cref="IRepository{TEntity}"/> на основе ORM "Entity Framework Core"
+/// Реализация интерфейса <see cref="IRepository{TEntity}"/> на основе ORM "Entity Framework Core".
 /// </summary>
 /// <param name="dbContext"><see cref="DbContext"/>.</param>
 /// <param name="evaluator"><see cref="IQueryEvaluator"/>.</param>

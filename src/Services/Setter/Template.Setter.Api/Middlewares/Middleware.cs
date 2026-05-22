@@ -7,14 +7,14 @@
 namespace Template.Setter.Api.Middlewares;
 
 /// <summary>
-/// Мидлвар
+/// Мидлвар.
 /// </summary>
 public class Middleware
 {
     private readonly RequestDelegate _next;
 
     /// <summary>
-    /// Конструктор
+    /// Конструктор.
     /// </summary>
     /// <param name="next">Следующий делегат в цепочке вызовов.</param>
     public Middleware(RequestDelegate next)
@@ -24,7 +24,7 @@ public class Middleware
     }
 
     /// <summary>
-    /// Логика мидлвара
+    /// Логика мидлвара.
     /// </summary>
     /// <param name="context">Http контекст.</param>
     /// <returns><see cref="Task"/>.</returns>

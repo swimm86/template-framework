@@ -18,7 +18,7 @@ internal static class ApplicationBuilderExtensions
     /// Активирует Swagger и настраивает SwaggerUI в пайплайне обработки запросов.
     /// </summary>
     /// <param name="app"><see cref="IApplicationBuilder"/>.</param>
-    /// <param name="setupUiAction">Делегат для настройки <see cref="SwaggerUIOptions"/></param>
+    /// <param name="setupUiAction">Делегат для настройки <see cref="SwaggerUIOptions"/>.</param>
     /// <returns><see cref="IApplicationBuilder"/>.</returns>
     public static IApplicationBuilder UseSwaggerConfigured(
         this IApplicationBuilder app,
