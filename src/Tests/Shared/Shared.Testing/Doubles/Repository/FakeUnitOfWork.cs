@@ -18,9 +18,9 @@ public sealed class FakeUnitOfWork : IUnitOfWork
     public int ClearTrackingCallCount { get; private set; }
     public int EnableTransactionCallCount { get; private set; }
     public int DisableTransactionCallCount { get; private set; }
-    public int EnableEventsCallCount { get; private set; }
-    public int DisableEventsCallCount { get; private set; }
-    public int ResetEventSettingsCallCount { get; private set; }
+    public int EnableLifecycleActionsCallCount { get; private set; }
+    public int DisableLifecycleActionsCallCount { get; private set; }
+    public int ResetLifecycleActionSettingsCallCount { get; private set; }
 
     public CancellationToken LastSaveChangesCancellationToken { get; private set; }
 
@@ -36,17 +36,22 @@ public sealed class FakeUnitOfWork : IUnitOfWork
         where TEntity : class, IEntity
         => GetOrCreateRepository<TEntity>();
 
-    public int SaveChanges(bool commitTransaction = true, bool resetEventSettingsAfterSave = true)
+    public int SaveChanges(
+        bool commitTransaction = true,
+        bool resetLifecycleActionSettingsAfterSave = true)
     {
         SaveChangesCallCount++;
         return 0;
     }
 
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default, bool commitTransaction = true, bool resetEventSettingsAfterSave = true)
+    public Task<int> SaveChangesAsync(
+        CancellationToken cancellationToken = default,
+        bool commitTransaction = true,
+        bool resetLifecycleActionSettingsAfterSave = true)
     {
         SaveChangesAsyncCallCount++;
         LastSaveChangesCancellationToken = cancellationToken;
-        return await Task.FromResult(0);
+        return Task.FromResult(0);
     }
 
     public Task CommitTransactionAsync(CancellationToken cancellationToken)
@@ -79,49 +84,55 @@ public sealed class FakeUnitOfWork : IUnitOfWork
         return this;
     }
 
-    public IUnitOfWork DisableEvents()
+    public IUnitOfWork DisableLifecycleActions()
     {
-        DisableEventsCallCount++;
+        DisableLifecycleActionsCallCount++;
         return this;
     }
 
-    public IUnitOfWork EnableEvents()
+    public IUnitOfWork EnableLifecycleActions()
     {
-        EnableEventsCallCount++;
+        EnableLifecycleActionsCallCount++;
         return this;
     }
 
-    public IUnitOfWork DisableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents
+    public IUnitOfWork DisableLifecycleActions<TEntity>
+        (LifecycleHookType? hookType = null)
+        where TEntity : IEntity, IWithLifecycleActions
     {
-        DisableEventsCallCount++;
+        DisableLifecycleActionsCallCount++;
         return this;
     }
 
-    public IUnitOfWork EnableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents
+    public IUnitOfWork EnableLifecycleActions<TEntity>(
+        LifecycleHookType? hookType = null)
+        where TEntity : IEntity, IWithLifecycleActions
     {
-        EnableEventsCallCount++;
+        EnableLifecycleActionsCallCount++;
         return this;
     }
 
-    public IUnitOfWork DisableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents
+    public IUnitOfWork DisableLifecycleActions<TEntity>(
+        LifecycleHookType hookType,
+        Enum actionKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions
     {
-        DisableEventsCallCount++;
+        DisableLifecycleActionsCallCount++;
         return this;
     }
 
-    public IUnitOfWork EnableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents
+    public IUnitOfWork EnableLifecycleActions<TEntity>(
+        LifecycleHookType hookType,
+        Enum actionKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions
     {
-        EnableEventsCallCount++;
+        EnableLifecycleActionsCallCount++;
         return this;
     }
 
-    public IUnitOfWork ResetEventSettings()
+    public IUnitOfWork ResetLifecycleActionSettings()
     {
-        ResetEventSettingsCallCount++;
+        ResetLifecycleActionSettingsCallCount++;
         return this;
     }
 

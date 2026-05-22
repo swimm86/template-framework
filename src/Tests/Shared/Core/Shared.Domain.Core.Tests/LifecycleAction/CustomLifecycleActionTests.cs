@@ -1,12 +1,11 @@
-using Shared.Domain.Core.Interfaces;
 using Shared.Domain.Core.Tests.Infrastructure.TestDoubles;
 
-namespace Shared.Domain.Core.Tests.Event;
+namespace Shared.Domain.Core.Tests.LifecycleAction;
 
 /// <summary>
 /// Тесты для пользовательских доменных событий, проверяющие корректность конструктора и вызова делегатов.
 /// </summary>
-public sealed class CustomDomainEventTests
+public sealed class CustomLifecycleActionTests
 {
     /// <summary>
     /// Проверяет, что конструктор присваивает переданный ключ свойству Key.
@@ -17,10 +16,10 @@ public sealed class CustomDomainEventTests
         // Arrange
 
         // Act
-        var domainEvent = new CustomDomainEventStub(TestEnum.AfterCreate, (_, _, _) => Task.CompletedTask);
+        var lifecycleAction = new CustomLifecycleActionStub(TestEnum.AfterCreate, (_, _, _) => Task.CompletedTask);
 
         // Assert
-        domainEvent.Key.Should().Be(TestEnum.AfterCreate);
+        lifecycleAction.Key.Should().Be(TestEnum.AfterCreate);
     }
 
     /// <summary>
@@ -31,7 +30,7 @@ public sealed class CustomDomainEventTests
     {
         // Arrange
         var called = false;
-        var domainEvent = new CustomDomainEventStub(
+        var lifecycleAction = new CustomLifecycleActionStub(
             TestEnum.BeforeUpdate,
             (_, _, _) =>
             {
@@ -40,7 +39,7 @@ public sealed class CustomDomainEventTests
             });
 
         // Act
-        await domainEvent.CallProcessActionAsync(null!, [], CancellationToken.None);
+        await lifecycleAction.CallExecuteActionAsync(null!, [], CancellationToken.None);
 
         // Assert
         called.Should().BeTrue();
@@ -56,9 +55,9 @@ public sealed class CustomDomainEventTests
         var expectedKey = TestEnum.AfterUpdate;
 
         // Act
-        var domainEvent = new CustomDomainEventStub(expectedKey, (_, _, _) => Task.CompletedTask);
+        var lifecycleAction = new CustomLifecycleActionStub(expectedKey, (_, _, _) => Task.CompletedTask);
 
         // Assert
-        domainEvent.Key.Should().Be(expectedKey);
+        lifecycleAction.Key.Should().Be(expectedKey);
     }
 }

@@ -1,12 +1,12 @@
 using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Tests.Infrastructure.TestDoubles;
 
-namespace Shared.Domain.Core.Tests.Event;
+namespace Shared.Domain.Core.Tests.LifecycleAction;
 
 /// <summary>
 /// Тесты для доменных событий сущности, проверяющие передачу ServiceProvider и CancellationToken в делегат.
 /// </summary>
-public sealed class EntityDomainEventTests
+public sealed class EntityLifecycleActionTests
 {
     /// <summary>
     /// Проверяет, что ProcessActionAsync вызывает делегат с переданным ServiceProvider.
@@ -16,7 +16,7 @@ public sealed class EntityDomainEventTests
     {
         // Arrange
         IServiceProvider? receivedServiceProvider = null;
-        var stub = new EntityDomainEventStub(
+        var stub = new EntityLifecycleActionStub(
             TestEnum.BeforeCreate,
             (sp, _) =>
             {
@@ -27,7 +27,7 @@ public sealed class EntityDomainEventTests
         var serviceProvider = new TestServiceProvider();
 
         // Act
-        await stub.CallProcessActionAsync(serviceProvider, [], CancellationToken.None);
+        await stub.CallExecuteActionAsync(serviceProvider, [], CancellationToken.None);
 
         // Assert
         receivedServiceProvider.Should().BeSameAs(serviceProvider);
@@ -41,7 +41,7 @@ public sealed class EntityDomainEventTests
     {
         // Arrange
         CancellationToken receivedToken = default;
-        var stub = new EntityDomainEventStub(
+        var stub = new EntityLifecycleActionStub(
             TestEnum.BeforeCreate,
             (_, ct) =>
             {
@@ -52,23 +52,23 @@ public sealed class EntityDomainEventTests
         using var cts = new CancellationTokenSource();
 
         // Act
-        await stub.CallProcessActionAsync(null!, [], cts.Token);
+        await stub.CallExecuteActionAsync(null!, [], cts.Token);
 
         // Assert
         receivedToken.Should().Be(cts.Token);
     }
 
     /// <summary>
-    /// Проверяет, что вызов DisableEntitiesEvents не выбрасывает исключений.
+    /// Проверяет, что вызов DisableEntitiesActions не выбрасывает исключений.
     /// </summary>
     [Fact]
-    public void DisableEntitiesEvents_DoesNothing()
+    public void DisableEntitiesActions_DoesNothing()
     {
         // Arrange
-        var stub = new EntityDomainEventStub(TestEnum.BeforeCreate, (_, _) => Task.CompletedTask);
+        var stub = new EntityLifecycleActionStub(TestEnum.BeforeCreate, (_, _) => Task.CompletedTask);
 
         // Act
-        var act = () => stub.CallDisableEntitiesEvents(DomainEventType.BeforeSave, []);
+        var act = () => stub.CallDisableEntitiesActions(LifecycleHookType.BeforeSave, []);
 
         // Assert
         act.Should().NotThrow();
