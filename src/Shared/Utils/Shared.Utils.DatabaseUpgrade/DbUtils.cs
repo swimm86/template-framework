@@ -20,7 +20,7 @@ public static class DbUtils
     /// <summary>
     /// Обновление бд с аргементам командной строки.
     /// </summary>
-    /// <param name="args">Аргументы</param>
+    /// <param name="args">Аргументы.</param>
     public static void Upgrade(string[] args)
     {
         var connectionString = GetConnectionStringFromSecrets(Assembly.GetCallingAssembly());

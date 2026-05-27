@@ -13,7 +13,7 @@ Entity Interfaces в фреймворке Shared определяют контр
 - **Единообразие** — все сущности следуют единому контракту
 - **Audit Trail** — автоматическое отслеживание создания, обновления, удаления
 - **Soft Delete** — поддержка мягкого удаления без потери данных
-- **Domain Events** — встроенная поддержка событий домена
+- **Lifecycle Actions** — встроенная поддержка действий перехвата
 - **Auto-population** — EfRepository автоматически заполняет аудиторские поля через `IUserProvider`
 
 Эти интерфейсы не содержат реализации — они лишь определяют контракт. Реализация остаётся на стороне сущности.
@@ -196,7 +196,6 @@ public class Document : IEntityWithMetadata<Guid>
     public Guid? UpdatedByUserId { get; private set; }
     public DateTime? DateDeleted { get; private set; }
     public Guid? DeletedByUserId { get; private set; }
-    public bool IsDeleted { get; private set; }
 
     // ... реализация методов Set*/On*
 }
@@ -311,39 +310,39 @@ var response = new OrderResponse
 
 ---
 
-## Domain Events
+## Lifecycle Actions
 
-### IWithDomainEvents
+### IWithLifecycleActions
 
-Интерфейс для поддержки Domain Events на уровне сущности. Позволяет сущности хранить, извлекать и обрабатывать доменные события.
+Интерфейс для поддержки Lifecycle Actions на уровне сущности. Позволяет сущности хранить, извлекать и обрабатывать действия перехвата.
 
 ```csharp
-public interface IWithDomainEvents
+public interface IWithLifecycleActions
 {
     string[] RequiredToSaveNavigationPropertiesNames { get; }
 
-    bool TryGetEvent(DomainEventType domainEventType, Enum key, out IDomainEvent domainEvent);
-    void ResetEvents();
-    ICollection<Enum> GetAllKeys(DomainEventType domainEventType);
+    bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction lifecycleAction);
+    void ResetActions();
+    ICollection<Enum> GetAllKeys(LifecycleHookType hookType);
 
-    Task ProcessDomainEventAsync(
-        DomainEventType eventType,
+    Task ProcessLifecycleActionAsync(
+        LifecycleHookType hookType,
         Enum key,
         IServiceProvider serviceProvider,
-        ICollection<IWithDomainEvents>? entities = default,
+        ICollection<IWithLifecycleActions>? entities = default,
         CancellationToken cancellationToken = default);
 
-    Task ProcessDomainEventsAsync(
-        DomainEventType eventType,
+    Task ProcessLifecycleActionsAsync(
+        LifecycleHookType hookType,
         IServiceProvider serviceProvider,
-        ICollection<IWithDomainEvents>? entities = default,
+        ICollection<IWithLifecycleActions>? entities = default,
         CancellationToken cancellationToken = default);
 }
 ```
 
 **Пример использования:**
 ```csharp
-public class Order : IEntity<Guid>, IWithDomainEvents
+public class Order : IEntity<Guid>, IWithLifecycleActions
 {
     public Guid Id { get; set; }
     public OrderStatus Status { get; private set; }
@@ -351,53 +350,53 @@ public class Order : IEntity<Guid>, IWithDomainEvents
     public string[] RequiredToSaveNavigationPropertiesNames =>
         new[] { nameof(OrderItems), nameof(Customer) };
 
-    private readonly Dictionary<DomainEventType, Dictionary<Enum, IDomainEvent>> _events = new();
+    private readonly Dictionary<LifecycleHookType, Dictionary<Enum, IEntityLifecycleAction>> _actions = new();
 
-    public bool TryGetEvent(DomainEventType eventType, Enum key, out IDomainEvent domainEvent)
+    public bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction lifecycleAction)
     {
-        if (_events.TryGetValue(eventType, out var events) && events.TryGetValue(key, out domainEvent))
+        if (_actions.TryGetValue(hookType, out var actions) && actions.TryGetValue(key, out lifecycleAction))
         {
             return true;
         }
-        domainEvent = null;
+        lifecycleAction = null;
         return false;
     }
 
-    public void ResetEvents()
+    public void ResetActions()
     {
-        // Оставить только обязательные события
+        // Оставить только обязательные действия
     }
 
-    public ICollection<Enum> GetAllKeys(DomainEventType eventType)
+    public ICollection<Enum> GetAllKeys(LifecycleHookType hookType)
     {
-        return _events.TryGetValue(eventType, out var events)
-            ? events.Keys.ToList()
+        return _actions.TryGetValue(hookType, out var actions)
+            ? actions.Keys.ToList()
             : Array.Empty<Enum>();
     }
 
     public void MarkAsPaid()
     {
         Status = OrderStatus.Paid;
-        // Регистрация события
-        // _events.GetOrAdd(DomainEventType.AfterSave)[OrderEvents.Paid] = new OrderPaidEvent(Id);
+        // Регистрация действия
+        // _actions.GetOrAdd(LifecycleHookType.AfterSave)[OrderActions.Paid] = new OrderPaidAction(Id);
     }
 }
 ```
 
-**Обработка событий в UnitOfWork:**
+**Обработка действий в UnitOfWork:**
 ```csharp
 // UnitOfWork.SaveChangesAsync():
-var entitiesWithEvents = ChangeTracker
-    .Entries<IWithDomainEvents>()
+var entitiesWithActions = ChangeTracker
+    .Entries<IWithLifecycleActions>()
     .Select(e => e.Entity)
     .ToList();
 
-foreach (var entity in entitiesWithEvents)
+foreach (var entity in entitiesWithActions)
 {
-    await entity.ProcessDomainEventsAsync(
-        DomainEventType.AfterSave,
+    await entity.ProcessLifecycleActionsAsync(
+        LifecycleHookType.AfterSave,
         serviceProvider,
-        entitiesWithEvents,
+        entitiesWithActions,
         cancellationToken);
 }
 ```
@@ -418,7 +417,7 @@ foreach (var entity in entitiesWithEvents)
 | `IWithDeleted` | Автор удаления + флаг | `Guid? DeletedByUserId`, `bool IsDeleted` |
 | `IWithDeleteAction<T>` | Действие удаления | `DeleteAsync()` |
 | `IWithAdditionalData` | Дополнительные данные | `IReadOnlyDictionary<string, object>? AdditionalData` |
-| `IWithDomainEvents` | Доменные события | `TryGetEvent()`, `ProcessDomainEventsAsync()` |
+| `IWithLifecycleActions` | Действия перехвата | `TryGetAction()`, `ProcessLifecycleActionsAsync()` |
 | `IEntityWithMetadata` | Композит audit | Наследует `IEntity` + `IWithCreated` + `IWithUpdated` + `IWithDeleted` |
 | `IEntityWithUserData` | Имена пользователей | `CreatedByUserName`, `UpdatedByUserName` |
 

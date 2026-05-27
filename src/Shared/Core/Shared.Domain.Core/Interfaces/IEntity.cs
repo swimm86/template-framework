@@ -21,7 +21,8 @@ public interface IEntity
 /// Определяет интерфейс для сущности с идентификатором определенного типа.
 /// </summary>
 /// <typeparam name="T">Тип идентификатора сущности. Должен быть структурой.</typeparam>
-public interface IEntity<out T> : IEntity
+public interface IEntity<out T>
+    : IEntity
 {
     /// <inheritdoc/>
     object IEntity.Id => Id;

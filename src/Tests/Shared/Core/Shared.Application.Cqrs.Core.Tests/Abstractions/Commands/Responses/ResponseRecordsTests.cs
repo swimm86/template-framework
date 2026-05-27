@@ -102,7 +102,7 @@ public sealed class ResponseRecordsTests
     [Fact]
     public void Response_StatusCodeDefault()
     {
-        // Arrange
+        // Act
         var createResponse = new CreateResponse<object>();
         var updateResponse = new UpdateResponse<object>();
 

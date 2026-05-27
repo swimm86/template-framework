@@ -36,7 +36,7 @@
 | Паттерн | Описание | Документация |
 |---------|----------|--------------|
 | **Repository** | Централизованный доступ к данным через `IRepository<TEntity>` | [docs/repository.md](docs/repository.md) |
-| **Unit of Work** | Координация транзакций и доменных событий | [docs/unit-of-work.md](docs/unit-of-work.md) |
+| **Unit of Work** | Координация транзакций и действий перехвата | [docs/unit-of-work.md](docs/unit-of-work.md) |
 | **Specification** | Инкапсуляция бизнес-критериев выборки | [docs/specification.md](docs/specification.md) |
 | **CQRS** | Разделение операций чтения и записи | [docs/cqrs.md](docs/cqrs.md) |
 | **Auto-Registration** | Автоматическая регистрация зависимостей | [docs/auto-registration.md](docs/auto-registration.md) |
@@ -190,7 +190,7 @@ Service/
 | Проект | Описание |
 |--------|----------|
 | `Shared.Common.Tests` | Unit-тесты для Common (утилиты, расширения, helpers, пагинация) |
-| `Shared.Domain.Core.Tests` | Unit-тесты для Domain.Core (BaseEntity, IWithDomainEvents, спецификации) |
+| `Shared.Domain.Core.Tests` | Unit-тесты для Domain.Core (BaseEntity, IWithLifecycleActions, спецификации) |
 | `Shared.Application.Core.Tests` | Unit-тесты для Application.Core (CQRS handlers, validators, behaviors) |
 | `Shared.Application.Cqrs.Core.Tests` | Unit-тесты для CQRS Core (команды, запросы, pipeline) |
 | `Shared.Presentation.Core.Tests` | Unit-тесты для Presentation.Core (ExceptionHandler, мапперы исключений) |
@@ -311,7 +311,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 
 ### Domain Layer
 - [Domain Modeling](docs/domain-modeling.md) — BaseEntity, исключения, атрибуты сущностей
-- [Domain Events](docs/domain-events.md) — CustomDomainEvent, TypeDomainEvent, event settings
+- [Lifecycle Actions](docs/lifecycle-actions.md) — CustomLifecycleAction, TypeLifecycleAction, action settings
 - [Entity Interfaces](docs/entity-interfaces.md) — IEntity, audit interfaces, soft delete
 - [Auth Provider](docs/auth-provider.md) — IUserProvider, аудит-поля, авто-заполнение CreatedBy/UpdatedBy
 
@@ -352,14 +352,14 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 | Документ | Описание | Связанные |
 |----------|----------|-----------|
 | [Repository](docs/repository.md) | IRepository<T>, базовые CRUD | [Unit of Work](docs/unit-of-work.md), [Specification](docs/specification.md), [EF Core](docs/efcore-internals.md) |
-| [Unit of Work](docs/unit-of-work.md) | IUnitOfWork, транзакции | [Repository](docs/repository.md), [Domain Events](docs/domain-events.md) |
+| [Unit of Work](docs/unit-of-work.md) | IUnitOfWork, транзакции | [Repository](docs/repository.md), [Lifecycle Actions](docs/lifecycle-actions.md) |
 | [Specification](docs/specification.md) | SpecificationBase, Include, Where | [Repository](docs/repository.md), [Filtering](docs/filtering-sorting-guide.md) |
 | [CQRS](docs/cqrs.md) | ICommand, IQuery, handlers | [Pipeline Behaviors](docs/pipeline-behaviors.md), [Exception Mapping](docs/exception-mapping.md), [FluentValidation](docs/fluent-validation-integration.md) |
 | [Auto-Registration](docs/auto-registration.md) | RegisterDerivedTypeDependencies | [CQRS](docs/cqrs.md), [Controllers](docs/controllers.md) |
 | [Pipeline Behaviors](docs/pipeline-behaviors.md) | Logging, Validation pipeline | [CQRS](docs/cqrs.md), [Logging](docs/logging.md) |
 | [Exception Mapping](docs/exception-mapping.md) | IExceptionMapper, Problem Details | [CQRS](docs/cqrs.md), [Response Types](docs/response-types.md) |
-| [Domain Modeling](docs/domain-modeling.md) | BaseEntity, исключения | [Domain Events](docs/domain-events.md), [Entity Interfaces](docs/entity-interfaces.md) |
-| [Domain Events](docs/domain-events.md) | CustomDomainEvent, TypeDomainEvent | [Domain Modeling](docs/domain-modeling.md), [Unit of Work](docs/unit-of-work.md) |
+| [Domain Modeling](docs/domain-modeling.md) | BaseEntity, исключения | [Lifecycle Actions](docs/lifecycle-actions.md), [Entity Interfaces](docs/entity-interfaces.md) |
+| [Lifecycle Actions](docs/lifecycle-actions.md) | CustomLifecycleAction, TypeLifecycleAction | [Domain Modeling](docs/domain-modeling.md), [Unit of Work](docs/unit-of-work.md) |
 | [Entity Interfaces](docs/entity-interfaces.md) | IEntity, audit, soft delete | [Domain Modeling](docs/domain-modeling.md), [EF Core](docs/efcore-internals.md) |
 | [EF Core Internals](docs/efcore-internals.md) | DbContextBase, EfQueryEvaluator | [Repository](docs/repository.md), [Db Seeder](docs/db-seeder.md) |
 | [Db Seeder](docs/db-seeder.md) | [Seed], ISeed, DbSeeder | [EF Core](docs/efcore-internals.md), [Database Upgrade](docs/database-upgrade.md) |

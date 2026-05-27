@@ -78,7 +78,7 @@ public static class RepositoryExtensions
     }
 
     /// <summary>
-    /// Асинхронно извлекает сущность, преобразованную в <see cref="TOut"/>, по ее идентификатору.
+    /// Асинхронно извлекает сущность, преобразованную в <typeparamref name="TOut"/>, по ее идентификатору.
     /// В случае отсутствия сущности выбрасывает исключение <see cref="NotFoundException"/>.
     /// </summary>
     /// <typeparam name="TEntity">Тип сущности.</typeparam>
@@ -95,7 +95,7 @@ public static class RepositoryExtensions
         this IRepository<TEntity> repository,
         TKey id,
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
         where TEntity : class, IEntity
     {

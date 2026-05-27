@@ -148,9 +148,10 @@ public sealed class LoggingConfigurationExtensionsTests
 
         config.AddCorrelationIdToTargetLayouts();
 
-        // Act & Assert
+        // Act
         var act = () => config.AddCorrelationIdToTargetLayouts();
 
+        // Assert
         act.Should().NotThrow();
     }
 

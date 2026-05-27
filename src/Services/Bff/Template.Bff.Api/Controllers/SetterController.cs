@@ -11,7 +11,7 @@ using Template.Bff.Application.Interfaces.HttpClients;
 namespace Template.Bff.Api.Controllers;
 
 /// <summary>
-/// Setter контроллер
+/// Setter контроллер.
 /// </summary>
 public class SetterController(
     ISetterClient setterClient,

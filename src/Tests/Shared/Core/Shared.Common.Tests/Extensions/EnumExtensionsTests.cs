@@ -210,24 +210,21 @@ public sealed class EnumExtensionsTests
     /// <summary>
     /// Проверяет, что поиск по Description регистронезависимый.
     /// </summary>
-    [Fact]
-    public void GetEnumValueByDescription_DescriptionComparison_IsCaseInsensitive()
+    /// <param name="description">Описание в произвольном регистре.</param>
+    [Theory]
+    [InlineData("активный статус")]
+    [InlineData("АКТИВНЫЙ СТАТУС")]
+    [InlineData("Активный Статус")]
+    public void GetEnumValueByDescription_DescriptionComparison_IsCaseInsensitive(string description)
     {
         // Arrange
-        const string lowerCaseDescription = "активный статус";
-        const string upperCaseDescription = "АКТИВНЫЙ СТАТУС";
-        const string mixedCaseDescription = "Активный Статус";
         var expected = TestEnumWithDescriptions.Active;
 
         // Act
-        var lowerCaseResult = lowerCaseDescription.GetEnumValueByDescription<TestEnumWithDescriptions>();
-        var upperCaseResult = upperCaseDescription.GetEnumValueByDescription<TestEnumWithDescriptions>();
-        var mixedCaseResult = mixedCaseDescription.GetEnumValueByDescription<TestEnumWithDescriptions>();
+        var result = description.GetEnumValueByDescription<TestEnumWithDescriptions>();
 
         // Assert
-        lowerCaseResult.Should().Be(expected);
-        upperCaseResult.Should().Be(expected);
-        mixedCaseResult.Should().Be(expected);
+        result.Should().Be(expected);
     }
 
     /// <summary>
@@ -259,9 +256,10 @@ public sealed class EnumExtensionsTests
     [MemberData(nameof(InvalidDescriptionCases))]
     public void GetEnumValueByDescription_InvalidDescription_ThrowsArgumentException(string? description)
     {
-        // Act & Assert
+        // Act
         var act = () => description.GetEnumValueByDescription<TestEnumWithDescriptions>();
 
+        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
@@ -305,9 +303,10 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void GetEnumValueByDescription_EmptyDescription_ThrowsArgumentException()
     {
-        // Act & Assert
+        // Act
         var act = () => "".GetEnumValueByDescription<TestEnumWithDescriptions>();
 
+        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
@@ -317,9 +316,10 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void GetEnumValueByDescription_EnumWithoutDescriptions_ThrowsArgumentException()
     {
-        // Act & Assert
+        // Act
         var act = () => "Value1".GetEnumValueByDescription<TestEnumWithoutDescriptions>();
 
+        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
@@ -382,9 +382,10 @@ public sealed class EnumExtensionsTests
     [Fact]
     public void GetEnumValueByDescription_NonGenericOverload_InvalidDescription_ThrowsArgumentException()
     {
-        // Act & Assert
+        // Act
         var act = () => "Несуществующее".GetEnumValueByDescription(typeof(TestEnumWithDescriptions));
 
+        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
@@ -446,9 +447,10 @@ public sealed class EnumExtensionsTests
         string? description = null;
         var enumType = typeof(TestEnumWithDescriptions);
 
-        // Act & Assert
+        // Act
         var act = () => description.GetEnumValueByPartOfDescription(enumType);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -554,9 +556,10 @@ public sealed class EnumExtensionsTests
         Enum flags = TestFlags.FlagA;
         Enum differentFlags = TestNonFlagsEnum.Value1;
 
-        // Act & Assert
+        // Act
         var act = () => flags.With(differentFlags);
 
+        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
@@ -676,9 +679,10 @@ public sealed class EnumExtensionsTests
         Enum flags = TestFlags.FlagA;
         Enum differentFlags = TestNonFlagsEnum.Value1;
 
-        // Act & Assert
+        // Act
         var act = () => flags.Without(differentFlags);
 
+        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
@@ -705,17 +709,19 @@ public sealed class EnumExtensionsTests
     /// <summary>
     /// Проверяет, что All-флаг корректно представляет все флаги.
     /// </summary>
-    [Fact]
-    public void FlagsOperations_AllFlagsValue_CorrectlyRepresentsAllFlags()
+    /// <param name="flag">Проверяемый флаг.</param>
+    [Theory]
+    [InlineData(TestFlags.FlagA)]
+    [InlineData(TestFlags.FlagB)]
+    [InlineData(TestFlags.FlagC)]
+    [InlineData(TestFlags.FlagD)]
+    public void FlagsOperations_AllFlagsValue_CorrectlyRepresentsAllFlags(Enum flag)
     {
-        // Arrange & Act
+        // Act
         var allFlags = TestFlags.All;
 
         // Assert
-        allFlags.HasFlag(TestFlags.FlagA).Should().BeTrue();
-        allFlags.HasFlag(TestFlags.FlagB).Should().BeTrue();
-        allFlags.HasFlag(TestFlags.FlagC).Should().BeTrue();
-        allFlags.HasFlag(TestFlags.FlagD).Should().BeTrue();
+        allFlags.HasFlag(flag).Should().BeTrue();
     }
 
     /// <summary>

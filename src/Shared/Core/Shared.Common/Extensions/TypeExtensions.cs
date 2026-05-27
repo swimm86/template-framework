@@ -22,30 +22,15 @@ public static class TypeExtensions
     public static bool ImplementsIEnumerable(this Type type)
     {
         if (type == null)
-            return false;
-
-        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
-            return true;
-
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            return true;
-
-        // Рекурсивно проверяем все интерфейсы
-        foreach (var interfaceType in type.GetInterfaces())
         {
-            if (interfaceType.ImplementsIEnumerable())
-                return true;
+            return false;
         }
 
-        // Для массивов
-        if (type.IsArray && type.GetElementType()!.ImplementsIEnumerable())
-            return true;
-
-        // Для nullable-типов
-        if (Nullable.GetUnderlyingType(type) is Type underlyingType && underlyingType.ImplementsIEnumerable())
-            return true;
-
-        return false;
+        return (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string)) ||
+               (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)) ||
+               type.GetInterfaces().Any(interfaceType => interfaceType.ImplementsIEnumerable()) ||
+               (type.IsArray && type.GetElementType()!.ImplementsIEnumerable()) ||
+               (Nullable.GetUnderlyingType(type) is { } underlyingType && underlyingType.ImplementsIEnumerable());
     }
 
     /// <summary>

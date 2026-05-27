@@ -12,4 +12,5 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 /// Базовая команда удаления сущности.
 /// </summary>
 /// <param name="Key">Ключ удаляемой сущности.</param>
-public abstract record DeleteCommand(object Key) : ICommand<Response>;
+public abstract record DeleteCommand(object Key)
+    : ICommand<Response>;

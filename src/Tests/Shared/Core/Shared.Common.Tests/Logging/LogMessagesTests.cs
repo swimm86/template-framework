@@ -13,28 +13,56 @@ namespace Shared.Common.Tests.Logging;
 /// </summary>
 public sealed class LogMessagesTests
 {
+    /// <summary>
+    /// Шаблон для started содержит ожидаемый текст.
+    /// </summary>
     [Fact]
     public void Started_ContainsExpectedTemplate()
     {
-        LogMessages.Started.Should().Be("{process} started.");
+        // Act
+        var result = LogMessages.Started;
+
+        // Assert
+        result.Should().Be("{process} started.");
     }
 
+    /// <summary>
+    /// Шаблон для completed содержит ожидаемый текст.
+    /// </summary>
     [Fact]
     public void Completed_ContainsExpectedTemplate()
     {
-        LogMessages.Completed.Should().Be("{process} completed.");
+        // Act
+        var result = LogMessages.Completed;
+
+        // Assert
+        result.Should().Be("{process} completed.");
     }
 
+    /// <summary>
+    /// Шаблон для failed содержит ожидаемый текст.
+    /// </summary>
     [Fact]
     public void Failed_ContainsExpectedTemplate()
     {
-        LogMessages.Failed.Should().Be("{process} failed.");
+        // Act
+        var result = LogMessages.Failed;
+
+        // Assert
+        result.Should().Be("{process} failed.");
     }
 
+    /// <summary>
+    /// Шаблон Elapsed содержит плейсхолдер времени и "ms".
+    /// </summary>
     [Fact]
     public void Elapsed_ContainsTimePlaceholder()
     {
-        LogMessages.Elapsed.Should().Contain("{time}");
-        LogMessages.Elapsed.Should().Contain("ms");
+        // Act
+        var result = LogMessages.Elapsed;
+
+        // Assert
+        result.Should().Contain("{time}");
+        result.Should().Contain("ms");
     }
 }

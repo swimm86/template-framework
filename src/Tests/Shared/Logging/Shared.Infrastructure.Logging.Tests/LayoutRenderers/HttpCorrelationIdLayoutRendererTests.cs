@@ -78,9 +78,10 @@ public sealed class HttpCorrelationIdLayoutRendererTests
         // Arrange
         var renderer = CreateRenderer();
 
-        // Act & Assert
+        // Act
         var act = () => renderer.Render(LogEventInfo.CreateNullEvent());
 
+        // Assert
         act.Should().NotThrow();
         renderer.Render(LogEventInfo.CreateNullEvent()).Should().BeEmpty();
     }
@@ -94,9 +95,10 @@ public sealed class HttpCorrelationIdLayoutRendererTests
         // Arrange
         var renderer = CreateRenderer(accessor:null);
 
-        // Act & Assert
+        // Act
         var act = () => renderer.Render(LogEventInfo.CreateNullEvent());
 
+        // Assert
         act.Should().NotThrow();
         renderer.Render(LogEventInfo.CreateNullEvent()).Should().BeEmpty();
     }

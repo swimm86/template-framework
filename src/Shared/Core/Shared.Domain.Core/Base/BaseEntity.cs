@@ -9,8 +9,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Enums;
-using Shared.Domain.Core.Event.Interfaces;
 using Shared.Domain.Core.Interfaces;
+using Shared.Domain.Core.LifecycleAction;
 
 namespace Shared.Domain.Core.Base;
 
@@ -19,19 +19,19 @@ namespace Shared.Domain.Core.Base;
 /// </summary>
 /// <typeparam name="TKey"> Тип ключа сущности. </typeparam>
 public abstract class BaseEntity<TKey>
-    : IEntity<TKey>, IWithDomainEvents
+    : IEntity<TKey>, IWithLifecycleActions
 {
     /// <summary>
-    /// Словарь доменных событий до сохранения.
+    /// Словарь действий перехвата до сохранения.
     /// </summary>
     [NotMapped]
-    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsBeforeSave = null!;
+    private ReadOnlyDictionary<Enum, IEntityLifecycleAction> _lifecycleActionsBeforeSave = null!;
 
     /// <summary>
-    /// Словарь доменных событий после сохранения.
+    /// Словарь действий перехвата после сохранения.
     /// </summary>
     [NotMapped]
-    private ReadOnlyDictionary<Enum, IDomainEvent> _domainEventsAfterSave = null!;
+    private ReadOnlyDictionary<Enum, IEntityLifecycleAction> _lifecycleActionsAfterSave = null!;
 
     /// <inheritdoc />
     public virtual TKey Id { get; set; } = default!;
@@ -40,108 +40,108 @@ public abstract class BaseEntity<TKey>
     public virtual string[] RequiredToSaveNavigationPropertiesNames => [];
 
     /// <summary>
-    /// События, выполняемые перед сохранением.
+    /// Действия, выполняемые перед сохранением.
     /// </summary>
-    protected virtual IDomainEvent[] BeforeSaveEvents => [];
+    protected virtual IEntityLifecycleAction[] BeforeSaveActions => [];
 
     /// <summary>
-    /// События, выполняемые после сохранения.
+    /// Действия, выполняемые после сохранения.
     /// </summary>
-    protected virtual IDomainEvent[] AfterSaveEvents => [];
+    protected virtual IEntityLifecycleAction[] AfterSaveActions => [];
 
     /// <summary>
     /// Инициализирует новый экземпляр <see cref="BaseEntity{TKey}"/>.
     /// </summary>
     protected BaseEntity()
     {
-        CreateEvents();
+        CreateActions();
     }
 
     /// <inheritdoc />
-    public bool TryGetEvent(
-        DomainEventType domainEventType,
+    public bool TryGetAction(
+        LifecycleHookType hookType,
         Enum key,
-        [MaybeNullWhen(false)] out IDomainEvent domainEvent)
-        => GetCurrentDomainEvents(domainEventType).TryGetValue(key, out domainEvent);
+        [MaybeNullWhen(false)] out IEntityLifecycleAction lifecycleAction)
+        => GetCurrentLifecycleActions(hookType).TryGetValue(key, out lifecycleAction);
 
     /// <inheritdoc />
-    public void ResetEvents() =>
-        EnableDomainEvents();
+    public void ResetActions() =>
+        EnableLifecycleActions();
 
     /// <inheritdoc />
-    public ICollection<Enum> GetAllKeys(DomainEventType domainEventType)
-        => GetCurrentDomainEvents(domainEventType).Keys;
+    public ICollection<Enum> GetAllKeys(LifecycleHookType hookType)
+        => GetCurrentLifecycleActions(hookType).Keys;
 
     /// <summary>
-    /// Отключает доменные события.
+    /// Отключает действия перехвата жизненного цикла.
     /// </summary>
-    public void DisableDomainEvents()
+    public void DisableLifecycleActions()
     {
-        DisableDomainEvents(DomainEventType.BeforeSave);
-        DisableDomainEvents(DomainEventType.AfterSave);
+        DisableLifecycleActions(LifecycleHookType.BeforeSave);
+        DisableLifecycleActions(LifecycleHookType.AfterSave);
     }
 
     /// <summary>
-    /// Отключает доменные события.
+    /// Отключает действия перехвата жизненного цикла.
     /// </summary>
-    /// <param name="domainEventType">Тип доменного события.</param>
-    /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
-    public void DisableDomainEvents(
-        DomainEventType domainEventType,
+    /// <param name="hookType">Тип перехвата.</param>
+    /// <param name="flags">Флаги действия (если <see langword="null"/>, то берутся все действия типа).</param>
+    public void DisableLifecycleActions(
+        LifecycleHookType hookType,
         Enum? flags = null)
-        => UpdateDomainEvents(domainEventType, flags, x => x.Disable());
+        => UpdateLifecycleActions(hookType, flags, x => x.Disable());
 
     /// <summary>
-    /// Включает доменные события.
+    /// Включает действия перехвата жизненного цикла.
     /// </summary>
-    public void EnableDomainEvents()
+    public void EnableLifecycleActions()
     {
-        EnableDomainEvents(DomainEventType.BeforeSave);
-        EnableDomainEvents(DomainEventType.AfterSave);
+        EnableLifecycleActions(LifecycleHookType.BeforeSave);
+        EnableLifecycleActions(LifecycleHookType.AfterSave);
     }
 
-    /// <param name="domainEventType">Тип доменного события.</param>
-    /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
-    /// <inheritdoc cref="EnableDomainEvents()"/>
-    public void EnableDomainEvents(
-        DomainEventType domainEventType,
+    /// <param name="hookType">Тип перехвата.</param>
+    /// <param name="flags">Флаги действия (если <see langword="null"/>, то берутся все действия типа).</param>
+    /// <inheritdoc cref="EnableLifecycleActions()"/>
+    public void EnableLifecycleActions(
+        LifecycleHookType hookType,
         Enum? flags = null)
-        => UpdateDomainEvents(domainEventType, flags, x => x.Enable());
+        => UpdateLifecycleActions(hookType, flags, x => x.Enable());
 
     /// <summary>
-    /// Создает доменные события.
+    /// Создает действия перехвата.
     /// </summary>
-    private void CreateEvents()
+    private void CreateActions()
     {
-        _domainEventsBeforeSave = new ReadOnlyDictionary<Enum, IDomainEvent>(BeforeSaveEvents.ToDictionary(x => x.Key));
-        _domainEventsAfterSave = new ReadOnlyDictionary<Enum, IDomainEvent>(AfterSaveEvents.ToDictionary(x => x.Key));
+        _lifecycleActionsBeforeSave = new ReadOnlyDictionary<Enum, IEntityLifecycleAction>(BeforeSaveActions.ToDictionary(x => x.Key));
+        _lifecycleActionsAfterSave = new ReadOnlyDictionary<Enum, IEntityLifecycleAction>(AfterSaveActions.ToDictionary(x => x.Key));
     }
 
     /// <summary>
-    /// Обновляет доменные события.
+    /// Обновляет действия перехвата.
     /// </summary>
-    /// <param name="domainEventType">Тип доменного события.</param>
-    /// <param name="flags">Флаги события (если <see langword="null"/>, то берутся все события типа).</param>
-    /// <param name="eventAction">Действие над событием.</param>
-    private void UpdateDomainEvents(
-        DomainEventType domainEventType,
+    /// <param name="hookType">Тип перехвата.</param>
+    /// <param name="flags">Флаги действия (если <see langword="null"/>, то берутся все действия типа).</param>
+    /// <param name="action">Действие над перехватчиком.</param>
+    private void UpdateLifecycleActions(
+        LifecycleHookType hookType,
         Enum? flags,
-        Action<IDomainEvent> eventAction)
+        Action<IEntityLifecycleAction> action)
     {
-        var events = GetCurrentDomainEvents(domainEventType);
+        var actions = GetCurrentLifecycleActions(hookType);
 
-        events.Where(x => flags?.HasFlag(x.Key) ?? true)
-            .ForEach(x => eventAction(x.Value));
+        actions.Where(x => flags?.HasFlag(x.Key) ?? true)
+            .ForEach(x => action(x.Value));
     }
 
     /// <summary>
-    /// Чтение доменных событий по типу.
+    /// Чтение действий перехвата по типу.
     /// </summary>
-    /// <param name="domainEventType"> Тип доменного события. </param>
-    /// <returns> Коллекцию доменных событий выбранного типа. </returns>
-    private ReadOnlyDictionary<Enum, IDomainEvent> GetCurrentDomainEvents(
-        DomainEventType domainEventType)
-        => domainEventType == DomainEventType.AfterSave
-            ? _domainEventsAfterSave
-            : _domainEventsBeforeSave;
+    /// <param name="hookType"> Тип перехвата. </param>
+    /// <returns> Коллекцию действий перехвата выбранного типа. </returns>
+    private ReadOnlyDictionary<Enum, IEntityLifecycleAction> GetCurrentLifecycleActions(
+        LifecycleHookType hookType)
+        => hookType == LifecycleHookType.AfterSave
+            ? _lifecycleActionsAfterSave
+            : _lifecycleActionsBeforeSave;
 }

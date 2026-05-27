@@ -31,7 +31,7 @@ public abstract class EntityConfigurationBase<TEntity>
             .ValueGeneratedNever()
             .HasComment("Идентификатор.");
 
-        ConfigureDomainEvents(builder);
+        ConfigureLifecycleActions(builder);
         ConfigureMeta(builder);
         ConfigureProcess(builder);
     }
@@ -44,11 +44,11 @@ public abstract class EntityConfigurationBase<TEntity>
     {
     }
 
-    private static void ConfigureDomainEvents(EntityTypeBuilder builder)
+    private static void ConfigureLifecycleActions(EntityTypeBuilder builder)
     {
-        if (typeof(IWithDomainEvents).IsAssignableFrom(typeof(TEntity)))
+        if (typeof(IWithLifecycleActions).IsAssignableFrom(typeof(TEntity)))
         {
-            builder.Ignore(nameof(IWithDomainEvents.RequiredToSaveNavigationPropertiesNames));
+            builder.Ignore(nameof(IWithLifecycleActions.RequiredToSaveNavigationPropertiesNames));
         }
     }
 

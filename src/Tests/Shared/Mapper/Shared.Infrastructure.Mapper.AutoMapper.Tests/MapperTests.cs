@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using AutoMapper;
 
 namespace Shared.Infrastructure.Mapper.AutoMapper.Tests;
@@ -71,7 +72,7 @@ public sealed class MapperTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="Mapper.ProjectTo{TDestination}(System.Linq.IQueryable)"/>
+    /// Проверяет, что <see cref="Mapper.ProjectTo{TDestination}(IQueryable,object?, Expression{Func{TDestination, object}}[])"/>
     /// корректно делегирует проекцию <see cref="IQueryable"/> в AutoMapper.
     /// </summary>
     [Fact]
@@ -100,7 +101,7 @@ public sealed class MapperTests
 
     /// <summary>
     /// Проверяет, что конструктор <see cref="Mapper"/> не выбрасывает исключение
-    /// при передаче <c>null</c> вместо <see cref="AutoMapper.IMapper"/>.
+    /// при передаче <c>null</c> вместо <see cref="IMapper"/>.
     /// </summary>
     [Fact]
     public void Constructor_WithNullAutoMapper_DoesNotThrow()
@@ -108,7 +109,9 @@ public sealed class MapperTests
         // Arrange
         var act = () => new Mapper(null!);
 
-        // Act & Assert
+        // Act
+
+        // Assert
         act.Should().NotThrow();
     }
 }

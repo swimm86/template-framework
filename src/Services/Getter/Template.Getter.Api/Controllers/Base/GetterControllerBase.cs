@@ -12,7 +12,7 @@ using ControllerBase = Shared.Presentation.Core.Controllers.ControllerBase;
 namespace Template.Getter.Api.Controllers.Base;
 
 /// <summary>
-/// Базовый класс для Getter Controller-ов
+/// Базовый класс для Getter Controller-ов.
 /// </summary>
 /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
 [AppName(Constants.AppName)]

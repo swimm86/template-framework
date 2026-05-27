@@ -30,9 +30,11 @@ public sealed class BatchHelperTests
     [Fact]
     public async Task ProcessBatchesAsync_WhenBatchEmptyByPredicate_SkipsEmpty_DoesNotInvokeHandler()
     {
+        // Arrange
         var processedBatches = new List<IReadOnlyCollection<int>>();
         var source = Enumerable.Range(1, 3).ToArray();
 
+        // Act
         await BatchHelper.ProcessBatchesAsync(
             getBatchFunc: BuildBatchFunc(source),
             isBatchEmptyFunc: batch => batch.Count == 0,
@@ -45,6 +47,7 @@ public sealed class BatchHelperTests
             batchSize: 2,
             cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         processedBatches.Select(batch => batch.Count)
             .Should().Equal(2, 1);
     }
@@ -62,8 +65,10 @@ public sealed class BatchHelperTests
         int batchSize,
         int[][] expectedChunks)
     {
+        // Arrange
         var processedBatches = new List<int[]>();
 
+        // Act
         await foreach (var batch in BatchHelper.BatchSelectAsync(
                            BuildCollectionBatchFunc(source),
                            batchSize,
@@ -72,6 +77,7 @@ public sealed class BatchHelperTests
             processedBatches.Add(batch.ToArray());
         }
 
+        // Assert
         processedBatches.Should().Equal(expectedChunks, (actual, expected) => actual.SequenceEqual(expected));
     }
 

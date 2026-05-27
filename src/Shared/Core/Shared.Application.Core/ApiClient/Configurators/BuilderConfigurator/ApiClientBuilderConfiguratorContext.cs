@@ -47,7 +47,20 @@ public static class ApiClientBuilderConfiguratorContext
             }
 
             var allConfigurators = AssemblyHelper.GetDerivedTypesFromAssemblies<IApiClientBuilderConfigurator>()
-                .Select(Activator.CreateInstance)
+                .Select(type =>
+                {
+                    try
+                    {
+                        return Activator.CreateInstance(type) as IApiClientBuilderConfigurator;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"Failed to create instance of '{type.FullName}'. " +
+                            $"{nameof(IApiClientBuilderConfigurator)} implementations must have a public parameterless constructor.",
+                            ex);
+                    }
+                })
                 .OfType<IApiClientBuilderConfigurator>()
                 .ToArray();
             if (!allConfigurators.Any())

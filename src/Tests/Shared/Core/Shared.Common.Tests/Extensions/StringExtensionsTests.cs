@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Common.Extensions;
-using Xunit;
 
 namespace Shared.Common.Tests.Extensions;
 

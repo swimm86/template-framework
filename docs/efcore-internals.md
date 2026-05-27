@@ -106,7 +106,7 @@ public abstract class EntityConfigurationBase<TEntity>
         builder.HasKey(idName);
         builder.Property(idName).ValueGeneratedNever().HasComment("Идентификатор.");
 
-        ConfigureDomainEvents(builder);
+        ConfigureLifecycleActions(builder);
         ConfigureMeta(builder);
         ConfigureProcess(builder);
     }
@@ -145,19 +145,19 @@ Guid генерируется **на стороне приложения** (не
 | `IWithDateUpdated` | `updated_at` | ❌ | Время обновления |
 | `IWithDateDeleted` | `deleted_at` | ❌ | Время удаления |
 
-### Domain Events Ignoring
+### Lifecycle Actions Ignoring
 
 ```csharp
-private static void ConfigureDomainEvents(EntityTypeBuilder builder)
+private static void ConfigureLifecycleActions(EntityTypeBuilder builder)
 {
-    if (typeof(IWithDomainEvents).IsAssignableFrom(typeof(TEntity)))
+    if (typeof(IWithLifecycleActions).IsAssignableFrom(typeof(TEntity)))
     {
-        builder.Ignore(nameof(IWithDomainEvents.RequiredToSaveNavigationPropertiesNames));
+        builder.Ignore(nameof(IWithLifecycleActions.RequiredToSaveNavigationPropertiesNames));
     }
 }
 ```
 
-Свойства `IWithDomainEvents` игнорируются EF Core — они не маппятся на колонки.
+Свойства `IWithLifecycleActions` игнорируются EF Core — они не маппятся на колонки.
 
 ### Extension Point: ConfigureProcess
 
@@ -426,7 +426,7 @@ public interface IBeforeSaveChangesService
 - Аудит изменений (audit trail)
 - Обновление audit columns (`created_at`, `updated_by`)
 - Валидация cross-entity constraints
-- Каскадные операции, не покрытые domain events
+- Каскадные операции, не покрытые lifecycle actions
 
 **Регистрация:** внедряется в `EfUnitOfWork` через constructor:
 

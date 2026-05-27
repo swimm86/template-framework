@@ -1,8 +1,7 @@
 using System.Reflection;
 using Shared.Domain.Core.Base;
 using Shared.Domain.Core.Enums;
-using Shared.Domain.Core.Event;
-using Shared.Domain.Core.Event.Interfaces;
+using Shared.Domain.Core.LifecycleAction;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Tests.Infrastructure.TestDoubles;
@@ -19,30 +18,30 @@ public class TestBaseEntity : BaseEntity<Guid>
 
     public static readonly TestEventKey AfterKey = TestEventKey.After;
 
-    private readonly List<IDomainEvent> _beforeEvents = [];
+    private readonly List<IEntityLifecycleAction> _beforeActions = [];
 
-    private readonly List<IDomainEvent> _afterEvents = [];
+    private readonly List<IEntityLifecycleAction> _afterActions = [];
 
     public TestBaseEntity()
     {
-        _beforeEvents.Add(new EntityDomainEvent(
+        _beforeActions.Add(new EntityLifecycleAction(
             TestEventKey.Before,
             (_, _) => { BeforeActionCalled = true; return Task.CompletedTask; }));
-        _afterEvents.Add(new EntityDomainEvent(
+        _afterActions.Add(new EntityLifecycleAction(
             TestEventKey.After,
             (_, _) => { AfterActionCalled = true; return Task.CompletedTask; }));
 
-        RecreateEvents();
+        RecreateActions();
     }
 
-    protected override IDomainEvent[] BeforeSaveEvents => _beforeEvents.ToArray();
+    protected override IEntityLifecycleAction[] BeforeSaveActions => _beforeActions.ToArray();
 
-    protected override IDomainEvent[] AfterSaveEvents => _afterEvents.ToArray();
+    protected override IEntityLifecycleAction[] AfterSaveActions => _afterActions.ToArray();
 
-    private void RecreateEvents()
+    private void RecreateActions()
     {
         var method = typeof(BaseEntity<Guid>).GetMethod(
-            "CreateEvents",
+            "CreateActions",
             BindingFlags.NonPublic | BindingFlags.Instance);
         method?.Invoke(this, null);
     }

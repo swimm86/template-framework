@@ -59,10 +59,12 @@ public sealed class HttpRequestExtensionsTests
         int totalPages,
         int[] expectedPages)
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var processed = new List<int>();
 
+        // Act
         if (useCancellationTokenOverload)
         {
             await ExecuteBatchProcessAsync(
@@ -86,6 +88,7 @@ public sealed class HttpRequestExtensionsTests
                 });
         }
 
+        // Assert
         processed.Should().Equal(expectedPages);
     }
 
@@ -102,10 +105,12 @@ public sealed class HttpRequestExtensionsTests
         int totalPages,
         int[] expectedPages)
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var processed = new List<int>();
 
+        // Act
         await ExecuteBatchSelectPagesAsync(BuildRequestFunc(totalPages), request)
             .ForEachAsync(
                 page =>
@@ -115,6 +120,7 @@ public sealed class HttpRequestExtensionsTests
                 },
                 TestContext.Current.CancellationToken);
 
+        // Assert
         processed.Should().Equal(expectedPages);
     }
 
@@ -124,6 +130,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenTransientOnFirstPage_RetriesUntilSuccess()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var processed = new List<int>();
@@ -141,6 +148,7 @@ public sealed class HttpRequestExtensionsTests
                 return Task.FromResult(new PageableResponse<IReadOnlyCollection<int>>(1, req.PageNumber, payload));
             };
 
+        // Act
         await requestFunc
             .BatchProcessAsync<
                 TestPageableRequest,
@@ -155,6 +163,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: FastRetryPolicy(4),
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         processed.Should().Equal(1);
         attempt.Should().Be(3);
     }
@@ -165,11 +174,13 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenAlwaysTransient_ThrowsAfterLastAttempt()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest {PageSize = batchSize };
         Func<TestPageableRequest, CancellationToken, Task<PageableResponse<IReadOnlyCollection<int>>>> requestFunc =
             (_, _) => throw new HttpRequestException("fail");
 
+        // Act
         var act = () => requestFunc.BatchProcessAsync<
                 TestPageableRequest,
                 PageableResponse<IReadOnlyCollection<int>>,
@@ -188,6 +199,7 @@ public sealed class HttpRequestExtensionsTests
                     }),
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
     }
 
@@ -197,10 +209,12 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WithToken_PropagatesPageAndBatchSizeToRequest()
     {
+        // Arrange
         const int batchSize = 7;
         var request = new TestPageableRequest { PageSize = batchSize };
         var snapshots = new List<(int PageNumber, int PageSize)>();
 
+        // Act
         await BuildRequestFuncWithToken(totalPages: 3)
             .BatchSelectPagesAsync<
                 TestPageableRequest,
@@ -217,6 +231,7 @@ public sealed class HttpRequestExtensionsTests
                 },
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         snapshots.Should().Equal([(1, batchSize), (2, batchSize), (3, batchSize)]);
     }
 
@@ -226,8 +241,11 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenProcessFuncIsNull_CompletesWithoutError()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
+
+        // Act
         await BuildRequestFuncWithToken(totalPages: 2)
             .BatchProcessAsync<
                 TestPageableRequest,
@@ -237,6 +255,8 @@ public sealed class HttpRequestExtensionsTests
                 processFunc: null,
                 pageRetryPolicy: null,
                 cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert - no exception thrown
     }
 
     /// <summary>
@@ -245,8 +265,10 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public void BatchSelectPagesAsync_WithToken_WhenRequestIsNull_ThrowsArgumentNullException()
     {
+        // Arrange
         var requestFunc = BuildRequestFuncWithToken(totalPages: 1);
 
+        // Act
         var act = () => _ = requestFunc.BatchSelectPagesAsync<
                 TestPageableRequest,
                 PageableResponse<IReadOnlyCollection<int>>,
@@ -255,6 +277,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -267,9 +290,11 @@ public sealed class HttpRequestExtensionsTests
     public void BatchSelectPagesAsync_WithToken_WhenBatchSizeNotPositive_ThrowsArgumentOutOfRangeException(
         int batchSize)
     {
+        // Arrange
         var request = new TestPageableRequest { PageSize = batchSize };
         var requestFunc = BuildRequestFuncWithToken(totalPages: 1);
 
+        // Act
         var act = () => _ = requestFunc.BatchSelectPagesAsync<
                 TestPageableRequest,
                 PageableResponse<IReadOnlyCollection<int>>,
@@ -278,6 +303,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
@@ -287,6 +313,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenRetryOptionsInvalid_ThrowsBeforeHttp()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var requestFunc = BuildRequestFuncWithToken(totalPages: 1);
@@ -298,6 +325,7 @@ public sealed class HttpRequestExtensionsTests
             },
         };
 
+        // Act
         var act = () => requestFunc.BatchProcessAsync<
                 TestPageableRequest,
                 PageableResponse<IReadOnlyCollection<int>>,
@@ -307,6 +335,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: new DefaultHttpBatchRetryPolicy(retry),
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
     }
 
@@ -316,6 +345,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WhenSecondPageTransientOnce_ReturnsBothPages()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var page2Attempts = 0;
@@ -336,6 +366,7 @@ public sealed class HttpRequestExtensionsTests
                 return Task.FromResult(new PageableResponse<IReadOnlyCollection<int>>(2, 2, [2]));
             };
 
+        // Act
         var pages = await requestFunc
             .BatchSelectPagesAsync<
                 TestPageableRequest,
@@ -346,6 +377,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         pages.Should().Equal(1, 2);
         page2Attempts.Should().Be(2);
     }
@@ -356,8 +388,11 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenNoCtOverload_AndRequestFuncNull_ThrowsWhenRun()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
+
+        // Act
         var act = () => ((Func<TestPageableRequest, Task<PageableResponse<IReadOnlyCollection<int>>>>)null!)
             .BatchProcessAsync<
                 TestPageableRequest,
@@ -368,6 +403,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<ArgumentNullException>();
     }
 
@@ -377,9 +413,11 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public void BatchSelectPagesAsync_WhenNoCtOverload_AndRequestFuncNull_ThrowsArgumentNull()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
 
+        // Act
         var act = () => _ = ((Func<TestPageableRequest, Task<PageableResponse<IReadOnlyCollection<int>>>>)null!)
                 .BatchSelectPagesAsync<
                     TestPageableRequest,
@@ -389,6 +427,7 @@ public sealed class HttpRequestExtensionsTests
                     pageRetryPolicy: null,
                     cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -398,8 +437,11 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public void BatchSelectPagesAsync_WithToken_WhenRequestFuncNull_ThrowsArgumentNull()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
+
+        // Act
         var act = () => _ = ((Func<TestPageableRequest, CancellationToken, Task<PageableResponse<IReadOnlyCollection<int>>>>)null!)
                 .BatchSelectPagesAsync<
                     TestPageableRequest,
@@ -409,6 +451,7 @@ public sealed class HttpRequestExtensionsTests
                     pageRetryPolicy: null,
                     cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -418,12 +461,14 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WhenServerReportsZeroTotal_YieldsNothing()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         Func<TestPageableRequest, CancellationToken, Task<PageableResponse<IReadOnlyCollection<int>>>> requestFunc =
             (req, _) =>
                 Task.FromResult(new PageableResponse<IReadOnlyCollection<int>>(0, req.PageNumber, []));
 
+        // Act
         var pages = await requestFunc
             .BatchSelectPagesAsync<
                 TestPageableRequest,
@@ -434,6 +479,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         pages.Should().BeEmpty();
     }
 
@@ -443,6 +489,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WhenTotalIsOne_StopsAfterOnePageEvenIfMoreDataExists()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         Func<TestPageableRequest, CancellationToken, Task<PageableResponse<IReadOnlyCollection<int>>>> requestFunc =
@@ -452,6 +499,7 @@ public sealed class HttpRequestExtensionsTests
                 return Task.FromResult(new PageableResponse<IReadOnlyCollection<int>>(1, req.PageNumber, payload));
             };
 
+        // Act
         var pages = await requestFunc
             .BatchSelectPagesAsync<
                 TestPageableRequest,
@@ -462,6 +510,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         pages.Should().Equal(1);
     }
 
@@ -471,12 +520,14 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenProcessFuncThrows_DoesNotRetryHttp()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var httpCalls = 0;
         var requestFunc =
             BuildCountingRequestFuncWithToken(totalPages: 2, onCall: () => Interlocked.Increment(ref httpCalls));
 
+        // Act
         var act = () => requestFunc.BatchProcessAsync<
                 TestPageableRequest,
                 PageableResponse<IReadOnlyCollection<int>>,
@@ -489,6 +540,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
         httpCalls.Should().Be(2);
     }
@@ -499,6 +551,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenMaxAttemptsIsOne_TransientFailsOnFirstCall()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var calls = 0;
@@ -509,6 +562,7 @@ public sealed class HttpRequestExtensionsTests
                 throw new HttpRequestException("transient");
             };
 
+        // Act
         var act = () => requestFunc.BatchProcessAsync<
                 TestPageableRequest,
                 PageableResponse<IReadOnlyCollection<int>>,
@@ -525,6 +579,7 @@ public sealed class HttpRequestExtensionsTests
                     }),
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
         calls.Should().Be(1);
     }
@@ -535,6 +590,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenLastPageTransientOnce_CompletesBothPages()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var page2Calls = 0;
@@ -556,6 +612,8 @@ public sealed class HttpRequestExtensionsTests
             };
 
         var pages = new List<int>();
+
+        // Act
         await requestFunc
             .BatchProcessAsync<
                 TestPageableRequest,
@@ -570,6 +628,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: FastRetryPolicy(maxAttempts: 3),
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         pages.Should().Equal(1, 2);
         page2Calls.Should().Be(2);
     }
@@ -580,10 +639,12 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_ResponsePageNumberEqualsRequestPageNumberDuringCall()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var pairs = new List<(int Req, int Resp)>();
 
+        // Act
         await BuildRequestFuncWithToken(totalPages: 2)
             .BatchProcessAsync<
                 TestPageableRequest,
@@ -598,6 +659,7 @@ public sealed class HttpRequestExtensionsTests
                 pageRetryPolicy: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
+        // Assert
         pairs.Should().Equal([(1, 1), (2, 2)]);
     }
 
@@ -607,12 +669,14 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchProcessAsync_WhenCanceledAfterFirstPage_StopsWithOperationCanceled()
     {
+        // Arrange
         const int batchSize = 10;
         using var cts = new CancellationTokenSource();
         var request = new TestPageableRequest { PageSize = batchSize };
         var requestFunc = BuildRequestFuncWithToken(totalPages: 5);
         var processed = 0;
 
+        // Act
         var act = () => requestFunc
                 .BatchProcessAsync<TestPageableRequest, PageableResponse<IReadOnlyCollection<int>>,
                     IReadOnlyCollection<int>>(
@@ -629,6 +693,7 @@ public sealed class HttpRequestExtensionsTests
                     pageRetryPolicy: null,
                     cancellationToken: cts.Token);
 
+        // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
         processed.Should().Be(1);
     }
@@ -639,12 +704,14 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WhenHealthy_HttpCallCountEqualsTotalPages()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var httpCalls = 0;
         var requestFunc =
             BuildCountingRequestFuncWithToken(totalPages: 3, onCall: () => Interlocked.Increment(ref httpCalls));
 
+        // Act
         var pages = await requestFunc
             .BatchSelectPagesAsync<TestPageableRequest, PageableResponse<IReadOnlyCollection<int>>,
                 IReadOnlyCollection<int>>(
@@ -653,6 +720,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         pages.Should().Equal(1, 2, 3);
         httpCalls.Should().Be(3);
     }
@@ -663,6 +731,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WhenTotalPagesLarge_ContinuesUntilTotalPagesDespiteEmptyPayloadOnLaterPages()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var httpCalls = 0;
@@ -679,6 +748,7 @@ public sealed class HttpRequestExtensionsTests
                 return Task.FromResult(new PageableResponse<IReadOnlyCollection<int>>(50, req.PageNumber, []));
             };
 
+        // Act
         var pages = await requestFunc
             .BatchSelectPagesAsync<TestPageableRequest, PageableResponse<IReadOnlyCollection<int>>,
                 IReadOnlyCollection<int>>(
@@ -687,6 +757,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         pages.Should().Equal(Enumerable.Range(1, 50));
         httpCalls.Should().Be(50);
     }
@@ -697,6 +768,7 @@ public sealed class HttpRequestExtensionsTests
     [Fact]
     public async Task BatchSelectPagesAsync_WhenStopWhenPayloadEmptyFalse_ContinuesByTotalPagesDespiteEmptyPayload()
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest { PageSize = batchSize };
         var httpCalls = 0;
@@ -715,6 +787,7 @@ public sealed class HttpRequestExtensionsTests
                     new PageableResponse<IReadOnlyCollection<int>>(2, req.PageNumber, [req.PageNumber]));
             };
 
+        // Act
         var pages = await requestFunc
             .BatchSelectPagesAsync<TestPageableRequest, PageableResponse<IReadOnlyCollection<int>>,
                 IReadOnlyCollection<int>>(
@@ -723,6 +796,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         pages.Should().Equal(1, 2);
         httpCalls.Should().Be(2);
     }
@@ -734,6 +808,7 @@ public sealed class HttpRequestExtensionsTests
     [MemberData(nameof(BatchSelectPagesAsyncRequestPageNumberValidationCases))]
     public async Task BatchSelectPagesAsync_RequestPageNumberValidation(int pageNumber)
     {
+        // Arrange
         const int batchSize = 10;
         var request = new TestPageableRequest
         {
@@ -741,6 +816,8 @@ public sealed class HttpRequestExtensionsTests
             PageSize = batchSize,
         };
         var requestFunc = BuildRequestFunc(10);
+
+        // Act
         var act = () => requestFunc
             .BatchSelectPagesAsync<TestPageableRequest, PageableResponse<IReadOnlyCollection<int>>,
                 IReadOnlyCollection<int>>(
@@ -749,6 +826,7 @@ public sealed class HttpRequestExtensionsTests
                 cancellationToken: TestContext.Current.CancellationToken)
             .ToPageNumberListAsync();
 
+        // Assert
         if (pageNumber < 1)
         {
             await act.Should().ThrowAsync<ArgumentOutOfRangeException>();

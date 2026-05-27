@@ -24,7 +24,9 @@ public sealed class DbUtilsTests
             // Arrange
             var act = () => DbUtils.Upgrade(connectionString: connectionString);
 
-            // Act & Assert
+            // Act
+
+            // Assert
             act.Should().Throw<ArgumentException>()
                 .WithMessage("*строк*");
         });
@@ -42,7 +44,9 @@ public sealed class DbUtilsTests
             // Arrange
             var act = () => DbUtils.Upgrade(connectionStringKey: "NonexistentConnectionStringKeyForUnitTests_9f3a2c1e");
 
-            // Act & Assert
+            // Act
+
+            // Assert
             act.Should().Throw<ArgumentException>()
                 .WithMessage("*строк*");
         });
@@ -61,7 +65,9 @@ public sealed class DbUtilsTests
             Environment.SetEnvironmentVariable("ScriptPaths", null);
             var act = () => DbUtils.Upgrade([]);
 
-            // Act & Assert
+            // Act
+
+            // Assert
             act.Should().Throw<ArgumentException>()
                 .WithMessage("*скрипт*");
         }

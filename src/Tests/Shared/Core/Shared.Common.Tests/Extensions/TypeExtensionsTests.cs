@@ -121,6 +121,20 @@ public sealed class TypeExtensionsTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Проверяет, что <see cref="Shared.Common.Extensions.TypeExtensions.ImplementsIEnumerable"/>
+    /// для Nullable-типа не вызывает StackOverflow (регрессия).
+    /// </summary>
+    [Fact]
+    public void ImplementsIEnumerable_NullableType_DoesNotStackOverflow()
+    {
+        // Act
+        var result = typeof(int?).ImplementsIEnumerable();
+
+        // Assert — Nullable<T> не является коллекцией
+        result.Should().BeFalse();
+    }
+
     #endregion
 
     #region GetPropertyIgnoreCase Tests
@@ -136,7 +150,7 @@ public sealed class TypeExtensionsTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.Name.Should().Be("Name");
+        result.Name.Should().Be("Name");
     }
 
     /// <summary>
@@ -150,7 +164,7 @@ public sealed class TypeExtensionsTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.Name.Should().Be("Name");
+        result.Name.Should().Be("Name");
     }
 
     /// <summary>
@@ -164,7 +178,7 @@ public sealed class TypeExtensionsTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.Name.Should().Be("Name");
+        result.Name.Should().Be("Name");
     }
 
     /// <summary>
@@ -191,7 +205,7 @@ public sealed class TypeExtensionsTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.Name.Should().Be("Name");
+        result.Name.Should().Be("Name");
     }
 
     #endregion

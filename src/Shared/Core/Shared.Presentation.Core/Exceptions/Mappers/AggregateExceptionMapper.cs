@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Application.Core.Dto.Responses;
 using Shared.Presentation.Core.Exceptions.Interfaces;
 using Shared.Presentation.Core.Exceptions.Mappers.Base;
 
@@ -23,7 +24,7 @@ namespace Shared.Presentation.Core.Exceptions.Mappers;
 /// для раскрытия вложенных <see cref="AggregateException"/>, предотвращая рекурсию.
 /// </para>
 /// <para>
-/// Результирующий <see cref="Application.Core.Dto.Responses.ErrorResponse.StatusCode"/> всегда 500,
+/// Результирующий <see cref="ResponseBase.StatusCode"/> всегда 500,
 /// поскольку агрегированная ошибка не может быть представлена одним HTTP-статусом.
 /// Каждый <see cref="ProblemDetails"/> содержит собственный статус внутреннего исключения.
 /// </para>

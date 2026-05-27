@@ -100,8 +100,10 @@ public sealed class DbUpdaterBaseTests
         using var dbContext = CreateDbContext();
         var updater = new TestDbUpdater(dbContext);
 
-        // Act & Assert
+        // Act
         var act = () => updater.Initialize();
+
+        // Assert
         act.Should().NotThrow();
     }
 

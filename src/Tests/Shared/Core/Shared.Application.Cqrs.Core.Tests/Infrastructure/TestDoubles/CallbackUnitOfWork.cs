@@ -30,9 +30,9 @@ public sealed class CallbackUnitOfWork : IUnitOfWork
         return (IRepository<TEntity>)repo;
     }
 
-    public int SaveChanges(bool commitTransaction = true, bool resetEventSettingsAfterSave = true) => 0;
+    public int SaveChanges(bool commitTransaction = true, bool resetLifecycleActionSettingsAfterSave = true) => 0;
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default, bool commitTransaction = true, bool resetEventSettingsAfterSave = true)
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default, bool commitTransaction = true, bool resetLifecycleActionSettingsAfterSave = true)
         => Task.FromResult(0);
 
     public Task CommitTransactionAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -45,23 +45,23 @@ public sealed class CallbackUnitOfWork : IUnitOfWork
 
     public IUnitOfWork DisableTransaction() => this;
 
-    public IUnitOfWork DisableEvents() => this;
+    public IUnitOfWork DisableLifecycleActions() => this;
 
-    public IUnitOfWork EnableEvents() => this;
+    public IUnitOfWork EnableLifecycleActions() => this;
 
-    public IUnitOfWork DisableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents => this;
+    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
+        where TEntity : IEntity, IWithLifecycleActions => this;
 
-    public IUnitOfWork EnableEvents<TEntity>(DomainEventType? eventType = default)
-        where TEntity : IEntity, IWithDomainEvents => this;
+    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
+        where TEntity : IEntity, IWithLifecycleActions => this;
 
-    public IUnitOfWork DisableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents => this;
+    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum hookKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions => this;
 
-    public IUnitOfWork EnableEvents<TEntity>(DomainEventType eventType, Enum eventKeyFlags)
-        where TEntity : IEntity, IWithDomainEvents => this;
+    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum hookKeyFlags)
+        where TEntity : IEntity, IWithLifecycleActions => this;
 
-    public IUnitOfWork ResetEventSettings() => this;
+    public IUnitOfWork ResetLifecycleActionSettings() => this;
 
     public void ClearTracking()
     {

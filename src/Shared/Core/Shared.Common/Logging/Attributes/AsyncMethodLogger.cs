@@ -38,7 +38,9 @@ internal static class AsyncMethodLogger
         var returnType = returnValue.GetType();
 
         if (returnType == typeof(Task))
+        {
             return WrapAsync(returnValue, onCompleted, onFailed);
+        }
 
         if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
         {

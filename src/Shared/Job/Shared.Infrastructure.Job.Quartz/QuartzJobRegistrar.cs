@@ -76,7 +76,7 @@ public static class QuartzJobRegistrar
     }
 
     /// <summary>
-    /// Регистрирует задачу типа <see cref="TJob"/> с использованием CRON-выражения.
+    /// Регистрирует задачу типа <typeparamref name="TJob"/> с использованием CRON-выражения.
     /// </summary>
     /// <typeparam name="TJob">Тип задачи.</typeparam>
     /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>
@@ -142,7 +142,7 @@ public static class QuartzJobRegistrar
     }
 
     /// <summary>
-    /// Регистрирует задачу типа <see cref="TJob"/> с использованием флагов триггеров.
+    /// Регистрирует задачу типа <typeparamref name="TJob"/> с использованием флагов триггеров.
     /// </summary>
     /// <typeparam name="TJob">Тип задачи.</typeparam>
     /// <param name="serviceCollection">Экземпляр <see cref="IServiceCollection"/> для работы с ним.</param>

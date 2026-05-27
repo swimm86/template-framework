@@ -51,7 +51,7 @@ public sealed class CloneCommandHandlerTests
     public async Task Handle_EntityFound_ClonesViaMapperAndAdds()
     {
         // Arrange
-        var (handler, mapper, uow, _, repo) = CreateSut();
+        var (handler, _, uow, _, repo) = CreateSut();
         var entityId = Guid.NewGuid();
         repo.AddDirect(new TestEntity { Id = entityId, Name = "source" });
 
@@ -61,8 +61,9 @@ public sealed class CloneCommandHandlerTests
         var result = await handler.Handle(command, TestContext.Current.CancellationToken);
 
         // Assert
-        mapper.MapCallCount.Should().Be(2);
-        repo.AddCallCount.Should().Be(1);
+        repo.Items.Should().HaveCount(2);
+        repo.Items.Should().Contain(e => e.Name == "source");
+        repo.Items.Should().Contain(e => e.Name == "Clone of source");
         uow.SaveChangesAsyncCallCount.Should().Be(1);
         result.StatusCode.Should().Be(201);
     }

@@ -66,9 +66,9 @@ public class QueryOptions<TEntity>(
     public bool Distinct { get; set; } = distinct;
 
     /// <summary>
-    /// Условие для исключения дублей.
+    /// Выражение для исключения дублей.
     /// </summary>
-    public Expression<Func<TEntity, bool>>? DistinctBy { get; set; }
+    public Expression<Func<TEntity, object>>? DistinctBy { get; set; }
 
     /// <summary>
     /// Include для плоских свойств.
@@ -138,7 +138,7 @@ public class QueryOptions<TEntity>(
     public QueryOptions<TEntity> AddOrderBy(
         Expression<Func<TEntity, object>> expression,
         OrderDirectionType orderDirectionType,
-        int? index = default)
+        int? index = null)
     {
         if (OrderBy.Any(e => e.Expression.Equals(expression)))
         {
@@ -172,7 +172,9 @@ public class QueryOptions<TEntity>(
         }
 
         if (!ApplySorting(propToSort, sortOption.DirectionType))
+        {
             ApplySorting(propToSort, sortOption.DirectionType);
+        }
     }
 
     /// <summary>
@@ -187,7 +189,7 @@ public class QueryOptions<TEntity>(
         bool condition,
         Expression<Func<TEntity, object>> expression,
         OrderDirectionType orderDirectionType,
-        int? index = default)
+        int? index = null)
     {
         if (condition)
         {

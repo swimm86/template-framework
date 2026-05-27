@@ -12,4 +12,5 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Requests;
 /// <typeparam name="TRequest">Тип DTO с данными для создания.</typeparam>
 /// <typeparam name="TResponse">Тип ответа обработчика.</typeparam>
 /// <param name="Request">DTO с данными для создания.</param>
-public abstract record CreateCommand<TRequest, TResponse>(TRequest Request) : ICommand<TResponse>;
+public abstract record CreateCommand<TRequest, TResponse>(TRequest Request)
+    : ICommand<TResponse>;

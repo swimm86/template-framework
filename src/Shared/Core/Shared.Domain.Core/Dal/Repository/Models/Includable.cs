@@ -12,9 +12,9 @@ namespace Shared.Domain.Core.Dal.Repository.Models;
 /// <summary>
 /// Реализация кастомного Include.
 /// </summary>
-/// <typeparam name="TSrcEntity">Сущность, для которой осуществляется Include</typeparam>
-/// <typeparam name="TDstEntity">Сущность, в которую проецирует Include</typeparam>
-/// <param name="expression">Выражение</param>
+/// <typeparam name="TSrcEntity">Сущность, для которой осуществляется Include.</typeparam>
+/// <typeparam name="TDstEntity">Сущность, в которую проецирует Include.</typeparam>
+/// <param name="expression">Выражение.</param>
 public class Includable<TSrcEntity, TDstEntity>(
     LambdaExpression expression)
     : IIncludable<TSrcEntity>

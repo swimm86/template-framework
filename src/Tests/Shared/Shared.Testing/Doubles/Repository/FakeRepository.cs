@@ -9,7 +9,8 @@ using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Testing.Doubles.Repository;
 
-public sealed class FakeRepository<TEntity> : IRepository<TEntity>
+public sealed class FakeRepository<TEntity>
+    : IRepository<TEntity>
     where TEntity : class, IEntity
 {
     private readonly ConcurrentDictionary<object, TEntity> _storage = new();
@@ -21,10 +22,7 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
     public Exception? ExceptionToThrowOnRemove { get; set; }
     public Exception? ExceptionToThrowOnSaveChanges { get; set; }
 
-    public int GetCallCount { get; private set; }
-    public int AddCallCount { get; private set; }
     public int RemoveCallCount { get; private set; }
-    public int SaveChangesCallCount { get; private set; }
 
     public IReadOnlyCollection<TEntity> Items => _storage.Values.ToList().AsReadOnly();
 
@@ -33,10 +31,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         var key = KeySelector?.Invoke(entity) ?? entity.Id;
         _storage[key] = entity;
     }
-
-    public void RemoveDirect(object key) => _storage.TryRemove(key, out _);
-
-    public void ClearStorage() => _storage.Clear();
 
     private object GetKey(TEntity entity) => KeySelector?.Invoke(entity) ?? entity.Id;
 
@@ -54,7 +48,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         if (id is null)
         {
             return Task.FromResult<TEntity?>(null);
@@ -81,7 +74,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         if (id is null)
             return Task.FromResult<TOut?>(default);
         if (!_storage.TryGetValue(id, out var entity) || !MatchesOptions(entity, options))
@@ -111,7 +103,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         if (skip.HasValue) query = query.Skip(skip.Value);
         if (take.HasValue) query = query.Take(take.Value);
@@ -133,7 +124,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         if (skip.HasValue) query = query.Skip(skip.Value);
         if (take.HasValue) query = query.Take(take.Value);
@@ -154,7 +144,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).FirstOrDefault());
     }
 
@@ -169,7 +158,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         var entity = query.FirstOrDefault();
         if (entity is null)
@@ -196,7 +184,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).SingleOrDefault());
     }
 
@@ -211,7 +198,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         var entity = query.SingleOrDefault();
         if (entity is null)
@@ -232,7 +218,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).LastOrDefault());
     }
 
@@ -247,7 +232,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         var entity = query.LastOrDefault();
         if (entity is null)
@@ -278,7 +262,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Count());
     }
 
@@ -292,7 +275,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Any());
     }
 
@@ -307,7 +289,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        GetCallCount++;
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Sum(selector.Compile()));
     }
 
@@ -328,7 +309,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnAdd);
-        AddCallCount++;
         var key = GetKey(entity);
         _storage[key] = entity;
         return Task.FromResult(entity);
@@ -341,7 +321,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnAdd);
-        AddCallCount++;
         foreach (var entity in entities)
         {
             _storage[GetKey(entity)] = entity;
@@ -358,7 +337,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         params (LambdaExpression propertyExpression,
             LambdaExpression valueExpression)[] updateData)
     {
-        AddCallCount++;
         var query = _storage.Values.AsQueryable();
         if (condition is not null)
             query = query.Where(condition);
@@ -381,7 +359,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         QueryOptions<TEntity> options,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
     {
-        AddCallCount++;
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         var entities = query.ToList();
         foreach (var entity in entities)
@@ -489,7 +466,6 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
 
     public TResult Execute<TResult>(Func<TResult> process, bool useTransaction = false)
     {
-        SaveChangesCallCount++;
         return process();
     }
 
@@ -507,26 +483,22 @@ public sealed class FakeRepository<TEntity> : IRepository<TEntity>
         bool useTransaction = false,
         CancellationToken cancellationToken = default)
     {
-        SaveChangesCallCount++;
         return process();
     }
 
     public IQueryable<TEntity> Set(QueryOptions<TEntity>? options = null)
     {
-        GetCallCount++;
         return ApplyOptions(_storage.Values.AsQueryable(), options);
     }
 
     public void SaveChanges()
     {
         ThrowIfConfigured(ExceptionToThrowOnSaveChanges);
-        SaveChangesCallCount++;
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnSaveChanges);
-        SaveChangesCallCount++;
         return Task.CompletedTask;
     }
 

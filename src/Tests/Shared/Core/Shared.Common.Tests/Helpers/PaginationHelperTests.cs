@@ -27,6 +27,17 @@ public sealed class PaginationHelperTests
         { 99, 10, 10 },
         { 101, 10, 11 },
 
+        // Разные pageSize с totalCount=250
+        { 250, 10, 25 },
+        { 250, 20, 13 },
+        { 250, 30, 9 },
+        { 250, 50, 5 },
+        { 250, 100, 3 },
+
+        // Округление вверх (дополнительно)
+        { 10, 6, 2 },
+        { 100, 9, 12 },
+
         // Граничные случаи
         { 1, 10, 1 },
         { 10, 10, 1 },
@@ -62,35 +73,6 @@ public sealed class PaginationHelperTests
 
         // Assert
         result.Should().Be(expectedPages);
-    }
-
-    /// <summary>
-    /// Проверяет расчёт страниц с различными размерами страниц.
-    /// </summary>
-    [Fact]
-    public void GetTotalPages_DifferentPageSizes_CalculatesCorrectly()
-    {
-        // Arrange
-        const int totalCount = 250;
-
-        // Act & Assert
-        PaginationHelper.GetTotalPages(totalCount, 10).Should().Be(25);
-        PaginationHelper.GetTotalPages(totalCount, 20).Should().Be(13);
-        PaginationHelper.GetTotalPages(totalCount, 30).Should().Be(9);
-        PaginationHelper.GetTotalPages(totalCount, 50).Should().Be(5);
-        PaginationHelper.GetTotalPages(totalCount, 100).Should().Be(3);
-    }
-
-    /// <summary>
-    /// Проверяет, что деление с остатком округляется вверх.
-    /// </summary>
-    [Fact]
-    public void GetTotalPages_DivisionWithRemainder_RoundsUp()
-    {
-        // Arrange & Act & Assert
-        PaginationHelper.GetTotalPages(100, 33).Should().Be(4); // 100/33 = 3.03 -> 4
-        PaginationHelper.GetTotalPages(10, 6).Should().Be(2);   // 10/6 = 1.67 -> 2
-        PaginationHelper.GetTotalPages(100, 9).Should().Be(12); // 100/9 = 11.11 -> 12
     }
 
     /// <summary>
@@ -146,6 +128,14 @@ public sealed class PaginationHelperTests
         { 5, 20, 80, 20 },
         { 10, 50, 450, 50 },
 
+        // Дополнительные проверки skip: (pageNumber-1)*pageSize
+        { 5, 10, 40, 10 },
+        { 100, 50, 4950, 50 },
+
+        // Дополнительные проверки take == pageSize
+        { 5, 25, 100, 25 },
+        { 10, 100, 900, 100 },
+
         // Граничные случаи
         { 1, 1, 0, 1 },
         { 1, 100, 0, 100 },
@@ -177,43 +167,6 @@ public sealed class PaginationHelperTests
         // Assert
         skip.Should().Be(expectedSkip);
         take.Should().Be(expectedTake);
-    }
-
-    /// <summary>
-    /// Проверяет формулу расчёта skip: (pageNumber - 1) * pageSize.
-    /// </summary>
-    [Fact]
-    public void CalculatePagination_SkipFormula_IsCorrect()
-    {
-        // Arrange & Act & Assert
-        // Страница 1: skip = (1-1) * 10 = 0
-        var (skip1, _) = PaginationHelper.CalculatePagination(1, 10);
-        skip1.Should().Be(0);
-
-        // Страница 5: skip = (5-1) * 10 = 40
-        var (skip5, _) = PaginationHelper.CalculatePagination(5, 10);
-        skip5.Should().Be(40);
-
-        // Страница 100: skip = (100-1) * 50 = 4950
-        var (skip100, _) = PaginationHelper.CalculatePagination(100, 50);
-        skip100.Should().Be(4950);
-    }
-
-    /// <summary>
-    /// Проверяет, что take всегда равен pageSize.
-    /// </summary>
-    [Fact]
-    public void CalculatePagination_Take_EqualsPageSize()
-    {
-        // Arrange & Act & Assert
-        var (_, take1) = PaginationHelper.CalculatePagination(1, 10);
-        take1.Should().Be(10);
-
-        var (_, take2) = PaginationHelper.CalculatePagination(5, 25);
-        take2.Should().Be(25);
-
-        var (_, take3) = PaginationHelper.CalculatePagination(10, 100);
-        take3.Should().Be(100);
     }
 
     /// <summary>

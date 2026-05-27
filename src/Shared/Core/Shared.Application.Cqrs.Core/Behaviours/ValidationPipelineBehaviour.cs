@@ -21,7 +21,8 @@ namespace Shared.Application.Cqrs.Core.Behaviours;
 /// <param name="validators">Коллекция валидаторов для типа запроса.</param>
 internal sealed class ValidationPipelineBehaviour<TRequest, TResponse>(
     ILogger<ValidationPipelineBehaviour<TRequest, TResponse>> logger,
-    IEnumerable<IValidator<TRequest>> validators) : IPipelineBehavior<TRequest, TResponse>
+    IEnumerable<IValidator<TRequest>> validators)
+    : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     /// <inheritdoc />

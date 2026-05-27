@@ -77,9 +77,10 @@ public class EntityWithMetadataTests
         var entity = new TestEntityWithMetadata();
         entity.SetCreatedByUserId(Guid.NewGuid());
 
-        // Act & Assert
+        // Act
         var act = () => entity.SetCreatedByUserId(Guid.NewGuid());
 
+        // Assert
         act.Should().Throw<BusinessLogicException>();
     }
 
@@ -93,9 +94,10 @@ public class EntityWithMetadataTests
         var entity = new TestEntityWithMetadata();
         entity.SetCreatedByUserName("User1");
 
-        // Act & Assert
+        // Act
         var act = () => entity.SetCreatedByUserName("User2");
 
+        // Assert
         act.Should().Throw<BusinessLogicException>();
     }
 }

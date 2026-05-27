@@ -11,7 +11,8 @@ namespace Shared.Domain.Core.Attributes;
 /// </summary>
 /// <param name="name">Название сущности.</param>
 [AttributeUsage(AttributeTargets.Class)]
-public class EntityNameAttribute(string name) : Attribute
+public class EntityNameAttribute(string name)
+    : Attribute
 {
     /// <summary>
     /// Название сущности.

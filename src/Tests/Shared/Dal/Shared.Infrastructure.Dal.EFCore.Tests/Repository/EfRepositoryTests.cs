@@ -52,14 +52,14 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await repo.GetAsync(entity.Id);
+        var result = await repo.GetAsync(entity.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
-        result!.Id.Should().Be(entity.Id);
+        result.Id.Should().Be(entity.Id);
     }
 
     /// <summary>Проверяет что GetAsync возвращает null при отсутствии сущности.</summary>
@@ -71,7 +71,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.GetAsync(Guid.NewGuid());
+        var result = await repo.GetAsync(Guid.NewGuid(), cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -86,7 +86,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.GetAsync(null);
+        var result = await repo.GetAsync(null, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -101,12 +101,12 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity(name: "projected");
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, string>> selector = e => e.Name;
 
         // Act
-        var result = await repo.GetAsync(entity.Id, selector: selector);
+        var result = await repo.GetAsync(entity.Id, selector: selector, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be("projected");
@@ -127,10 +127,10 @@ public sealed class EfRepositoryTests
         {
             context.Entities.Add(CreateEntity(name: $"entity-{i}"));
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await repo.GetRangeAsync();
+        var result = await repo.GetRangeAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().HaveCount(5);
@@ -147,10 +147,10 @@ public sealed class EfRepositoryTests
         {
             context.Entities.Add(CreateEntity(name: $"entity-{i}"));
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await repo.GetRangeAsync(skip: 2, take: 3);
+        var result = await repo.GetRangeAsync(skip: 2, take: 3, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().HaveCount(3);
@@ -165,12 +165,12 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "projected1"));
         context.Entities.Add(CreateEntity(name: "projected2"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, string>> selector = e => e.Name;
 
         // Act
-        var result = await repo.GetRangeAsync(selector: selector);
+        var result = await repo.GetRangeAsync(selector: selector, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeEquivalentTo(["projected1", "projected2"]);
@@ -185,13 +185,13 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "alpha"));
         context.Entities.Add(CreateEntity(name: "beta"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>();
         options.AddFilter(e => e.Name == "alpha");
 
         // Act
-        var result = await repo.GetRangeAsync(options);
+        var result = await repo.GetRangeAsync(options, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().HaveCount(1);
@@ -207,7 +207,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.GetRangeAsync();
+        var result = await repo.GetRangeAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeEmpty();
@@ -226,10 +226,10 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "first"));
         context.Entities.Add(CreateEntity(name: "second"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await repo.FirstOrDefaultAsync();
+        var result = await repo.FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -244,7 +244,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.FirstOrDefaultAsync();
+        var result = await repo.FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -258,12 +258,12 @@ public sealed class EfRepositoryTests
         await using var context = CreateContext();
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "projected"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, string>> selector = e => e.Name;
 
         // Act
-        var result = await repo.FirstOrDefaultAsync(selector: selector);
+        var result = await repo.FirstOrDefaultAsync(selector: selector, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be("projected");
@@ -282,13 +282,13 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>();
         options.AddFilter(e => e.Id == entity.Id);
 
         // Act
-        var result = await repo.SingleOrDefaultAsync(options);
+        var result = await repo.SingleOrDefaultAsync(options, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -307,7 +307,7 @@ public sealed class EfRepositoryTests
         options.AddFilter(e => e.Id == Guid.NewGuid());
 
         // Act
-        var result = await repo.SingleOrDefaultAsync(options);
+        var result = await repo.SingleOrDefaultAsync(options, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeNull();
@@ -321,12 +321,12 @@ public sealed class EfRepositoryTests
         await using var context = CreateContext();
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "single"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, string>> selector = e => e.Name;
 
         // Act
-        var result = await repo.SingleOrDefaultAsync(selector: selector);
+        var result = await repo.SingleOrDefaultAsync(selector: selector, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be("single");
@@ -345,10 +345,10 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "first"));
         context.Entities.Add(CreateEntity(name: "last"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await repo.LastOrDefaultAsync();
+        var result = await repo.LastOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();
@@ -363,12 +363,12 @@ public sealed class EfRepositoryTests
         await using var context = CreateContext();
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "last-projected"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, string>> selector = e => e.Name;
 
         // Act
-        var result = await repo.LastOrDefaultAsync(selector: selector);
+        var result = await repo.LastOrDefaultAsync(selector: selector, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be("last-projected");
@@ -389,10 +389,10 @@ public sealed class EfRepositoryTests
         {
             context.Entities.Add(CreateEntity());
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var count = await repo.CountAsync();
+        var count = await repo.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         count.Should().Be(5);
@@ -408,13 +408,13 @@ public sealed class EfRepositoryTests
         context.Entities.Add(CreateEntity(name: "match"));
         context.Entities.Add(CreateEntity(name: "match"));
         context.Entities.Add(CreateEntity(name: "other"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>();
         options.AddFilter(e => e.Name == "match");
 
         // Act
-        var count = await repo.CountAsync(options);
+        var count = await repo.CountAsync(options, TestContext.Current.CancellationToken);
 
         // Assert
         count.Should().Be(2);
@@ -429,7 +429,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var count = await repo.CountAsync();
+        var count = await repo.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         count.Should().Be(0);
@@ -447,10 +447,10 @@ public sealed class EfRepositoryTests
         await using var context = CreateContext();
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity());
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await repo.AnyAsync();
+        var result = await repo.AnyAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeTrue();
@@ -465,7 +465,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.AnyAsync();
+        var result = await repo.AnyAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeFalse();
@@ -479,13 +479,15 @@ public sealed class EfRepositoryTests
         await using var context = CreateContext();
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "exists"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>();
         options.AddFilter(e => e.Name == "exists");
 
         // Act
-        var result = await repo.AnyAsync(options);
+        var result = await repo.AnyAsync(
+            options,
+            TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeTrue();
@@ -504,12 +506,14 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "a"));
         context.Entities.Add(CreateEntity(name: "bb"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, decimal>> selector = e => e.Name.Length;
 
         // Act
-        var sum = await repo.SumAsync(selector);
+        var sum = await repo.SumAsync(
+            selector,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         sum.Should().Be(3);
@@ -529,7 +533,11 @@ public sealed class EfRepositoryTests
         var entity = CreateEntity();
 
         // Act
-        await repo.AddAsync(entity, userId: null, userName: null);
+        await repo.AddAsync(
+            entity,
+            userId: null,
+            userName: null,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         context.Entry(entity).State.Should().Be(EntityState.Added);
@@ -547,7 +555,11 @@ public sealed class EfRepositoryTests
         var userName = "testuser";
 
         // Act
-        await repo.AddAsync(entity, userId, userName);
+        await repo.AddAsync(
+            entity,
+            userId,
+            userName,
+            TestContext.Current.CancellationToken);
 
         // Assert
         entity.CreatedByUserId.Should().Be(userId);
@@ -565,7 +577,11 @@ public sealed class EfRepositoryTests
         var entity = CreateEntity();
 
         // Act
-        var result = await repo.AddAsync(entity, userId: null, userName: null);
+        var result = await repo.AddAsync(
+            entity,
+            userId: null,
+            userName: null,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeSameAs(entity);
@@ -585,10 +601,14 @@ public sealed class EfRepositoryTests
         var entities = new[] { CreateEntity(), CreateEntity(), CreateEntity() };
 
         // Act
-        await repo.AddRangeAsync(entities, userId: null, userName: null);
+        await repo.AddRangeAsync(
+            entities,
+            userId: null,
+            userName: null,
+            cancellationToken: TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act & Assert
-        await context.SaveChangesAsync();
+        // Assert
         context.Entities.Should().HaveCount(3);
     }
 
@@ -603,7 +623,11 @@ public sealed class EfRepositoryTests
         var entities = new[] { CreateEntity(), CreateEntity() };
 
         // Act
-        await repo.AddRangeAsync(entities, userId, userName: "user");
+        await repo.AddRangeAsync(
+            entities,
+            userId,
+            userName: "user",
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         entities.Should().AllSatisfy(e =>
@@ -626,10 +650,13 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await repo.RemoveAsync(entity, hard: false);
+        await repo.RemoveAsync(
+            entity,
+            hard: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         entity.IsDeleted.Should().BeTrue();
@@ -646,10 +673,13 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await repo.RemoveAsync(entity, hard: true);
+        await repo.RemoveAsync(
+            entity,
+            hard: true,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         context.Entry(entity).State.Should().Be(EntityState.Deleted);
@@ -664,11 +694,15 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var userId = Guid.NewGuid();
 
         // Act
-        await repo.RemoveAsync(entity, userId, hard: false);
+        await repo.RemoveAsync(
+            entity,
+            userId,
+            hard: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         entity.DeletedByUserId.Should().Be(userId);
@@ -683,10 +717,14 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await repo.RemoveAsync(entity, userId: null, hard: false);
+        await repo.RemoveAsync(
+            entity,
+            userId: null,
+            hard: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         entity.DeletedByUserId.Should().BeNull();
@@ -708,10 +746,10 @@ public sealed class EfRepositoryTests
         {
             context.Entities.Add(e);
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await repo.RemoveRangeAsync(entities, hard: false);
+        await repo.RemoveRangeAsync(entities, hard: false, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         entities.Should().AllSatisfy(e => e.IsDeleted.Should().BeTrue());
@@ -726,15 +764,15 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "remove"));
         context.Entities.Add(CreateEntity(name: "keep"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, bool>> condition = e => e.Name == "remove";
 
         // Act
-        await repo.RemoveRangeAsync(condition, hard: true);
+        await repo.RemoveRangeAsync(condition, hard: true, cancellationToken: TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act & Assert
-        await context.SaveChangesAsync();
+        // Assert
         context.Entities.Should().HaveCount(1);
     }
 
@@ -747,16 +785,16 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "remove"));
         context.Entities.Add(CreateEntity(name: "keep"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>();
         options.AddFilter(e => e.Name == "remove");
 
         // Act
-        await repo.RemoveRangeAsync(options, hard: true);
+        await repo.RemoveRangeAsync(options, hard: true, cancellationToken: TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act & Assert
-        await context.SaveChangesAsync();
+        // Assert
         context.Entities.Should().HaveCount(1);
     }
 
@@ -776,10 +814,10 @@ public sealed class EfRepositoryTests
         {
             context.Entities.Add(e);
         }
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await repo.RemovePermanentRangeAsync(entities);
+        await repo.RemovePermanentRangeAsync(entities, TestContext.Current.CancellationToken);
 
         // Assert
         entities.Should().AllSatisfy(e =>
@@ -799,7 +837,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "old1"));
         context.Entities.Add(CreateEntity(name: "old2"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Expression<Func<TestEntityWithCreatedDeleted, bool>> condition = e => e.Name.StartsWith("old");
         Expression<Func<TestEntityWithCreatedDeleted, string>> property = e => e.Name;
@@ -807,9 +845,9 @@ public sealed class EfRepositoryTests
 
         // Act
         await repo.UpdateRangeAsync(condition, (property, value));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act & Assert
-        await context.SaveChangesAsync();
+        // Assert
         context.Entities.Should().AllSatisfy(e => e.Name.Should().Be("updated"));
     }
 
@@ -822,7 +860,7 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         context.Entities.Add(CreateEntity(name: "update-me"));
         context.Entities.Add(CreateEntity(name: "keep"));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>();
         options.AddFilter(e => e.Name == "update-me");
@@ -831,9 +869,9 @@ public sealed class EfRepositoryTests
 
         // Act
         await repo.UpdateRangeAsync(options, (property, value));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act & Assert
-        await context.SaveChangesAsync();
+        // Assert
         var updated = context.Entities.Single(e => e.Name == "updated");
         updated.Should().NotBeNull();
     }
@@ -880,9 +918,10 @@ public sealed class EfRepositoryTests
         using var context = CreateContext();
         var repo = CreateRepository(context);
 
-        // Act & Assert
+        // Act
         var act = () => repo.Execute<int>(() => throw new InvalidOperationException("fail"), useTransaction: true);
 
+        // Assert
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -899,7 +938,10 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.ExecuteAsync(() => Task.FromResult(42), useTransaction: false);
+        var result = await repo.ExecuteAsync(
+            () => Task.FromResult(42),
+            useTransaction: false,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -914,7 +956,10 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
 
         // Act
-        var result = await repo.ExecuteAsync(() => Task.FromResult(42), useTransaction: true);
+        var result = await repo.ExecuteAsync(
+            () => Task.FromResult(42),
+            useTransaction: true,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -928,9 +973,10 @@ public sealed class EfRepositoryTests
         await using var context = CreateContext();
         var repo = CreateRepository(context);
 
-        // Act & Assert
+        // Act
         var act = () => repo.ExecuteAsync<int>(() => throw new InvalidOperationException("fail"), useTransaction: true);
 
+        // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
@@ -1024,12 +1070,12 @@ public sealed class EfRepositoryTests
         var repo = CreateRepository(context);
         var entity = CreateEntity();
         context.Entities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var options = new QueryOptions<TestEntityWithCreatedDeleted>(withTracking: false);
 
         // Act
-        var result = await repo.GetAsync(entity.Id, options);
+        var result = await repo.GetAsync(entity.Id, options, TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().NotBeNull();

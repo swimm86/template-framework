@@ -10,7 +10,7 @@ using Template.Bff.Application.Features.Person.Cqrs.Queries.List.Requests;
 namespace Template.Bff.Api.Interfaces;
 
 /// <summary>
-/// Интерфейс Getter контроллера
+/// Интерфейс Getter контроллера.
 /// </summary>
 public interface IGetterController
 {
@@ -19,7 +19,7 @@ public interface IGetterController
     /// </summary>
     /// <param name="request">DTO.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>Список всех 'Person'-ов</returns>
+    /// <returns>Список всех 'Person'-ов.</returns>
     Task<IActionResult> GetPersonsAsync(
         [FromBody] PersonListRequest request,
         CancellationToken cancellationToken = default);

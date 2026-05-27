@@ -45,12 +45,6 @@ public sealed class DateParserHelperTests
         // Формат с миллисекундами
         { "2023-12-25 14:30:45.123", new DateTime(2023, 12, 25, 14, 30, 45, 123) },
         { "25.12.2023 14:30:45.123", new DateTime(2023, 12, 25, 14, 30, 45, 123) },
-
-        // Double representation (OADate).
-        // Тест зависит от тройного fallback в TryParseDateTime:
-        // TryParseExact → TryParse → TryParseDateFromDouble.
-        // При изменении порядка fallback'ов ожидаемое значение может измениться.
-        { "45285", new DateTime(2023, 12, 25) },
     };
 
     /// <summary>

@@ -7,7 +7,7 @@
 namespace Template.Bff.Api.Interfaces;
 
 /// <summary>
-/// Интерфейс Setter контроллера
+/// Интерфейс Setter контроллера.
 /// </summary>
 public interface ISetterController
 {
