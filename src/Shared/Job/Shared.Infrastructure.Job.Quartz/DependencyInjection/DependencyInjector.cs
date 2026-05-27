@@ -24,6 +24,7 @@ public class DependencyInjector(
     protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
         return serviceCollection
+            .AddQuartz()
             .AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
     }
 }

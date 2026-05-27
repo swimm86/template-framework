@@ -66,9 +66,9 @@ public class QueryOptions<TEntity>(
     public bool Distinct { get; set; } = distinct;
 
     /// <summary>
-    /// Условие для исключения дублей.
+    /// Выражение для исключения дублей.
     /// </summary>
-    public Expression<Func<TEntity, bool>>? DistinctBy { get; set; }
+    public Expression<Func<TEntity, object>>? DistinctBy { get; set; }
 
     /// <summary>
     /// Include для плоских свойств.
