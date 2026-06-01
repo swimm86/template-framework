@@ -4,8 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Template.Getter.Application.Abstractions.Dto.Person.Requests;
-using Template.Getter.Application.Abstractions.Dto.Person.Responses;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
 
 namespace Template.Getter.Application.Interfaces;
 

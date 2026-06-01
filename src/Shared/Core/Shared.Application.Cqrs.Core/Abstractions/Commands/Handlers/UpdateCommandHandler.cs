@@ -36,7 +36,7 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
     IMapper mapper,
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<TEntity>> validators,
-    IUserProvider userProvider)
+    IUserProvider? userProvider)
     : EntityRequestHandler<TCommand, TResponse, TEntity>(unitOfWork, loggerFactory)
     where TCommand : UpdateCommand<TRequest, TResponse>
     where TEntity : class, IEntity
@@ -96,7 +96,7 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
 
         if (entity is IWithUpdated entityWithUpdated)
         {
-            entityWithUpdated.SetUpdatedByUserId(userProvider.UserId);
+            entityWithUpdated.SetUpdatedByUserId(userProvider?.UserId);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);

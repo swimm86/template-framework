@@ -5,8 +5,9 @@
 // ----------------------------------------------------------------------------------------------
 
 using AutoMapper;
+using Template.Application.Dto.Person;
 using Template.Domain.Entities;
-using Template.Getter.Application.Abstractions.Dto.Person.Responses;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
 
 namespace Template.Getter.Infrastructure.Mapping;
 
@@ -16,10 +17,11 @@ namespace Template.Getter.Infrastructure.Mapping;
 public class MapperProfile : Profile
 {
     /// <summary>
-    /// Конструктор класса. Содержит конфигурации маппингов.
+    /// Инициализирует новый экземпляр <see cref="MapperProfile"/>. Содержит конфигурации маппингов.
     /// </summary>
     public MapperProfile()
     {
-        CreateMap<Person, PersonListPayload>();
+        CreateMap<Person, PersonListPayload>()
+            .IncludeBase<Person, PersonDto>();
     }
 }

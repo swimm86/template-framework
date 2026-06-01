@@ -10,6 +10,8 @@ using Shared.Application.Core.ApiClient.Validators.Interfaces;
 using Shared.Domain.Core.Utils.Interfaces;
 using Template.Bff.Application.HttpClients.Settings;
 using Template.Bff.Application.Interfaces.HttpClients;
+using Template.Setter.Application.Abstractions.Features.Person.Create.Request;
+using Template.Setter.Application.Abstractions.Features.Person.Create.Response;
 
 namespace Template.Bff.Application.HttpClients;
 
@@ -26,4 +28,16 @@ public sealed class SetterClient(
         httpClientFactory,
         uriValidator,
         responseValidator,
-        propertyGetter), ISetterClient;
+        propertyGetter), ISetterClient
+{
+    /// <inheritdoc />
+    public Task<PersonCreateResponse> CreatePersonAsync(
+        PersonCreateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return PostAsync<PersonCreateResponse>(
+            "persons/create",
+            request,
+            cancellationToken)!;
+    }
+}

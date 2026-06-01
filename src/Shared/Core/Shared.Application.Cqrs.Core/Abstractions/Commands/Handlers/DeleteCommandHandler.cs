@@ -26,7 +26,7 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 public abstract class DeleteCommandHandler<TCommand, TEntity>(
     IUnitOfWork unitOfWork,
     ILoggerFactory loggerFactory,
-    IUserProvider userProvider)
+    IUserProvider? userProvider)
     : EntityRequestHandler<TCommand, Response, TEntity>(unitOfWork, loggerFactory)
     where TCommand : DeleteCommand
     where TEntity : class, IEntity
@@ -76,7 +76,7 @@ public abstract class DeleteCommandHandler<TCommand, TEntity>(
     {
         await Repository.RemoveAsync(
             entity,
-            userId: userProvider.UserId,
+            userId: userProvider?.UserId,
             cancellationToken: cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new Response { StatusCode = StatusCodes.Status200OK };

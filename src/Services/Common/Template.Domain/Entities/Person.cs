@@ -9,12 +9,12 @@ using Shared.Domain.Core.Interfaces;
 namespace Template.Domain.Entities;
 
 /// <summary>
-/// Сущность "Person".
+/// Сущность "Персона".
 /// </summary>
 public class Person : IEntity<Guid>
 {
     /// <inheritdoc cref="IEntity.Id"/>
-    public Guid Id { get; private set; }
+    public Guid Id { get; init; }
 
     /// <summary>
     /// Имя.
@@ -27,11 +27,11 @@ public class Person : IEntity<Guid>
     public string Email { get; private set; }
 
     /// <summary>
-    /// Создание сущности "Person".
+    /// Создает сущность "Персона".
     /// </summary>
-    /// <param name="name">Имя.</param>
-    /// <param name="email">Адрес электронной почты.</param>
-    /// <returns>Экземпляр сущности "Person".</returns>
+    /// <param name="name"><inheritdoc cref="Domain.Entities.Person.Name" path="/summary"/></param>
+    /// <param name="email"><inheritdoc cref="Domain.Entities.Person.Email" path="/summary"/></param>
+    /// <returns>Экземпляр сущности "Персона".</returns>
     public static Person Create(
         string name,
         string email)

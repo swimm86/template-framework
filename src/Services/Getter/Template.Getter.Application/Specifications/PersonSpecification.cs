@@ -7,12 +7,12 @@
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.Specification.Models;
 using Template.Domain.Entities;
-using Template.Getter.Application.Abstractions.Dto.Person.Requests;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
 
 namespace Template.Getter.Application.Specifications;
 
 /// <summary>
-/// Спецификация для 'Person'.
+/// Спецификация для "Персона".
 /// </summary>
 public record PersonSpecification(PersonListRequest Request)
     : SpecificationBase<Person>(Request.ConvertSortOptions())

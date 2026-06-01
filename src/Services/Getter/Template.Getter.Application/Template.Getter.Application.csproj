@@ -27,8 +27,4 @@
     <AdditionalFiles Include="..\..\..\stylecop.json" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Features\PersonFeature\Cqrs\Commands\Handlers\" />
-  </ItemGroup>
-
 </Project>
