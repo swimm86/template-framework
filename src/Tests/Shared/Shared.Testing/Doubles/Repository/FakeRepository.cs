@@ -17,6 +17,17 @@ public sealed class FakeRepository<TEntity>
 
     public Func<TEntity, object>? KeySelector { get; set; }
 
+    /// <summary>
+    /// Преобразователь сущности <typeparamref name="TEntity"/> в проекцию <typeparamref name="TOut"/>,
+    /// используемый в <c>GetRangeAsync&lt;TOut&gt;</c> при отсутствии явного <c>selector</c>.
+    /// </summary>
+    /// <remarks>
+    /// Если значение не задано, используется прямое приведение типа.
+    /// Задаётся в тестах, где бизнес-код проецирует сущности на DTO без явного <c>selector</c>
+    /// (например, при вызове <c>repo.GetRangeAsync&lt;PersonListPayload&gt;()</c>).
+    /// </remarks>
+    public Func<TEntity, object>? PayloadMapper { get; set; }
+
     public Exception? ExceptionToThrowOnGet { get; set; }
     public Exception? ExceptionToThrowOnAdd { get; set; }
     public Exception? ExceptionToThrowOnRemove { get; set; }
@@ -127,7 +138,10 @@ public sealed class FakeRepository<TEntity>
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         if (skip.HasValue) query = query.Skip(skip.Value);
         if (take.HasValue) query = query.Take(take.Value);
-        var compiledSelector = selector?.Compile() ?? (e => (TOut)(object)e);
+        var compiledSelector = selector?.Compile()
+            ?? (PayloadMapper is not null
+                ? new Func<TEntity, TOut>(e => (TOut)PayloadMapper(e))
+                : (e => (TOut)(object)e));
         return Task.FromResult(query.Select(compiledSelector).ToList());
     }
 
