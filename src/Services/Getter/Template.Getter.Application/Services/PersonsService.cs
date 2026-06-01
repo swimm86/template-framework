@@ -11,9 +11,9 @@ using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Template.Domain.Entities;
-using Template.Getter.Application.Abstractions.Dto.Person.Requests;
-using Template.Getter.Application.Abstractions.Dto.Person.Responses;
 using Template.Getter.Application.Abstractions.Enums;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
 using Template.Getter.Application.Interfaces;
 using Template.Getter.Application.Specifications;
 

@@ -12,7 +12,7 @@ using Template.Domain.Entities;
 namespace Template.DatabaseUpgrade.Seeds;
 
 /// <summary>
-/// Seed, который добавляет сущности "Person".
+/// Seed, который добавляет сущности "Персона".
 /// </summary>
 [Seed("person", 0)]
 public class PersonSeed(

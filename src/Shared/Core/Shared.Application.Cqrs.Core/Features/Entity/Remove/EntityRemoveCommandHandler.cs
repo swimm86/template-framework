@@ -16,6 +16,6 @@ namespace Shared.Application.Cqrs.Core.Features.Entity.Remove;
 public class EntityRemoveCommandHandler<TEntity>(
     IUnitOfWork unitOfWork,
     ILoggerFactory loggerFactory,
-    IUserProvider userProvider)
+    IUserProvider? userProvider)
     : DeleteCommandHandler<EntityRemoveCommand<TEntity>, TEntity>(unitOfWork, loggerFactory, userProvider)
     where TEntity : class, IEntity<Guid>;

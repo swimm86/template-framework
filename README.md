@@ -71,7 +71,7 @@ src/
 │   ├── Bff/                             # BFF (Backend For Frontend) — 3 проекта
 │   ├── Getter/                          # Сервис чтения данных — 4 проекта
 │   ├── Setter/                          # Сервис записи данных — 4 проекта
-│   ├── Common/                          # Общие компоненты сервисов — 5 проектов
+│   ├── Common/                          # Общие компоненты сервисов — 6 проектов
 │   └── DatabaseUpgrade/                 # Миграции БД
 │
 └── Tests/                               # Тесты (11 проектов + Shared.Testing)
@@ -149,10 +149,27 @@ src/
 | **Bff** | 3 проекта | Backend For Frontend — агрегация данных, адаптация под фронтенд |
 | **Getter** | 4 проекта | Сервис чтения данных (CQRS Query side) |
 | **Setter** | 4 проекта | Сервис записи данных (CQRS Command side) |
-| **Common** | 5 проектов | Общие переиспользуемые компоненты всех сервисов |
+| **Common** | 6 проектов | Общие переиспользуемые компоненты всех сервисов |
 | **DatabaseUpgrade** | 1 проект | Миграции и обновление схемы БД |
 
-> **Примечание:** Services — это примеры для разработчиков, демонстрирующие best practices использования Shared в микросервисной архитектуре.
+> **Примечание:** Services — это примеры для разработчиков, демонстрирующие best practices использования Shared в микросервисной архитектуре. **Это не production-код** — сервисы упрощены для наглядности и не включают auth, message bus, distributed tracing и другие enterprise-компоненты.
+
+### Взаимодействие сервисов
+
+BFF общается с Getter и Setter через HTTP-клиенты:
+
+```
+┌─────────────┐  HTTP GET   ┌─────────────┐  HTTP GET   ┌─────────────┐
+│  BFF API    │────────────▶│  Getter API │────────────▶│  Setter API │
+│  (Frontend) │◀────────────│   (Read)    │◀────────────│  (Write)    │
+└─────────────┘  Response   └─────────────┘  Response   └─────────────┘
+```
+
+| Поток | Описание |
+|-------|----------|
+| BFF → Getter | Запрос списка данных через `IGetterClient` |
+| BFF → Setter | Создание/обновление данных через `ISetterClient` |
+| Getter → Setter | Чтение данных из общей БД (через EF Core Repository) |
 
 ### Структура каждого сервиса
 
@@ -258,6 +275,7 @@ dotnet build
 
 ```bash
 # Запуск BFF
+cd src
 dotnet run --project Services/Bff/Template.Bff.Api
 
 # Запуск Getter
@@ -291,6 +309,7 @@ Logging__LogLevel__Default=Information
 Для применения миграций используйте проект `Template.DatabaseUpgrade`:
 
 ```bash
+cd src
 dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 ```
 
@@ -340,6 +359,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 ### Руководства
 - [Service Startup](docs/service-startup.md) — полный bootstrap-флоу, middleware pipeline, DependencyInjector
 - [Service Creation Guide](docs/service-creation-guide.md) — пошаговое руководство по созданию микросервиса
+- [Services Guide](docs/services.md) — демонстрационные сервисы: паттерны, доменная модель, ограничения
 - [Batch Helper](docs/batch-helper.md) — пакетная обработка данных
 - [Batch Request](docs/batch-request.md) — массовые запросы к API
 - [Filtering & Sorting](docs/filtering-sorting-guide.md) — фильтрация и сортировка
@@ -383,6 +403,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 | [Auth Provider](docs/auth-provider.md) | IUserProvider, аудит-поля | [Entity Interfaces](docs/entity-interfaces.md), [EF Core](docs/efcore-internals.md) |
 | [Service Startup](docs/service-startup.md) | bootstrap-флоу, middleware pipeline | [Auto-Registration](docs/auto-registration.md), [Configuration](docs/configuration.md), [Controllers](docs/controllers.md) |
 | [Service Creation](docs/service-creation-guide.md) | пошаговое руководство | [CQRS](docs/cqrs.md), [Entity Interfaces](docs/entity-interfaces.md), [EF Core](docs/efcore-internals.md) |
+| [Services Guide](docs/services.md) | демо-сервисы, паттерны, ограничения | [Service Creation](docs/service-creation-guide.md), [CQRS](docs/cqrs.md), [Api Client](docs/api-client.md) |
 | [Common Extensions](docs/common-extensions.md) | LINQ, Expression, String | [Specification](docs/specification.md), [Batch Helper](docs/batch-helper.md) |
 | [Property Reflection](docs/property-reflection.md) | compiled expression cache | [Api Client](docs/api-client.md), [Common Extensions](docs/common-extensions.md) |
 | [Database Upgrade](docs/database-upgrade.md) | DbUp SQL migrations | [EF Core](docs/efcore-internals.md), [Db Seeder](docs/db-seeder.md) |

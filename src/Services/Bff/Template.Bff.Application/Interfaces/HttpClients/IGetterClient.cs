@@ -5,8 +5,8 @@
 // ----------------------------------------------------------------------------------------------
 
 using Template.Bff.Application.HttpClients.Enums;
-using Template.Getter.Application.Abstractions.Dto.Person.Requests;
-using Template.Getter.Application.Abstractions.Dto.Person.Responses;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
 
 namespace Template.Bff.Application.Interfaces.HttpClients;
 
@@ -16,12 +16,12 @@ namespace Template.Bff.Application.Interfaces.HttpClients;
 public interface IGetterClient
 {
     /// <summary>
-    /// Возвращает список всех 'Person'-ов.
+    /// Возвращает список сущностей "Персона".
     /// </summary>
     /// <param name="request">Параметры списка (пагинация, фильтры и сортировка).</param>
-    /// <param name="pattern">Режим маршрута Getter: сервисный слой или CQRS.</param>
+    /// <param name="pattern">Паттерн: Services или CQRS.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <returns>Коллекция сущностей 'Person'.</returns>
+    /// <returns>Коллекция сущностей "Персона".</returns>
     Task<PersonListResponse> GetPersonsAsync(
         PersonListRequest request,
         GetPersonsPattern pattern,

@@ -35,7 +35,7 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
     IUnitOfWork unitOfWork,
     ILoggerFactory loggerFactory,
     IEnumerable<IValidator<TEntity>> validators,
-    IUserProvider userProvider)
+    IUserProvider? userProvider = null)
     : EntityRequestHandler<TCommand, TResponse, TEntity>(
         unitOfWork,
         loggerFactory)
@@ -70,7 +70,7 @@ public abstract class CloneCommandHandler<TCommand, TRequest, TEntity, TResponse
         var clone = mapper.Map<TEntity, TEntity>(entityToClone);
         await ProcessEntityAsync(clone, command, cancellationToken);
         await ValidateAsync(clone, validators, cancellationToken);
-        await Repository.AddAsync(clone, userProvider.UserId, userProvider.UserFullName, cancellationToken);
+        await Repository.AddAsync(clone, userProvider?.UserId, userProvider?.UserFullName, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
         return CreateResponseDto(clone);
     }

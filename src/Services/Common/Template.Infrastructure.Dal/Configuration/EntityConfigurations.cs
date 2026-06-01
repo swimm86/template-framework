@@ -10,6 +10,6 @@ using Template.Domain.Entities;
 namespace Template.Infrastructure.Dal.Configuration;
 
 /// <summary>
-/// Конфигурация сущности "Person".
+/// Конфигурация сущности "Персона".
 /// </summary>
 public class EntityConfiguration : EntityConfigurationBase<Person>;

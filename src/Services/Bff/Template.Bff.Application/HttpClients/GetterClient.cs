@@ -11,8 +11,8 @@ using Shared.Domain.Core.Utils.Interfaces;
 using Template.Bff.Application.HttpClients.Enums;
 using Template.Bff.Application.HttpClients.Settings;
 using Template.Bff.Application.Interfaces.HttpClients;
-using Template.Getter.Application.Abstractions.Dto.Person.Requests;
-using Template.Getter.Application.Abstractions.Dto.Person.Responses;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
 
 namespace Template.Bff.Application.HttpClients;
 

@@ -34,7 +34,7 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
     IMapper mapper,
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<TEntity>> validators,
-    IUserProvider userProvider)
+    IUserProvider? userProvider = null)
     : EntityRequestHandler<TCommand, TResponse, TEntity>(unitOfWork, loggerFactory)
     where TResponsePayload : class
     where TResponse : CreateResponse<TResponsePayload>, new()
@@ -66,7 +66,7 @@ public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TRespons
         await ProcessEntityAsync(entity, command, cancellationToken);
         await ValidateAsync(entity, validators, cancellationToken);
         var newEntity = await Repository
-            .AddAsync(entity, userProvider.UserId, userProvider.UserFullName, cancellationToken);
+            .AddAsync(entity, userProvider?.UserId, userProvider?.UserFullName, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
         return CreateResponseDto(newEntity);
     }
