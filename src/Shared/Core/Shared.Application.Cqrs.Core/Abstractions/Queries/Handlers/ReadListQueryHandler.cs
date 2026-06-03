@@ -45,8 +45,8 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
         TQuery query,
         CancellationToken cancellationToken)
     {
-        await GuardAsync(query, cancellationToken).ConfigureAwait(false);
-        var response = await FindAsync(query, cancellationToken).ConfigureAwait(false);
+        await GuardAsync(query, cancellationToken);
+        var response = await FindAsync(query, cancellationToken);
         return response;
     }
 

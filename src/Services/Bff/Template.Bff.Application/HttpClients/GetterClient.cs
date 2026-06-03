@@ -41,7 +41,7 @@ public sealed class GetterClient(
         {
             GetPersonsPattern.Cqrs => "cqrs",
             GetPersonsPattern.Services => "services",
-            _ => throw new ArgumentException("Неизвестное значение GetPersonsPattern.", nameof(pattern))
+            _ => throw new ArgumentException($"Unknown '{nameof(pattern)}' value.", nameof(pattern))
         };
 
         return PostAsync<PersonListResponse>(

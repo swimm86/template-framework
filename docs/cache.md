@@ -352,6 +352,6 @@ public class PersonListQueryHandler(IServiceProvider serviceProvider)
 
 | Документ | Описание |
 |----------|----------|
-| [Quartz Jobs](quartz-jobs.md) | Планировщик Quartz — RegisterJob, JobTriggerFlags |
+| [Job Scheduler](job-scheduler.md) | Планировщик — AddJobs, JobTriggerFlags |
 | [CQRS](cqrs.md) | Разделение команд и запросов |
 | [Configuration](configuration.md) | Управление конфигурацией и .env |

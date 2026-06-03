@@ -28,7 +28,7 @@ public sealed class DbUtilsTests
 
             // Assert
             act.Should().Throw<ArgumentException>()
-                .WithMessage("*строк*");
+                .WithMessage("*connection string*");
         });
     }
 
@@ -48,7 +48,7 @@ public sealed class DbUtilsTests
 
             // Assert
             act.Should().Throw<ArgumentException>()
-                .WithMessage("*строк*");
+                .WithMessage("*connection string*");
         });
     }
 
@@ -69,7 +69,7 @@ public sealed class DbUtilsTests
 
             // Assert
             act.Should().Throw<ArgumentException>()
-                .WithMessage("*скрипт*");
+                .WithMessage("*script*");
         }
         finally
         {

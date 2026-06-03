@@ -76,7 +76,7 @@ public sealed class ProxiedResponseValidator(
             if (logUri != null && logContent != null)
             {
                 logger.LogError(
-                    "Запрос по адресу {RequestUri} вернул ошибку: Status Code={StatusCode:D} с телом {ResponseBody}",
+                    "Request to {RequestUri} failed: Status Code={StatusCode:D} with body {ResponseBody}",
                     absolutePath,
                     httpResponse.StatusCode,
                     JsonSerializer.Serialize(logContent));
@@ -108,13 +108,13 @@ public sealed class ProxiedResponseValidator(
     {
         if (response == null)
         {
-            throw new ArgumentNullException(nameof(response), "Ответ HTTP не может быть null.");
+            throw new ArgumentNullException(nameof(response), "HTTP response must not be null.");
         }
 
         try
         {
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var errorMessage = $"Запрос к {clientName} завершился ошибкой: " +
+            var errorMessage = $"Request to {clientName} failed: " +
                                $"Status Code={response.StatusCode:D} ({response.ReasonPhrase}), " +
                                $"Content=[{content ?? "null"}]";
             return new Exception(errorMessage);
@@ -122,7 +122,7 @@ public sealed class ProxiedResponseValidator(
         catch (Exception ex)
         {
             return new Exception(
-                $"Не удалось прочитать содержимое ошибки HTTP. Status Code={response.StatusCode:D} ({response.ReasonPhrase})",
+                $"Failed to read HTTP error body. Status Code={response.StatusCode:D} ({response.ReasonPhrase})",
                 ex);
         }
     }

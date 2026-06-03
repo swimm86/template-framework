@@ -42,6 +42,7 @@
 | **Auto-Registration** | Автоматическая регистрация зависимостей | [docs/auto-registration.md](docs/auto-registration.md) |
 | **Pipeline Behaviors** | Cross-cutting concerns через MediatR | [docs/pipeline-behaviors.md](docs/pipeline-behaviors.md) |
 | **Exception Mapping** | Преобразование исключений в Problem Details | [docs/exception-mapping.md](docs/exception-mapping.md) |
+| **Job Scheduler** | `IScheduledJob`, `IJobScheduler`, middleware pipeline, Quartz/Hangfire adapters | [docs/job-scheduler.md](docs/job-scheduler.md) |
 
 ---
 
@@ -64,7 +65,7 @@ src/
 │   │   └── Shared.Infrastructure.Dal.EFCore.Postgres
 │   ├── Logging/                         # Логирование
 │   ├── Mapper/                          # Маппинг (AutoMapper)
-│   ├── Job/                             # Фоновые задачи (Quartz)
+│   ├── Job/                             # Фоновые задачи
 │   └── Utils/                           # Утилиты
 │
 ├── Services/                            # Примеры микросервисов
@@ -89,6 +90,7 @@ src/
         │   └── Shared.Infrastructure.Dal.EFCore.Tests
         ├── Job/
         │   └── Shared.Infrastructure.Job.Quartz.Tests
+        │   └── Shared.Infrastructure.Job.Hangfire.Tests
         ├── Logging/
         │   └── Shared.Infrastructure.Logging.Tests
         ├── Mapper/
@@ -125,6 +127,7 @@ src/
 | `Shared.Infrastructure.Logging` | Централизованное логирование |
 | `Shared.Infrastructure.Mapper.AutoMapper` | Настройка AutoMapper |
 | `Shared.Infrastructure.Job.Quartz` | Планировщик задач Quartz.NET |
+| `Shared.Infrastructure.Job.Hangfire` | Планировщик задач Hangfire |
 | `Shared.Utils.DatabaseUpgrade` | Утилиты для миграции БД |
 
 ---
@@ -153,6 +156,8 @@ src/
 | **DatabaseUpgrade** | 1 проект | Миграции и обновление схемы БД |
 
 > **Примечание:** Services — это примеры для разработчиков, демонстрирующие best practices использования Shared в микросервисной архитектуре. **Это не production-код** — сервисы упрощены для наглядности и не включают auth, message bus, distributed tracing и другие enterprise-компоненты.
+
+> **Планировщик задач:** сервисы могут подключать либо `Shared.Infrastructure.Job.Quartz`, либо `Shared.Infrastructure.Job.Hangfire` — без правок бизнес-кода (см. [Job Scheduler](docs/job-scheduler.md)).
 
 ### Взаимодействие сервисов
 
@@ -214,6 +219,7 @@ Service/
 | `Shared.Infrastructure.Core.Tests` | Unit-тесты для Infrastructure.Core (ApiClient, DI, сервисы) |
 | `Shared.Infrastructure.Dal.EFCore.Tests` | Unit-тесты для EF Core (Repository, UnitOfWork) |
 | `Shared.Infrastructure.Job.Quartz.Tests` | Unit-тесты для Quartz (планировщик, JobContext) |
+| `Shared.Infrastructure.Job.Hangfire.Tests` | Unit-тесты для Hangfire (планировщик, адаптер) |
 | `Shared.Infrastructure.Logging.Tests` | Unit-тесты для Logging (LogTask, логирование) |
 | `Shared.Infrastructure.Mapper.AutoMapper.Tests` | Unit-тесты для AutoMapper (конфигурация, IMapper) |
 | `Shared.Utils.DatabaseUpgrade.Tests` | Тесты для DatabaseUpgrade утилит (включая интеграционные) |
@@ -351,10 +357,18 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 - [Configuration](docs/configuration.md) — .env support, GetOptions<TOptions>(), module-based resolution
 - [Correlation ID](docs/correlation-id.md) — distributed tracing, JobCorrelationContext
 - [Mapping](docs/mapping.md) — IMapper abstraction, AutoMapper, ConfigureCollection diff-merge
-- [Quartz Jobs](docs/quartz-jobs.md) — фоновые задачи, CRON, JobTriggerFlags
 - [Logging](docs/logging.md) — LogTask, [LogMethod] attribute, Fody weaving
 - [NLog Configuration](docs/nlog-configuration.md) — NlogSettings, correlation layout renderers
 - [FluentValidation Integration](docs/fluent-validation-integration.md) — auto-discovery, pipeline validation
+
+### Job Scheduler
+- [Job Scheduler](docs/job-scheduler.md) — обзор, `IScheduledJob`, `IJobScheduler`, middleware pipeline
+- [Architecture](docs/job-scheduler/architecture.md) — слои, DIP/SOLID, поток выполнения
+- [Pipeline](docs/job-scheduler/pipeline.md) — `IScheduledJobMiddleware`, Logging/Correlation/Retry
+- [Quartz Adapter](docs/job-scheduler/quartz-adapter.md) — `QuartzJobScheduler`, `QuartzScheduledJobAdapter`
+- [Hangfire Adapter](docs/job-scheduler/hangfire-adapter.md) — `HangfireJobScheduler`, `HangfireScheduledJobAdapter`
+- [Migration Guide](docs/job-scheduler/migration-guide.md) — переезд с `QuartzJobWrapper` на `IScheduledJob`
+- [Zero-Touch Proof](docs/job-scheduler/zero-touch-proof.md) — смена Quartz ↔ Hangfire = 0 правок
 
 ### Руководства
 - [Service Startup](docs/service-startup.md) — полный bootstrap-флоу, middleware pipeline, DependencyInjector
@@ -388,14 +402,14 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 | [Swagger](docs/swagger.md) | OpenAPI schema filters | [Controllers](docs/controllers.md), [Response Types](docs/response-types.md) |
 | [Request Logging](docs/request-logging.md) | RequestLoggingFilter, [DoNotLog] | [Controllers](docs/controllers.md), [Logging](docs/logging.md) |
 | [Api Client](docs/api-client.md) | HTTP-клиент, handlers | [Correlation ID](docs/correlation-id.md), [Exception Mapping](docs/exception-mapping.md) |
-| [Cache](docs/cache.md) | CacheService<T>, ScopedMemoryCache | [Quartz Jobs](docs/quartz-jobs.md), [CQRS](docs/cqrs.md) |
+| [Cache](docs/cache.md) | CacheService<T>, ScopedMemoryCache | [Job Scheduler](docs/job-scheduler.md), [CQRS](docs/cqrs.md) |
 | [Configuration](docs/configuration.md) | .env, GetOptions<TOptions> | [Api Client](docs/api-client.md), [Controllers](docs/controllers.md) |
-| [Correlation ID](docs/correlation-id.md) | distributed tracing | [Api Client](docs/api-client.md), [Logging](docs/logging.md), [Quartz Jobs](docs/quartz-jobs.md) |
+| [Correlation ID](docs/correlation-id.md) | distributed tracing | [Api Client](docs/api-client.md), [Logging](docs/logging.md), [Job Scheduler](docs/job-scheduler.md) |
 | [Mapping](docs/mapping.md) | IMapper, ConfigureCollection | [CQRS](docs/cqrs.md), [EF Core](docs/efcore-internals.md) |
-| [Quartz Jobs](docs/quartz-jobs.md) | фоновые задачи, CRON | [Cache](docs/cache.md), [Correlation ID](docs/correlation-id.md) |
+| [Job Scheduler](docs/job-scheduler.md) | `IScheduledJob`, `IJobScheduler`, middleware pipeline | [Cache](docs/cache.md), [Correlation ID](docs/correlation-id.md) |
 | [Logging](docs/logging.md) | LogTask, [LogMethod] | [Pipeline Behaviors](docs/pipeline-behaviors.md), [NLog](docs/nlog-configuration.md) |
 | [NLog Configuration](docs/nlog-configuration.md) | NlogSettings, layout renderers | [Logging](docs/logging.md), [Correlation ID](docs/correlation-id.md) |
-| [FluentValidation](docs/fluent-validation-integration.md) — auto-discovery, pipeline | [CQRS](docs/cqrs.md), [Pipeline Behaviors](docs/pipeline-behaviors.md) |
+| [FluentValidation](docs/fluent-validation-integration.md) | auto-discovery, pipeline | [CQRS](docs/cqrs.md), [Pipeline Behaviors](docs/pipeline-behaviors.md) |
 | [Batch Helper](docs/batch-helper.md) | пакетная обработка | [Batch Request](docs/batch-request.md), [Common Extensions](docs/common-extensions.md) |
 | [Batch Request](docs/batch-request.md) | массовые API запросы | [Batch Helper](docs/batch-helper.md), [Filtering](docs/filtering-sorting-guide.md) |
 | [Filtering & Sorting](docs/filtering-sorting-guide.md) | фильтрация, сортировка | [Specification](docs/specification.md), [Batch Request](docs/batch-request.md) |

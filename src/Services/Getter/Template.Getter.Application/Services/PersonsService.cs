@@ -71,6 +71,7 @@ public class PersonsService(
         request.ConvertSortOptions().ForEach(options.AddOrderBy);
         var repo = unitOfWork.GetRepository<Person>();
         var collection = await repo.GetRangeAsync<PersonListPayload>(
+            options,
             skip: skip,
             take: take,
             cancellationToken: cancellationToken);

@@ -74,7 +74,7 @@ public class EfUnitOfWork<TDbContext>
     /// Конструктор по умолчанию.
     /// </summary>
     /// <param name="dbContext"><see cref="TDbContext"/>.</param>
-    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="settings">Настройки.</param>
     /// <param name="beforeSaveChangesService"><see cref="IBeforeSaveChangesService"/>.</param>
     public EfUnitOfWork(

@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\..\Shared\Job\Shared.Infrastructure.Job.Hangfire\Shared.Infrastructure.Job.Hangfire.csproj" />
       <ProjectReference Include="..\..\Common\Template.Infrastructure.Dal\Template.Infrastructure.Dal.csproj" />
       <ProjectReference Include="..\..\Common\Template.Infrastructure.Mapping\Template.Infrastructure.Mapping.csproj" />
       <ProjectReference Include="..\Template.Bff.Application\Template.Bff.Application.csproj" />

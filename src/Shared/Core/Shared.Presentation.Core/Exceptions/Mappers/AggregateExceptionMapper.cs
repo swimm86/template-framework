@@ -30,11 +30,11 @@ namespace Shared.Presentation.Core.Exceptions.Mappers;
 /// </para>
 /// <para>
 /// Для избежания циклической зависимости (Resolver → Mappers → AggregateMapper → Resolver)
-/// используется <see cref="IServiceProvider"/> для ленивого получения резолвера при первом вызове.
+/// используется <see cref="IServiceProvider"/> для ленивого получения преобразователя при первом вызове.
 /// </para>
 /// </remarks>
 /// <param name="configuration">Конфигурация приложения.</param>
-/// <param name="serviceProvider">Провайдер сервисов для получения резолвера исключений.</param>
+/// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
 public sealed class AggregateExceptionMapper(
     IConfiguration configuration,
     IServiceProvider serviceProvider)

@@ -58,14 +58,10 @@ public static class LoggerExtensions
     /// <summary>
     /// Выполняет асинхронную задачу без возвращаемого значения с логированием её начала, окончания и ошибок.
     /// </summary>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="action">Синхронное действие для выполнения.</param>
-    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
-    /// <param name="methodName">Имя вызывающего метода (определяется автоматически через <see cref="CallerMemberNameAttribute"/>).</param>
-    /// <param name="processDescription">Описание процесса, который необходимо залогировать.</param>
-    /// <param name="logProcessedTime">Признак того, что необходимо залогировать время обработки.</param>
-    /// <param name="logLevel">Уровень логирования.</param>
-    /// <returns>Task, представляющий асинхронную операцию.</returns>
+    /// <inheritdoc cref="LogTaskAsync{T}" />
+    /// <param name="logger"/><param name="cancellationToken"/><param name="methodName"/>
+    /// <param name="processDescription"/><param name="logProcessedTime"/><param name="logLevel"/>
     public static Task LogTaskAsync(
         this ILogger? logger,
         Func<Task> action,
@@ -90,14 +86,11 @@ public static class LoggerExtensions
     /// <summary>
     /// Выполняет синхронную задачу с логированием её начала, окончания и ошибок.
     /// </summary>
-    /// <typeparam name="T">Тип возвращаемого значения задачи.</typeparam>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="action">Синхронная функция, результат которой будет возвращён.</param>
-    /// <param name="methodName">Имя вызывающего метода (определяется автоматически через <see cref="CallerMemberNameAttribute"/>).</param>
-    /// <param name="processDescription">Описание процесса, который необходимо залогировать.</param>
-    /// <param name="logProcessedTime">Признак того, что необходимо залогировать время обработки.</param>
-    /// <param name="logLevel">Уровень логирования.</param>
     /// <returns>Результат выполнения синхронной функции.</returns>
+    /// <inheritdoc cref="LogTaskAsync{T}" />
+    /// <param name="logger"/><param name="methodName"/>
+    /// <param name="processDescription"/><param name="logProcessedTime"/><param name="logLevel"/>
     public static T LogTask<T>(
         this ILogger? logger,
         Func<T> action,
@@ -119,12 +112,10 @@ public static class LoggerExtensions
     /// <summary>
     /// Выполняет синхронное действие с логированием его начала, окончания и ошибок.
     /// </summary>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
     /// <param name="action">Асинхронное действие для выполнения.</param>
-    /// <param name="methodName">Имя вызывающего метода (определяется автоматически через <see cref="CallerMemberNameAttribute"/>).</param>
-    /// <param name="processDescription">Описание процесса, который необходимо залогировать.</param>
-    /// <param name="logProcessedTime">Признак того, что необходимо залогировать время обработки.</param>
-    /// <param name="logLevel">Уровень логирования.</param>
+    /// <inheritdoc cref="LogTaskAsync{T}" />
+    /// <param name="logger"/><param name="methodName"/>
+    /// <param name="processDescription"/><param name="logProcessedTime"/><param name="logLevel"/>
     public static void LogTask(
         this ILogger? logger,
         Action action,
@@ -150,9 +141,9 @@ public static class LoggerExtensions
     /// Используется как точка переиспользования между <see cref="LogTaskAsync{T}"/>
     /// и <see cref="Attributes.LogMethodAttribute"/>.
     /// </summary>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
+    /// <param name="logger"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logger']"/></param>
     /// <param name="process">Имя процесса.</param>
-    /// <param name="logLevel">Уровень логирования.</param>
+    /// <param name="logLevel"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logLevel']"/></param>
     internal static void LogStarted(
         this ILogger? logger,
         string process,
@@ -164,9 +155,9 @@ public static class LoggerExtensions
     /// Используется как точка переиспользования между <see cref="LogTaskAsync{T}"/>
     /// и <see cref="Attributes.LogMethodAttribute"/>.
     /// </summary>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
-    /// <param name="process">Имя процесса.</param>
-    /// <param name="logLevel">Уровень логирования.</param>
+    /// <param name="logger"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logger']"/></param>
+    /// <param name="process"><inheritdoc cref="LogStarted" path="/param[@name='process']"/></param>
+    /// <param name="logLevel"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logLevel']"/></param>
     internal static void LogCompleted(
         this ILogger? logger,
         string process,
@@ -179,8 +170,8 @@ public static class LoggerExtensions
     /// Используется как точка переиспользования между <see cref="LogTaskAsync{T}"/>
     /// и <see cref="Attributes.LogMethodAttribute"/>.
     /// </summary>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
-    /// <param name="process">Имя процесса.</param>
+    /// <param name="logger"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logger']"/></param>
+    /// <param name="process"><inheritdoc cref="LogStarted" path="/param[@name='process']"/></param>
     /// <param name="exception">Перехваченное исключение.</param>
     internal static void LogFailed(
         this ILogger? logger,
@@ -194,14 +185,14 @@ public static class LoggerExtensions
     /// Используется как точка переиспользования между <see cref="LogTaskAsync{T}"/>
     /// и <see cref="Attributes.LogMethodAttribute"/>.
     /// </summary>
-    /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
-    /// <param name="process">Имя процесса.</param>
-    /// <param name="level">Уровень логирования.</param>
+    /// <param name="logger"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logger']"/></param>
+    /// <param name="process"><inheritdoc cref="LogStarted" path="/param[@name='process']"/></param>
+    /// <param name="logLevel"><inheritdoc cref="LogTaskAsync{T}" path="/param[@name='logLevel']"/></param>
     /// <param name="stopwatch">Таймер выполнения; если <c>null</c>, сообщение не записывается.</param>
     internal static void LogElapsed(
         this ILogger? logger,
         string process,
-        LogLevel level,
+        LogLevel logLevel,
         Stopwatch? stopwatch)
     {
         if (stopwatch is null)
@@ -210,6 +201,10 @@ public static class LoggerExtensions
         }
 
         stopwatch.Stop();
-        logger?.Log(level, LogMessages.Elapsed, process, stopwatch.ElapsedMilliseconds);
+        logger?.Log(
+            logLevel,
+            LogMessages.Elapsed,
+            process,
+            stopwatch.ElapsedMilliseconds);
     }
 }

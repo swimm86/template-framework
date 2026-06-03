@@ -16,7 +16,7 @@ namespace Shared.Application.Core.Cache;
 /// </summary>
 /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
 /// <param name="key">Ключ кэша.</param>
-/// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/>.</param>
+/// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
 /// <param name="getFunc">Функция получения данных при отсутствии в кэше.</param>
 public class CacheService<TData>(
     string key,

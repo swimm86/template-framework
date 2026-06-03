@@ -22,7 +22,7 @@ public static class LoggingServiceAccessor
     /// Конфигурирует аксессор, извлекая <see cref="ILoggerFactory"/> из <see cref="IServiceProvider"/>.
     /// Должен вызываться при старте приложения до первого использования атрибута <c>[LogMethod]</c>.
     /// </summary>
-    /// <param name="serviceProvider"><see cref="IServiceProvider"/> приложения.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     public static void Configure(IServiceProvider serviceProvider)
     {
         _loggerFactory = serviceProvider.GetService<ILoggerFactory>();

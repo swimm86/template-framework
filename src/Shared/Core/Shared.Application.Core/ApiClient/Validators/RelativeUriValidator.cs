@@ -28,14 +28,14 @@ public sealed class RelativeUriValidator
     {
         if (string.IsNullOrWhiteSpace(uri))
         {
-            throw new ArgumentException("URI не может быть пустым", nameof(uri));
+            throw new ArgumentException("URI must not be empty.", nameof(uri));
         }
 
         // Запрет абсолютных URI (защита от SSRF)
         if (Uri.IsWellFormedUriString(uri, UriKind.Absolute))
         {
             throw new SecurityException(
-                $"Абсолютные URI запрещены. Используйте относительный путь. URI: {uri}");
+                $"Absolute URIs are not allowed. Use a relative path. URI: {uri}");
         }
 
         // Запрет path traversal с циклическим декодированием
@@ -51,20 +51,20 @@ public sealed class RelativeUriValidator
         if (decoded.Contains(".."))
         {
             throw new SecurityException(
-                $"Path traversal запрещён. URI: {uri}");
+                $"Path traversal is not allowed. URI: {uri}");
         }
 
         // Запрет абсолютных путей (начинающихся с / или \)
         if (uri.StartsWith('/') || uri.StartsWith('\\'))
         {
             throw new SecurityException(
-                $"URI должен быть относительным путём без начального слэша. URI: {uri}");
+                $"URI must be a relative path without a leading slash. URI: {uri}");
         }
 
         // Проверка формата относительного URI
         if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
         {
-            throw new FormatException($"Невалидный относительный URI: {uri}");
+            throw new FormatException($"Invalid relative URI: {uri}");
         }
     }
 }

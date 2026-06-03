@@ -56,7 +56,7 @@ public static class CacheServiceFactory
     /// Возвращает экземпляр <see cref="ICacheService{TData}"/> по ключу.
     /// </summary>
     /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
-    /// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/>.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="key">Ключ кэша.</param>
     /// <returns>Экземпляр <see cref="ICacheService{TData}"/>.</returns>
     /// <exception cref="CacheNotFoundException">Выбрасывается, если кэш с указанным ключом не найден.</exception>
@@ -78,7 +78,7 @@ public static class CacheServiceFactory
     /// Получает данные из кэша по указанному ключу.
     /// </summary>
     /// <typeparam name="TData">Тип кэшируемых данных.</typeparam>
-    /// <param name="serviceProvider">Экземпляр <see cref="IServiceProvider"/>.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="key">Ключ кэша.</param>
     /// <returns>Кэшированные данные типа <typeparamref name="TData"/>.</returns>
     /// <exception cref="CacheNotFoundException">Выбрасывается, если кэш с указанным ключом не найден.</exception>

@@ -50,7 +50,7 @@ public interface IWithLifecycleActions
     /// </summary>
     /// <param name="hookType">Тип перехвата.</param>
     /// <param name="key">Ключ действия.</param>
-    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="entities">Коллекция сущностей для обработки.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>
@@ -73,7 +73,7 @@ public interface IWithLifecycleActions
     /// Выполняет обработку всех действий перехвата заданного типа.
     /// </summary>
     /// <param name="hookType">Тип перехвата.</param>
-    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="entities">Коллекция сущностей для обработки.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>

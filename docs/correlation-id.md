@@ -203,17 +203,17 @@ public static bool TrySetCorrelationId()
 
 Это предотвращает случайную перезапись correlation ID, если job вызывает другие компоненты, которые тоже пытаются установить его.
 
-### Использование в Quartz Jobs
+### Использование в фоновых задачах Quartz
 
 ```csharp
 public class CacheRefreshJob : IJob
 {
     public async Task Execute(IJobExecutionContext context, CancellationToken ct)
     {
-        // Устанавливаем correlation ID для этой job
+        // Устанавливаем correlation ID для этой фоновой задачи
         JobCorrelationContext.TrySetCorrelationId();
 
-        // Теперь все логи внутри job будут содержать job-correlation-id
+        // Теперь все логи внутри фоновой задачи будут содержать job-correlation-id
         _logger.LogInformation("Starting cache refresh");
 
         await _cacheService.UpdateCacheAsync();
@@ -226,28 +226,28 @@ public class CacheRefreshJob : IJob
 }
 ```
 
-### Bridging HTTP → Job
+### Связывание HTTP → фоновая задача
 
-Когда HTTP-запрос порождает background job, correlation ID можно передать:
+Когда HTTP-запрос порождает фоновую задачу, correlation ID можно передать:
 
 ```csharp
-// В HTTP handler'е
+// В HTTP-обработчике
 public async Task<IActionResult> TriggerImport(
     [FromBody] ImportRequest request, CancellationToken ct)
 {
     var correlationId = HttpContext.Request.GetCorrelationId();
 
-    // Передаём correlation ID в job через message queue
+    // Передаём correlation ID в фоновую задачу через очередь сообщений
     await _bus.Publish(new ImportCommand
     {
         Data = request.Data,
-        CorrelationId = correlationId // связываем job с HTTP-запросом
+        CorrelationId = correlationId // связываем фоновую задачу с HTTP-запросом
     }, ct);
 
     return Accepted();
 }
 
-// В job handler'е
+// В обработчике фоновой задачи
 public class ImportCommandHandler : IConsumer<ImportCommand>
 {
     public async Task Consume(ConsumeContext<ImportCommand> context)
@@ -281,7 +281,7 @@ public static class CorrelationIdScopePropertyKeys
     public const string Http = "http-correlation-id";
 
     /// <summary>
-    /// Ключ для идентификатора корреляции фоновых задач (джоб) в NLog ScopeContext.
+    /// Ключ для идентификатора корреляции фоновых задач в NLog ScopeContext.
     /// </summary>
     public const string Job = "job-correlation-id";
 }
@@ -371,14 +371,14 @@ public class JobCorrelationIdLayoutRenderer : LayoutRenderer
 2024-01-15 10:30:45.3457 | INFO  | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | | PersonsService.GetListAsync processed time: 111ms.
 ```
 
-**Background job:**
+**Фоновая задача:**
 ```
 2024-01-15 10:35:00.0001 | INFO  | | f1e2d3c4-b5a6-7890-1234-567890abcdef | CacheRefreshJob started.
 2024-01-15 10:35:00.1234 | INFO  | | f1e2d3c4-b5a6-7890-1234-567890abcdef | CacheService.UpdateCacheAsync started.
 2024-01-15 10:35:00.5678 | INFO  | | f1e2d3c4-b5a6-7890-1234-567890abcdef | CacheService.UpdateCacheAsync completed.
 ```
 
-**HTTP-запрос породил job:**
+**HTTP-запрос породил фоновую задачу:**
 ```
 2024-01-15 10:30:45.1234 | INFO  | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | | ImportController.TriggerImport started.
 2024-01-15 10:30:45.2345 | INFO  | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | | ImportCommand published to queue.
@@ -386,7 +386,7 @@ public class JobCorrelationIdLayoutRenderer : LayoutRenderer
 2024-01-15 10:30:50.5678 | INFO  | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | f1e2d3c4-b5a6-7890-1234-567890abcdef | ImportJob completed.
 ```
 
-> В последнем примере оба correlation ID присутствуют в логах job, позволяя связать job с исходным HTTP-запросом.
+> В последнем примере оба correlation ID присутствуют в логах фоновой задачи, позволяя связать её с исходным HTTP-запросом.
 
 ---
 
@@ -410,6 +410,6 @@ public class JobCorrelationIdLayoutRenderer : LayoutRenderer
 |----------|----------|
 | [Logging](logging.md) | Логирование методов: LogTask и [LogMethod] |
 | [API Client](api-client.md) | HTTP-клиенты для внешних сервисов |
-| [Quartz Jobs](quartz-jobs.md) | Планировщик Quartz — RegisterJob, JobTriggerFlags |
+| [Job Scheduler](job-scheduler.md) | Планировщик — AddJobs, JobTriggerFlags |
 | [Request Logging](request-logging.md) | Логирование HTTP-запросов |
 | [NLog Configuration](nlog-configuration.md) | Структурированное логирование через NLog |

@@ -157,4 +157,4 @@ LogManager.ReconfigExistingLoggers();
 |----------|----------|
 | [Correlation ID](correlation-id.md) | Механизм propagation correlation IDs |
 | [Logging](logging.md) | Общее руководство по логированию |
-| [Quartz Jobs](quartz-jobs.md) | Фоновые задачи и JobCorrelationContext |
+| [Job Scheduler](job-scheduler.md) | Фоновые задачи и JobCorrelationContext |

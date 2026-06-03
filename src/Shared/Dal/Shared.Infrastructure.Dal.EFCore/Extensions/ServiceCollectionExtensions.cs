@@ -80,7 +80,7 @@ public static class ServiceCollectionExtensions
                     .FirstOrDefault();
                 if (settings is null)
                 {
-                    throw new InvalidOperationException($"Не удалось найти настройки для типа {type.FullName}");
+                    throw new InvalidOperationException($"Failed to find settings for type {type.FullName}");
                 }
 
                 var migrationAssemblyName = (migrationAssembly ?? type.Assembly).FullName;

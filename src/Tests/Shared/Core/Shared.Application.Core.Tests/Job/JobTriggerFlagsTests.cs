@@ -1,4 +1,4 @@
-using Shared.Application.Core.Job;
+using Shared.Application.Core.Job.Enums;
 
 namespace Shared.Application.Core.Tests;
 
