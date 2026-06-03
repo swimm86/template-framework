@@ -28,7 +28,7 @@ public static class DbUtils
 
         if (scriptPaths == null)
         {
-            throw new ArgumentException("Необходимо указать параметр запуска с путями до скриптов миграций.");
+            throw new ArgumentException("A startup argument with paths to migration scripts is required.");
         }
 
         var scriptPathsAsArray = scriptPaths.Split(",");
@@ -63,7 +63,7 @@ public static class DbUtils
 
         if (string.IsNullOrEmpty(currentConnectionString))
         {
-            throw new ArgumentException("Не удалось получить корректную строку соединения.");
+            throw new ArgumentException("Failed to get a valid connection string.");
         }
 
         try

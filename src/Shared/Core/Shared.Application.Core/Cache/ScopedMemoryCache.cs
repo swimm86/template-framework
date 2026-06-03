@@ -23,14 +23,14 @@ public class ScopedMemoryCache(
     /// <inheritdoc />
     public T? GetOrCreate<T>(string key, Func<ICacheEntry, T> factory)
     {
-        logger.LogDebug("Запрос значения из кэша для ключа {Key}", key);
+        logger.LogDebug("Cache value request for key {Key}", key);
         return _cache.GetOrCreate(key, factory);
     }
 
     /// <inheritdoc />
     public Task<T?> GetOrCreateAsync<T>(string key, Func<ICacheEntry, Task<T>> factory)
     {
-        logger.LogDebug("Асинхронный запрос значения из кэша для ключа {Key}", key);
+        logger.LogDebug("Async cache value request for key {Key}", key);
         return _cache.GetOrCreateAsync(key, factory);
     }
 
@@ -43,14 +43,14 @@ public class ScopedMemoryCache(
     /// <inheritdoc />
     public void Remove(string key)
     {
-        logger.LogDebug("Удаление значения из кэша для ключа {Key}", key);
+        logger.LogDebug("Removing cache value for key {Key}", key);
         _cache.Remove(key);
     }
 
     /// <inheritdoc />
     public void Clear()
     {
-        logger.LogDebug("Очистка всего кэша");
+        logger.LogDebug("Clearing the entire cache");
         _cache.Dispose();
         _cache = new MemoryCache(new MemoryCacheOptions());
     }
@@ -58,7 +58,7 @@ public class ScopedMemoryCache(
     /// <inheritdoc />
     public void Dispose()
     {
-        logger.LogDebug("Освобождение ресурсов ScopedMemoryCache");
+        logger.LogDebug("Disposing {scopedMemoryCache} resources", nameof(ScopedMemoryCache));
         _cache.Dispose();
     }
 }

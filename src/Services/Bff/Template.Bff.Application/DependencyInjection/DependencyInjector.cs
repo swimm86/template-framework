@@ -7,6 +7,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.DependencyInjection.Base;
+using Shared.Application.Core.Job.Extensions;
+using Shared.Application.Core.Job.Scheduler;
+using Template.Bff.Application.Jobs;
 
 namespace Template.Bff.Application.DependencyInjection;
 
@@ -23,6 +26,9 @@ public class DependencyInjector(
     protected override IServiceCollection Process(
         IServiceCollection serviceCollection)
     {
-        return serviceCollection;
+        return serviceCollection
+            .AddSingleton<HelloWorldJob>()
+            .AddJobs(
+                opts => opts.AddJob<HelloWorldJob>(new JobSchedule.OnStartup()));
     }
 }

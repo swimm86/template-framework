@@ -103,7 +103,7 @@ public sealed class RequestLoggingFilter(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Не удалось извлечь аргументы контроллера для логирования");
+            logger.LogWarning(ex, "Failed to extract controller arguments for logging");
         }
 
         return next();
@@ -221,7 +221,7 @@ public sealed class RequestLoggingFilter(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Ошибка обработки аргумента {ArgumentName}", arg.Key);
+                logger.LogError(ex, "Error processing argument {ArgumentName}", arg.Key);
                 filtered[arg.Key] = $"<error: {arg.Value?.GetType().Name ?? "null"}>";
             }
         }
@@ -233,7 +233,7 @@ public sealed class RequestLoggingFilter(
         if (json.Length > Settings.MaxJsonPayloadLength)
         {
             logger.LogWarning(
-                "Слишком большой payload аргументов: {Length} байт (макс. {Max}). Возвращена ошибка.",
+                "Argument payload too large: {Length} bytes (max {Max}). Error response returned.",
                 json.Length,
                 Settings.MaxJsonPayloadLength);
 

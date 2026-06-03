@@ -28,7 +28,7 @@ public static class ExpressionExtensions
         {
             MemberExpression memberExpression => memberExpression.Member.Name,
             UnaryExpression { Operand: MemberExpression expression } => expression.Member.Name,
-            _ => throw new ArgumentException("Выражение должно представлять доступ к свойству.")
+            _ => throw new ArgumentException("Expression must represent a property access.")
         };
     }
 
@@ -86,7 +86,7 @@ public static class ExpressionExtensions
 
         if (expr1.Parameters.Count == 0 || expr2.Parameters.Count == 0)
         {
-            throw new ArgumentException("Выражения должны содержать хотя бы один параметр.");
+            throw new ArgumentException("Expressions must contain at least one parameter.");
         }
 
         var parameter = expr1.Parameters[0];
@@ -114,7 +114,7 @@ public static class ExpressionExtensions
 
         if (expr1.Parameters.Count == 0 || expr2.Parameters.Count == 0)
         {
-            throw new ArgumentException("Выражения должны содержать хотя бы один параметр.");
+            throw new ArgumentException("Expressions must contain at least one parameter.");
         }
 
         var parameter = expr1.Parameters[0];

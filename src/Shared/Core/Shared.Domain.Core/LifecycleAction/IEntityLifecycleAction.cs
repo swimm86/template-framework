@@ -23,7 +23,7 @@ public interface IEntityLifecycleAction
     /// Выполняет действие перехвата.
     /// </summary>
     /// <param name="hookType">Тип перехвата жизненного цикла.</param>
-    /// <param name="serviceProvider"><see cref="IServiceProvider"/>.</param>
+    /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="entities">Сущности для обработки.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Результат выполнения асинхронной операции.</returns>

@@ -65,7 +65,7 @@ public abstract class RequestHandler<TRequest, TResponse>(
 
         foreach (var validator in validatorsArray)
         {
-            var result = await validator.ValidateAsync(validationContext, cancellationToken).ConfigureAwait(false);
+            var result = await validator.ValidateAsync(validationContext, cancellationToken);
             failures.AddRange(result.Errors.Where(error => error is not null));
         }
 

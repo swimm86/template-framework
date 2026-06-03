@@ -26,8 +26,12 @@
 		<AdditionalFiles Include="..\..\..\stylecop.json" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\Core\Shared.Infrastructure.Core\Shared.Infrastructure.Core.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Shared.Infrastructure.Core\Shared.Infrastructure.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Shared.Infrastructure.Job.Quartz.Tests" />
+  </ItemGroup>
 
 </Project>

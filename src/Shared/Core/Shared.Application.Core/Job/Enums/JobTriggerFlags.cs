@@ -4,7 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-namespace Shared.Application.Core.Job;
+namespace Shared.Application.Core.Job.Enums;
 
 /// <summary>
 /// Флаги расписания запуска фоновых задач.

@@ -34,7 +34,7 @@ internal static class DbMigrator
             ? GetAssembly() ?? Assembly.GetEntryAssembly()
             : AppDomain.CurrentDomain.GetAssemblyByName(scriptsAssemblyName);
         var assemblyName = assembly?.GetName().Name ??
-                           throw new InvalidOperationException("Не удалось получить наименование сборки.");
+                           throw new InvalidOperationException("Failed to get the assembly name.");
 
         var executor = DeployChanges
             .To
@@ -49,7 +49,7 @@ internal static class DbMigrator
         var result = executor.PerformUpgrade();
         if (!result.Successful)
         {
-            throw new InvalidOperationException("Ошибка применения скриптов миграций.", result.Error);
+            throw new InvalidOperationException("Migration scripts execution failed.", result.Error);
         }
     }
 
