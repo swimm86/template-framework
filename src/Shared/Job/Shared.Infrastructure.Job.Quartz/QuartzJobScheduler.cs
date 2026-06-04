@@ -9,7 +9,6 @@ using Quartz;
 using Shared.Application.Core.Job.Enums;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Application.Core.Job.Scheduler.Interfaces;
-using Shared.Common.Extensions;
 
 namespace Shared.Infrastructure.Job.Quartz;
 
