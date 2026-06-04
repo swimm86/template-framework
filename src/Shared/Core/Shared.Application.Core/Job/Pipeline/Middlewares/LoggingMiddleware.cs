@@ -25,6 +25,9 @@ public sealed class LoggingMiddleware(
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
-        return logger.LogTaskAsync(action: () => next(context), CancellationToken.None);
+        return logger.LogTaskAsync(
+            action: () => next(context),
+            CancellationToken.None,
+            methodName: context.JobKey);
     }
 }

@@ -21,12 +21,10 @@ public sealed class HelloWorldJob(
     ILogger<HelloWorldJob> logger)
     : IScheduledJob
 {
-    private readonly ILogger<HelloWorldJob> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
     /// <inheritdoc />
     public Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Hello from Hangfire at {Time}", DateTime.UtcNow);
+        logger.LogInformation("Hello from Hangfire at {Time}", DateTime.UtcNow);
         return Task.CompletedTask;
     }
 }
