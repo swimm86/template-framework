@@ -16,6 +16,25 @@ namespace Shared.Infrastructure.Job.Quartz;
 /// <see cref="IHostedService"/>, который при старте приложения регистрирует все
 /// задачи из <see cref="JobSchedulerOptions"/> в Quartz-планировщик и запускает его.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Этот bootstrapper является единственным владельцем жизненного цикла
+/// <see cref="IScheduler"/>: <c>AddQuartz</c> в
+/// <see cref="QuartzDependencyInjector"/> <c>IHostedService</c> не регистрирует
+/// (для этого есть отдельный <c>AddQuartzHostedService</c>), поэтому конфликта
+/// старта/остановки здесь нет.
+/// </para>
+/// <para>
+/// Джобы регистрируются <b>до</b> <see cref="IScheduler.Start"/> — благодаря этому
+/// триггеры, использующие <c>StartNow()</c> (например, <see cref="JobSchedule.OnStartup"/>),
+/// надёжно подхватываются сразу после старта планировщика, а не зависят от гонки
+/// между <see cref="IHostedService"/>-ами.
+/// </para>
+/// </remarks>
+/// <param name="options">Список зарегистрированных задач.</param>
+/// <param name="scheduler">Планировщик (Quartz-реализация <see cref="IJobScheduler"/>).</param>
+/// <param name="schedulerFactory">Фабрика планировщиков Quartz.</param>
+/// <param name="logger">Логгер.</param>
 public sealed class QuartzJobSchedulerBootstrapper(
     JobSchedulerOptions options,
     IJobScheduler scheduler,
