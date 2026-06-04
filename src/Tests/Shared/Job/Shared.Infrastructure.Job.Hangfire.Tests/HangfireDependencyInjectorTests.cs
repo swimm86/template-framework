@@ -15,18 +15,22 @@ using Shared.Testing.DependencyInjection;
 namespace Shared.Infrastructure.Job.Hangfire.Tests;
 
 /// <summary>
-/// Тесты DI-регистрации <see cref="HangfireDependencyInjector"/>: проверяем, что
-/// <see cref="IJobScheduler"/>, <see cref="HangfireScheduledJobAdapter"/>, <see cref="IHostedService"/>,
-/// <see cref="IRecurringJobManager"/>, <see cref="IBackgroundJobClient"/> корректно
-/// резолвятся из <see cref="IServiceProvider"/>.
+/// Тесты DI-регистрации <see cref="HangfireDependencyInjector"/>.
+/// <para>
+/// Структура тестов полностью симметрична <c>QuartzDependencyInjectorTests</c>
+/// (общий контракт: <c>Inject_RegistersAllRequiredServices</c>,
+/// <c>Inject_IJobScheduler_IsSingleton</c>, <c>Inject_CalledTwice_DoesNotThrow</c>,
+/// <c>Inject_PreservesExternalRegistrations</c> + специфичный для адаптера
+/// <c>Inject_RegistersHangfireSpecificServices</c>) — иначе нельзя гарантировать
+/// Zero-Touch Proof (смена Quartz ↔ Hangfire = 0 правок).
+/// </para>
 /// </summary>
 public sealed class HangfireDependencyInjectorTests
 {
     /// <summary>
     /// <see cref="HangfireDependencyInjector"/> регистрирует
-    /// <see cref="IJobScheduler"/>, <see cref="HangfireScheduledJobAdapter"/>,
-    /// <see cref="IHostedService"/>-bootstrapper, <see cref="IRecurringJobManager"/>
-    /// и <see cref="IBackgroundJobClient"/>.
+    /// <see cref="IJobScheduler"/> в лице <see cref="HangfireJobScheduler"/> и
+    /// <see cref="IHostedService"/> в лице <see cref="HangfireJobSchedulerBootstrapper"/>.
     /// </summary>
     [Fact]
     public void Inject_RegistersAllRequiredServices()
@@ -42,13 +46,10 @@ public sealed class HangfireDependencyInjectorTests
 
         // Act / Assert
         sp.GetRequiredService<IJobScheduler>().Should().BeOfType<HangfireJobScheduler>();
-        sp.GetRequiredService<HangfireScheduledJobAdapter>().Should().NotBeNull();
         sp.GetServices<IHostedService>()
             .OfType<HangfireJobSchedulerBootstrapper>()
             .Should()
             .HaveCount(1);
-        sp.GetRequiredService<IRecurringJobManager>().Should().NotBeNull();
-        sp.GetRequiredService<IBackgroundJobClient>().Should().NotBeNull();
     }
 
     /// <summary>
@@ -76,31 +77,7 @@ public sealed class HangfireDependencyInjectorTests
     }
 
     /// <summary>
-    /// <see cref="HangfireScheduledJobAdapter"/> зарегистрирован как transient: два вызова
-    /// <c>GetRequiredService</c> возвращают разные экземпляры.
-    /// </summary>
-    [Fact]
-    public void Inject_HangfireScheduledJobAdapter_IsTransient()
-    {
-        // Arrange
-        using var sp = ServiceProviderBuilder.Build(services =>
-        {
-            services.AddLogging();
-            services.AddJobs(_ => { });
-            new HangfireDependencyInjector(LoggerFactory.Create(b => { }))
-                .Inject(services);
-        });
-
-        // Act
-        var first = sp.GetRequiredService<HangfireScheduledJobAdapter>();
-        var second = sp.GetRequiredService<HangfireScheduledJobAdapter>();
-
-        // Assert
-        first.Should().NotBeSameAs(second);
-    }
-
-    /// <summary>
-    /// Повторный вызов <see cref="HangfireDependencyInjector.Inject"/> на той же
+    /// Повторный вызов <c>HangfireDependencyInjector.Inject</c> на той же
     /// коллекции сервисов не должен падать (всё регистрируется идемпотентно по
     /// API Hangfire).
     /// </summary>
@@ -144,5 +121,59 @@ public sealed class HangfireDependencyInjectorTests
 
         // Assert
         sp.GetRequiredService<string>().Should().Be("user-marker");
+    }
+
+    /// <summary>
+    /// Специфичные для Hangfire регистрации, не имеющие прямого аналога в Quartz:
+    /// <see cref="HangfireScheduledJobAdapter"/>, <see cref="IRecurringJobManager"/>
+    /// и <see cref="IBackgroundJobClient"/>. Quartz-эквивалент
+    /// (<c>QuartzScheduledJobAdapter</c>) — <c>internal sealed</c> и
+    /// в DI не регистрируется (создаётся фабрикой <c>IJobFactory</c> на лету),
+    /// поэтому соответствующий тест живёт в <c>Inject_RegistersQuartzSpecificServices</c>.
+    /// </summary>
+    [Fact]
+    public void Inject_RegistersHangfireSpecificServices()
+    {
+        // Arrange
+        using var sp = ServiceProviderBuilder.Build(services =>
+        {
+            services.AddLogging();
+            services.AddJobs(_ => { });
+            new HangfireDependencyInjector(LoggerFactory.Create(b => { }))
+                .Inject(services);
+        });
+
+        // Act / Assert
+        sp.GetRequiredService<HangfireScheduledJobAdapter>().Should().NotBeNull();
+        sp.GetRequiredService<IRecurringJobManager>().Should().NotBeNull();
+        sp.GetRequiredService<IBackgroundJobClient>().Should().NotBeNull();
+    }
+
+    /// <summary>
+    /// <see cref="HangfireScheduledJobAdapter"/> зарегистрирован как transient: два
+    /// вызова <c>GetRequiredService</c> возвращают разные экземпляры.
+    /// <para>
+    /// У Quartz нет аналога: <c>QuartzScheduledJobAdapter</c> — <c>internal</c>,
+    /// создаётся фабрикой, поэтому тест отсутствует.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Inject_HangfireScheduledJobAdapter_IsTransient()
+    {
+        // Arrange
+        using var sp = ServiceProviderBuilder.Build(services =>
+        {
+            services.AddLogging();
+            services.AddJobs(_ => { });
+            new HangfireDependencyInjector(LoggerFactory.Create(b => { }))
+                .Inject(services);
+        });
+
+        // Act
+        var first = sp.GetRequiredService<HangfireScheduledJobAdapter>();
+        var second = sp.GetRequiredService<HangfireScheduledJobAdapter>();
+
+        // Assert
+        first.Should().NotBeSameAs(second);
     }
 }

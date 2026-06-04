@@ -12,6 +12,7 @@ using Moq;
 using Shared.Application.Core.Job.Enums;
 using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Scheduler;
+using Shared.Testing.Job;
 using HangfireJob = Hangfire.Common.Job;
 
 namespace Shared.Infrastructure.Job.Hangfire.Tests;
@@ -27,7 +28,7 @@ public sealed class HangfireJobSchedulerTests
 
     /// <summary>
     /// <see cref="HangfireJobScheduler.ScheduleAsync"/> с <see cref="JobSchedule.Cron"/>
-    /// делегирует <see cref="IRecurringJobManager.AddOrUpdate(string, Job, string, RecurringJobOptions)"/>
+    /// делегирует <c>IRecurringJobManager.AddOrUpdate(string, Job, string, RecurringJobOptions)</c>
     /// ровно один раз с заданным cron-выражением.
     /// </summary>
     [Fact]
@@ -88,7 +89,7 @@ public sealed class HangfireJobSchedulerTests
 
     /// <summary>
     /// <see cref="JobSchedule.OnStartup"/> приводит к вызову
-    /// <see cref="IBackgroundJobClient.Create(Job, IState)"/> с
+    /// <c>IBackgroundJobClient.Create(Job, IState)</c> с
     /// <see cref="ScheduledState"/>, у которого <c>EnqueueAt</c> совпадает с текущим моментом.
     /// </summary>
     [Fact]
@@ -264,7 +265,7 @@ public sealed class HangfireJobSchedulerTests
 
     /// <summary>
     /// <see cref="JobTriggerFlags.OnStartup"/> через <see cref="JobSchedule.Flags"/>
-    /// порождает вызов <see cref="IBackgroundJobClient.Create(Job, IState)"/>.
+    /// порождает вызов <c>IBackgroundJobClient.Create(Job, IState)</c>.
     /// </summary>
     [Fact]
     public async Task CallsBackgroundCreate_WhenOnStartupFlagSet()
@@ -417,13 +418,5 @@ public sealed class HangfireJobSchedulerTests
             && ((job.Args[1] is null && expectedServiceKey is null)
                 || (job.Args[1] is string actualServiceKey && actualServiceKey == expectedServiceKey))
             && job.Args[2] is CancellationToken;
-    }
-
-    /// <summary>
-    /// Тестовая классовая джоба, реализующая <see cref="IScheduledJob"/>.
-    /// </summary>
-    private sealed class FakeScheduledJob : IScheduledJob
-    {
-        public Task ExecuteAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

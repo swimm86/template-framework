@@ -38,8 +38,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(options);
 
         services.TryAddSingleton<IScheduledJobExecutor, ScheduledJobExecutor>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IScheduledJobMiddleware, LoggingMiddleware>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IScheduledJobMiddleware, CorrelationIdMiddleware>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IScheduledJobMiddleware, LoggingMiddleware>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IScheduledJobMiddleware, RetryMiddleware>());
 
         // Дефолтные настройки retry-middleware.

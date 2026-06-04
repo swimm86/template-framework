@@ -11,6 +11,7 @@ using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
 using Shared.Testing.Doubles.DependencyInjection;
+using Shared.Testing.Job;
 
 namespace Shared.Infrastructure.Job.Hangfire.Tests;
 
@@ -161,7 +162,7 @@ public sealed class HangfireScheduledJobAdapterTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton<FakeScheduledJob>();
-        using var sp = services.BuildServiceProvider();
+        await using var sp = services.BuildServiceProvider();
 
         using var cts = new CancellationTokenSource();
         var expectedToken = cts.Token;
@@ -211,13 +212,5 @@ public sealed class HangfireScheduledJobAdapterTests
         var keyed = new MockKeyedServiceProvider();
         keyed.Register(typeof(TJob), serviceKey, job.Object);
         return keyed;
-    }
-
-    /// <summary>
-    /// Простая реализация <see cref="IScheduledJob"/> для тестов.
-    /// </summary>
-    private sealed class FakeScheduledJob : IScheduledJob
-    {
-        public Task ExecuteAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }
