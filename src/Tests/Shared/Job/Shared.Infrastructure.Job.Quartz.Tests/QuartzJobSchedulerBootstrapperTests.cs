@@ -8,11 +8,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Quartz;
-using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Application.Core.Job.Scheduler.Interfaces;
 using Shared.Infrastructure.Job.Quartz.Tests.Fakes;
 using Shared.Testing.Doubles.Logging;
+using Shared.Testing.Job;
 
 namespace Shared.Infrastructure.Job.Quartz.Tests;
 
@@ -20,6 +20,25 @@ namespace Shared.Infrastructure.Job.Quartz.Tests;
 /// Тесты <see cref="QuartzJobSchedulerBootstrapper"/>: проверяем, что bootstrapper
 /// читает <see cref="JobSchedulerOptions"/>, регистрирует каждое определение через
 /// <see cref="IJobScheduler.ScheduleAsync"/> и стартует/останавливает Quartz-планировщик.
+/// <para>
+/// Структура тестов полностью симметрична <c>HangfireJobSchedulerBootstrapperTests</c>
+/// (общий контракт: <c>StartAsync_EmptyDefinitions_DoesNotCallScheduler</c>,
+/// <c>StartAsync_ThreeJobs_CallsSchedulerOncePerDefinition</c>,
+/// <c>StartStopAsync_RoundTrip_DoesNotThrow</c>,
+/// <c>StartAsync_ForwardsCancellationToken</c>,
+/// <c>StartAsync_SchedulerThrows_PropagatesException</c>,
+/// <c>StartAsync_ExceptionOnSecondJob_StopsSchedulingRemaining</c>) —
+/// иначе нельзя гарантировать Zero-Touch Proof (смена Quartz ↔ Hangfire = 0 правок).
+/// </para>
+/// <para>
+/// <see cref="QuartzJobSchedulerBootstrapper"/> — единственный владелец жизненного
+/// цикла <see cref="IScheduler"/>, потому что <c>AddQuartz</c> в
+/// <see cref="QuartzDependencyInjector"/> <c>IHostedService</c> не регистрирует
+/// (для этого нужен отдельный <c>AddQuartzHostedService</c>). Это отличает его от
+/// Hangfire-аналога (где воркер стартует через <c>JobServerHostedService</c>) и
+/// объясняет наличие <c>StartAsync_*_StartsQuartz</c> /
+/// <c>StopAsync_InvokesSchedulerShutdownWithWaitForJobs</c> в Quartz-варианте.
+/// </para>
 /// </summary>
 public sealed class QuartzJobSchedulerBootstrapperTests
 {
@@ -29,7 +48,7 @@ public sealed class QuartzJobSchedulerBootstrapperTests
     /// планировщик всё равно стартует и останавливается без ошибок.
     /// </summary>
     [Fact]
-    public async Task StartAsync_EmptyDefinitions_DoesNotCallSchedulerButStartsQuartz()
+    public async Task StartAsync_EmptyDefinitions_DoesNotCallScheduler()
     {
         // Arrange
         var scheduler = new Mock<IJobScheduler>();
@@ -43,17 +62,14 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         scheduler.Verify(
             s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        factory.SchedulerMock.Verify(
-            s => s.Start(It.IsAny<CancellationToken>()),
-            Times.Once);
     }
 
     /// <summary>
     /// Три определения в <see cref="JobSchedulerOptions.Definitions"/> приводят
-    /// к трём вызовам <see cref="IJobScheduler.ScheduleAsync"/> и одному запуску планировщика.
+    /// к трём вызовам <see cref="IJobScheduler.ScheduleAsync"/>.
     /// </summary>
     [Fact]
-    public async Task StartAsync_ThreeJobs_CallsSchedulerOncePerDefinitionAndStartsQuartz()
+    public async Task StartAsync_ThreeJobs_CallsSchedulerOncePerDefinition()
     {
         // Arrange
         var definitions = new[]
@@ -84,10 +100,6 @@ public sealed class QuartzJobSchedulerBootstrapperTests
                     It.IsAny<CancellationToken>()),
                 Times.Once);
         }
-
-        factory.SchedulerMock.Verify(
-            s => s.Start(It.IsAny<CancellationToken>()),
-            Times.Once);
     }
 
     /// <summary>
@@ -146,6 +158,10 @@ public sealed class QuartzJobSchedulerBootstrapperTests
     /// <see cref="QuartzJobSchedulerBootstrapper.StopAsync"/> вызывает
     /// <see cref="IScheduler.Shutdown(bool, CancellationToken)"/> с
     /// <c>waitForJobsToComplete = true</c> и пробрасывает <see cref="CancellationToken"/>.
+    /// <para>
+    /// Специфично для Quartz: Hangfire-аналог делегирует остановку
+    /// <c>JobServerHostedService</c> и не вызывает <c>Shutdown</c> явно.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task StopAsync_InvokesSchedulerShutdownWithWaitForJobs()
@@ -196,8 +212,10 @@ public sealed class QuartzJobSchedulerBootstrapperTests
 
     /// <summary>
     /// Если <see cref="IJobScheduler.ScheduleAsync"/> для второй джобы кидает исключение,
-    /// то третья не планируется. Проверяем, что цикл по определениям не проглатывает
-    /// ошибки и сразу выходит из <c>StartAsync</c>.
+    /// то третья не планируется и Quartz не стартует. Проверяем, что цикл по
+    /// определениям не проглатывает ошибки и сразу выходит из <c>StartAsync</c>,
+    /// а <see cref="IScheduler.Start"/> не вызывается (атомарный контракт:
+    /// «если регистрация упала, ничего не запустилось»).
     /// </summary>
     [Fact]
     public async Task StartAsync_ExceptionOnSecondJob_StopsSchedulingRemaining()
@@ -246,6 +264,12 @@ public sealed class QuartzJobSchedulerBootstrapperTests
     /// <summary>
     /// <see cref="QuartzJobSchedulerBootstrapper"/> логирует количество регистрируемых
     /// джоб в Information-уровне.
+    /// <para>
+    /// Специфично для Quartz (проверяется <see cref="QuartzJobScheduler"/>): Hangfire
+    /// логирует аналогично, но семантика уровней логирования проверяется в
+    /// <c>HangfireJobSchedulerBootstrapperTests</c> независимо, поскольку у этих
+    /// классов разные логгеры.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task StartAsync_LogsInformationWithJobCount()
@@ -288,12 +312,4 @@ public sealed class QuartzJobSchedulerBootstrapperTests
             Schedule: new JobSchedule.OnStartup(),
             JobType: typeof(FakeScheduledJob),
             ServiceKey: null);
-
-    /// <summary>
-    /// Минимальный тип джобы для <see cref="JobDefinition.JobType"/>.
-    /// </summary>
-    private sealed class FakeScheduledJob : IScheduledJob
-    {
-        public Task ExecuteAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
 }

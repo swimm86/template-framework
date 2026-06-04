@@ -8,10 +8,10 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Quartz;
 using Shared.Application.Core.Job.Enums;
-using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Infrastructure.Job.Quartz.Tests.Fakes;
 using Shared.Testing.Doubles.Logging;
+using Shared.Testing.Job;
 
 namespace Shared.Infrastructure.Job.Quartz.Tests;
 
@@ -486,7 +486,7 @@ public sealed class QuartzJobSchedulerTests
     /// <summary>
     /// <see cref="CancellationToken"/> из вызова пробрасывается в
     /// <see cref="ISchedulerFactory.GetScheduler(CancellationToken)"/> и в
-    /// <see cref="IScheduler.ScheduleJob"/>.
+    /// <c>IScheduler.ScheduleJob</c>.
     /// </summary>
     [Fact]
     public async Task ScheduleAsync_ForwardsCancellationToken()
@@ -541,14 +541,6 @@ public sealed class QuartzJobSchedulerTests
             .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
             .Should().ContainSingle().Subject;
         return (IJobDetail)call.Arguments[0];
-    }
-
-    /// <summary>
-    /// Тестовая классовая джоба, реализующая <see cref="IScheduledJob"/>.
-    /// </summary>
-    private sealed class FakeScheduledJob : IScheduledJob
-    {
-        public Task ExecuteAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     /// <summary>

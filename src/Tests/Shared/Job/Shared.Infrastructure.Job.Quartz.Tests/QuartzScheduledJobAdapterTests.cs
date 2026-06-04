@@ -9,11 +9,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Quartz;
-using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Testing.Doubles.Logging;
+using Shared.Testing.Job;
 
 namespace Shared.Infrastructure.Job.Quartz.Tests;
 
@@ -369,11 +369,4 @@ public sealed class QuartzScheduledJobAdapterTests
         return ctx.Object;
     }
 
-    /// <summary>
-    /// Тестовая классовая джоба для <see cref="JobDataMap"/>.
-    /// </summary>
-    private sealed class FakeScheduledJob : IScheduledJob
-    {
-        public Task ExecuteAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
 }

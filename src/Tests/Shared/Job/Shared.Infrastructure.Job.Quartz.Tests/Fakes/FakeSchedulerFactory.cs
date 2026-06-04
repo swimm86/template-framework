@@ -44,18 +44,18 @@ internal sealed class FakeSchedulerFactory : ISchedulerFactory
     }
 
     /// <inheritdoc />
-    public Task<IScheduler> GetScheduler(string schedName, CancellationToken cancellationToken = default) =>
-        GetScheduler(cancellationToken);
+    public Task<IScheduler?> GetScheduler(string schedName, CancellationToken cancellationToken = default) =>
+        GetScheduler(cancellationToken).ContinueWith(t => (IScheduler?)t.Result, cancellationToken);
 
     /// <summary>
     /// <see cref="ISchedulerFactory"/> имеет несколько членов, не используемых
     /// QuartzJobScheduler/QuartzJobSchedulerBootstrapper; возвращаем фиктивные данные.
     /// </summary>
-    public IReadOnlyList<string> GetAllSchedulerIds() => new[] { "fake" };
+    public IReadOnlyList<string> GetAllSchedulerIds() => ["fake"];
 
     /// <summary>
     /// Не используется в тестируемых сценариях; возвращаем фиктивные данные.
     /// </summary>
     public Task<IReadOnlyList<IScheduler>> GetAllSchedulers(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<IScheduler>>(new[] { SchedulerMock.Object });
+        Task.FromResult<IReadOnlyList<IScheduler>>([SchedulerMock.Object]);
 }
