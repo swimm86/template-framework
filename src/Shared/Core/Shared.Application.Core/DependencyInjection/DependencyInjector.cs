@@ -10,6 +10,7 @@ using Shared.Application.Core.ApiClient.Validators;
 using Shared.Application.Core.ApiClient.Validators.Interfaces;
 using Shared.Application.Core.Cache;
 using Shared.Application.Core.Dal.DbSeeder.Extensions;
+using Shared.Application.Core.Dal.DbUpdater.Extensions;
 using Shared.Application.Core.Dal.Repository.Extensions;
 using Shared.Application.Core.DependencyInjection.Base;
 using Shared.Application.Core.Json;
@@ -40,6 +41,7 @@ public class DependencyInjector(
             .AddHttpContextAccessor()
             .ConfigureJsonSerializer()
             .AddRepositories()
+            .AddDatabaseUpdater()
             .AddDbSeeder()
             .AddPropertyUtil()
             .AddSingleton<IUriValidator, RelativeUriValidator>()
