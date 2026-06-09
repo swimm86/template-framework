@@ -218,6 +218,65 @@ app.Run();
 
 ---
 
+## 6. `DbSeederJob` — запуск seed-ов через Job Scheduler
+
+### 6.1. Назначение
+
+`DbSeederJob` — фоновая задача (`IScheduledJob`), которая оборачивает `IDbSeeder` и регистрирует его в [Job Scheduler](job-scheduler.md). Задача решает две проблемы:
+
+- **Идемпотентность в рамках процесса.** `DbSeeder` сам по себе идемпотентен на уровне БД (таблица `seed`), но если планировщик по какой-то причине перезапускает итерацию внутри одного процесса (например, при ошибке и срабатывании `RetryOptions`) — повторно выполнять `ApplySeedsAsync` дорого и бессмысленно.
+- **Участие в retry-политике.** Если при первом старте БД ещё не готова (накатываются миграции, временно недоступна и т.п.), задача ретраит с задержкой 5 минут до 100 раз.
+
+### 6.2. Регистрация
+
+```csharp
+services.RegisterDbSeederJob();
+```
+
+Метод `RegisterDbSeederJob` (`Shared.Application.Core.Job.Extensions.DbSeederExtensions`) делает три вещи:
+
+1. Регистрирует `DbSeederJob` в DI как `Scoped`.
+2. Подключает фоновую задачу через `AddJobs(...)` с расписанием `JobSchedule.OnStartup()`.
+3. Навешивает на задачу `RetryOptions { Delay = 5 минут, MaxAttempts = 100 }` — при неудаче повтор каждые 5 минут до 100 попыток (итого ~8 часов непрерывных попыток).
+
+`RegisterDbSeederJob` **не зависит от Quartz** — выбор провайдера (`Shared.Infrastructure.Job.Quartz` или `Shared.Infrastructure.Job.Hangfire`) определяется проектной ссылкой сервиса.
+
+### 6.3. Идемпотентность
+
+```csharp
+public sealed class DbSeederJob(IDbSeeder seeder) : IScheduledJob
+{
+    private static volatile bool _isCompleted;
+
+    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isCompleted) return;
+        await seeder.ApplySeedsAsync(cancellationToken);
+        _isCompleted = true;
+    }
+
+    internal static void ResetCompletionFlag() => _isCompleted = false;
+}
+```
+
+| Аспект | Описание |
+|--------|----------|
+| **Хранение флага** | `static volatile bool _isCompleted` — общий для всех экземпляров в рамках процесса. |
+| **Назначение** | Если retry-middleware повторно вызывает `ExecuteAsync` (например, в первой попытке был `DbUpdateException` из-за блокировки), второй и последующие вызовы мгновенно выходят. |
+| **Гарантии** | Гарантирует **не более одного выполнения `ApplySeedsAsync` за время жизни процесса**. Не защищает от параллельного запуска нескольких инстансов сервиса на одной БД — для этого полагайтесь на таблицу `seed`. |
+| **`ResetCompletionFlag`** | `internal static` метод. Существует **исключительно для unit-тестов** `Shared.Application.Core.Tests`, где каждый `[Fact]` должен стартовать из «чистого» состояния. В production-коде вызывать не нужно — статический флаг уже удерживается процессом, а задача `OnStartup` выполняется ровно один раз. Помечен `internal`, чтобы случайное использование из бизнес-кода приводило к ошибке компиляции. |
+
+### 6.4. Связь с обычным `IDbUpdater.Initialize()`
+
+`DbSeederJob` **не подменяет** `IDbUpdater` — оба могут сосуществовать. Типичный сценарий:
+
+1. `IDbUpdater.Initialize()` синхронно накатывает миграции и вызывает `ApplySeedsAsync` при первом старте.
+2. `DbSeederJob` страхует от ситуации, когда `Initialize` не был вызван (например, в сервисах, где нет `IDbUpdater`), или когда `Initialize` упал, но приложение должно стартовать и попробовать позже.
+
+В большинстве сервисов достаточно **одного из двух** механизмов. Выбор зависит от того, что критичнее: гарантированный seed до старта приложения (`IDbUpdater`) или устойчивость к отказам БД на старте (`DbSeederJob`).
+
+---
+
 ---
 
 ## См. также

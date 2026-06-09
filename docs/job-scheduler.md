@@ -10,7 +10,7 @@
 
 Job Scheduler — модуль фреймворка Shared для регистрации и запуска фоновых задач по расписанию. Модуль построен на принципах **Clean Architecture** и **DIP**: бизнес-код работает с абстракциями из `Shared.Application.Core.Job`, а конкретный планировщик (Quartz или Hangfire) подключается через **адаптер** в `Shared.Infrastructure.Job.*`. Бизнес-логика не знает про выбранный планировщик — замена провайдера выполняется сменой `ProjectReference` и одной строки в DI, без правок доменного кода.
 
-Внутри Job Scheduler реализован **middleware-pipeline** (по аналогии с [Pipeline Behaviors](pipeline-behaviors.md) для MediatR): кросс-секинг concerns — логирование, correlation ID, retry — выносятся в отдельные middleware и не загрязняют сами задачи.
+Внутри Job Scheduler реализован **middleware-pipeline** (по аналогии с [Pipeline Behaviors](pipeline-behaviors.md) для MediatR): кросс-секинг concerns — логирование, correlation ID, retry — выносятся в отдельные middleware и не загрязняют сами задачи. Retry настраивается **per-job** через `RetryOptions`, а не глобально через DI (см. [Pipeline](job-scheduler/pipeline.md) и [Architecture](job-scheduler/architecture.md)).
 
 ## Проблема со старым API
 
@@ -32,7 +32,7 @@ Job Scheduler — модуль фреймворка Shared для регистр
 │   IScheduledJob     JobDefinition     JobSchedule (Cron | Flags | Startup)│
 │   IJobScheduler     JobSchedulerBuilder                                  │
 │   IScheduledJobExecutor + IScheduledJobMiddleware (Pipeline)            │
-│   LoggingMiddleware / CorrelationIdMiddleware / RetryMiddleware          │
+│   CorrelationIdMiddleware / LoggingMiddleware / RetryMiddleware          │
 │   ServiceCollectionExtensions (AddJobs)                                  │
 │   CacheJobExtensions / DbSeederExtensions                                │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -81,6 +81,25 @@ services
     .AddJobs(opts => opts
         .AddJob<HelloWorldJob>(new JobSchedule.OnStartup())
         .AddJob<NightlySyncJob>(new JobSchedule.Cron("0 0 3 * * ?")));
+
+// Если джобе нужны повторы при неудаче — навешиваем RetryOptions per-job:
+services.AddJobs(opts => opts
+    .AddJob<NetworkSyncJob>(
+        new JobSchedule.Cron("0 0/5 * * * ?"),
+        new RetryOptions
+        {
+            MaxAttempts = 3,
+            Delay = TimeSpan.FromMinutes(1),
+        }));
+
+// Если джоба зарегистрирована как keyed-сервис (несколько экземпляров под разными ключами):
+services
+    .AddKeyedScoped<CacheUpdateJob, string>("region-eu")
+    .AddKeyedScoped<CacheUpdateJob, string>("region-us");
+
+services.AddJobs(opts => opts
+    .AddJob<CacheUpdateJob>("region-eu", new JobSchedule.Cron("0 */5 * * * ?"))
+    .AddJob<CacheUpdateJob>("region-us", new JobSchedule.Cron("0 */5 * * * ?")));
 ```
 
 ### 3. Выбор провайдера — смена ProjectReference
@@ -93,14 +112,14 @@ services
 <ProjectReference Include="..\..\Shared\Job\Shared.Infrastructure.Job.Hangfire\Shared.Infrastructure.Job.Hangfire.csproj" />
 ```
 
-Больше ничего менять не нужно. `AddJobs(...)` уже зарегистрировал `JobSchedulerOptions`, executor и middleware. Адаптер поднимет свой планировщик при старте (`IHostedService`) и заберёт `JobDefinition`-ы из DI.
+Больше ничего менять не нужно. `AddJobs(...)` уже зарегистрировал `JobSchedulerOptions`, executor и middleware. Адаптер поднимет свой планировщик при старте (`IHostedService`) и заберёт `JobDefinition`-ы из DI. Внутри `JobDefinition` адаптер пробрасывает per-job `RetryOptions` (через `JobDataMap` в Quartz, через аргумент bridge-метода в Hangfire) — см. [Pipeline](job-scheduler/pipeline.md) и [Quartz Adapter](job-scheduler/quartz-adapter.md).
 
 ## API Reference
 
 | Тип | Где живёт | Назначение |
 |-----|-----------|-----------|
 | `IScheduledJob` | `Shared.Application.Core.Job` | Маркер для фоновой задачи в виде класса. Метод: `ExecuteAsync(CancellationToken)`. |
-| `JobDefinition` | `Shared.Application.Core.Job` | POCO-описание задачи: ключ, расписание, делегат или тип фоновой задачи. |
+| `JobDefinition` | `Shared.Application.Core.Job` | POCO-описание задачи: ключ, расписание, делегат или тип фоновой задачи, опциональный `ServiceKey` (keyed-DI) и `RetryOptions` (per-job retry-политика). |
 | `JobSchedule` | `Shared.Application.Core.Job` | Discriminated union: `Cron(expr)`, `Flags(flags, time)`, `OnStartup`. |
 | `JobTriggerFlags` | `Shared.Application.Core.Job` | `[Flags]`-перечисление: `Daily`, `Weekly`, `Monthly`, `OnStartup`, `EveryMinute`, `EveryHour`. |
 | `IJobScheduler` | `Shared.Application.Core.Job` | Runtime API: `ScheduleAsync(JobDefinition)`. |

@@ -64,6 +64,7 @@ public sealed class HangfireScheduledJobAdapterTests
         await adapter.RunScheduledJobAsync(
             typeof(FakeScheduledJob).AssemblyQualifiedName!,
             serviceKey: serviceKey,
+            retryOptions: null,
             CancellationToken.None);
 
         // Assert
@@ -73,6 +74,7 @@ public sealed class HangfireScheduledJobAdapterTests
         captured.ServiceKey.Should().Be(serviceKey);
         captured.JobKey.Should().Be(typeof(FakeScheduledJob).FullName);
         captured.CancellationToken.Should().Be(CancellationToken.None);
+        captured.RetryOptions.Should().BeNull("retryOptions: null не пробрасывается в контекст");
 
         if (keyed is not null)
         {
@@ -113,7 +115,7 @@ public sealed class HangfireScheduledJobAdapterTests
             NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
-        var act = () => adapter.RunScheduledJobAsync(jobTypeName, serviceKey: null, CancellationToken.None);
+        var act = () => adapter.RunScheduledJobAsync(jobTypeName, serviceKey: null, retryOptions: null, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -145,6 +147,7 @@ public sealed class HangfireScheduledJobAdapterTests
         var act = () => adapter.RunScheduledJobAsync(
             typeof(FakeScheduledJob).AssemblyQualifiedName!,
             serviceKey: null,
+            retryOptions: null,
             CancellationToken.None);
 
         // Assert
@@ -180,11 +183,94 @@ public sealed class HangfireScheduledJobAdapterTests
         await adapter.RunScheduledJobAsync(
             typeof(FakeScheduledJob).AssemblyQualifiedName!,
             serviceKey: null,
+            retryOptions: null,
             expectedToken);
 
         // Assert
         captured.Should().NotBeNull();
         captured!.CancellationToken.Should().Be(expectedToken);
+    }
+
+    /// <summary>
+    /// <see cref="RetryOptions"/>, переданный в адаптер, попадает в
+    /// <see cref="ScheduledJobContext.RetryOptions"/> без изменений.
+    /// </summary>
+    [Fact]
+    public async Task PropagatesRetryOptionsToContext_WhenOptionsProvided()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<FakeScheduledJob>();
+        await using var sp = services.BuildServiceProvider();
+
+        var retryOptions = new RetryOptions
+        {
+            MaxAttempts = 7,
+            Delay = TimeSpan.FromMinutes(2),
+        };
+
+        ScheduledJobContext? captured = null;
+        var executor = new Mock<IScheduledJobExecutor>();
+        executor
+            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
+            .Callback<ScheduledJobContext>(ctx => captured = ctx)
+            .Returns(Task.CompletedTask);
+
+        var adapter = new HangfireScheduledJobAdapter(sp, executor.Object, NullLogger<HangfireScheduledJobAdapter>.Instance);
+
+        // Act
+        await adapter.RunScheduledJobAsync(
+            typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            serviceKey: null,
+            retryOptions: retryOptions,
+            CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.RetryOptions.Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// Явный null-контракт: если <c>retryOptions: null</c> передан в
+    /// <see cref="HangfireScheduledJobAdapter.RunScheduledJobAsync"/>,
+    /// <see cref="ScheduledJobContext.RetryOptions"/> остаётся <c>null</c> —
+    /// <c>RetryMiddleware</c> интерпретирует это как «без retry».
+    /// <para>
+    /// Зеркалит тест <c>QuartzScheduledJobAdapterTests.Execute_WithoutRetryOptions_LeavesContextRetryOptionsNull</c>
+    /// для подтверждения, что Hangfire-адаптер ведёт себя консистентно с Quartz-адаптером
+    /// в части per-execution <see cref="RetryOptions"/>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task PropagatesNullRetryOptionsToContext_WhenOptionsNotProvided()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<FakeScheduledJob>();
+        await using var sp = services.BuildServiceProvider();
+
+        ScheduledJobContext? captured = null;
+        var executor = new Mock<IScheduledJobExecutor>();
+        executor
+            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
+            .Callback<ScheduledJobContext>(ctx => captured = ctx)
+            .Returns(Task.CompletedTask);
+
+        var adapter = new HangfireScheduledJobAdapter(
+            sp,
+            executor.Object,
+            NullLogger<HangfireScheduledJobAdapter>.Instance);
+
+        // Act
+        await adapter.RunScheduledJobAsync(
+            typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            serviceKey: null,
+            retryOptions: null,
+            CancellationToken.None);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.RetryOptions.Should().BeNull("retryOptions: null должен давать RetryOptions = null в контексте");
     }
 
     /// <summary>

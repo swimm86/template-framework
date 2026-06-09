@@ -26,7 +26,7 @@ Job Scheduler спроектирован в соответствии с трем
 │                JobSchedulerOptions                                     │
 │  Pipeline:     IScheduledJobMiddleware, IScheduledJobExecutor,         │
 │                ScheduledJobContext, ScheduledJobDelegate,              │
-│                LoggingMiddleware, CorrelationIdMiddleware,             │
+│                CorrelationIdMiddleware, LoggingMiddleware,             │
 │                RetryMiddleware, RetryOptions                           │
 │  Extensions:   ServiceCollectionExtensions (AddJobs),                  │
 │                CacheJobExtensions, DbSeederExtensions,                 │
@@ -66,17 +66,18 @@ Job Scheduler решает это через **middleware-pipeline** по ана
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  LoggingMiddleware (1-й — самый внешний)               │
-│  │  logger.LogInformation("Job X is executing")        │
+│  CorrelationIdMiddleware (1-й — самый внешний)         │
+│  │  JobCorrelationContext.TrySetCorrelationId()        │
 │  │  try { await next(); }                              │
-│  │  catch { logger.LogError; throw; }                  │
-│  │  logger.LogInformation("Job X is completed")        │
-│  ├─▶ CorrelationIdMiddleware (2-й)                     │
-│  │   │  JobCorrelationContext.TrySetCorrelationId()    │
+│  │  finally { ClearCorrelationId() }                   │
+│  ├─▶ LoggingMiddleware (2-й)                           │
+│  │   │  logger.LogInformation("Job X is executing")    │
 │  │   │  try { await next(); }                          │
-│  │   │  finally { ClearCorrelationId() }               │
+│  │   │  catch { logger.LogError; throw; }              │
+│  │   │  logger.LogInformation("Job X is completed")    │
 │  │   ├─▶ RetryMiddleware (3-й — самый внутренний)      │
-│  │   │   │  while (attempt < MaxAttempts)              │
+│  │   │   │  if (context.RetryOptions is null) → next()  │
+│  │   │   │  while (attempt < context.RetryOptions.MaxAttempts)            │
 │  │   │   │    try { await next(); return; }            │
 │  │   │   │    catch { delay; ++attempt; }              │
 │  │   │   ├─▶ Terminal:                                 │
@@ -122,7 +123,7 @@ Job Scheduler решает это через **middleware-pipeline** по ана
    services.AddJobs(opts => opts.AddJob<MyJob>(new JobSchedule.Cron("0 0/5 * * * ?")));
    ├─▶ AddSingleton<JobSchedulerOptions>   { Definitions: [ { JobKey, JobType, ... } ] }
    ├─▶ AddSingleton<IScheduledJobExecutor, ScheduledJobExecutor>
-   └─▶ AddEnumerable<IScheduledJobMiddleware>(Logging, CorrelationId, Retry)
+   └─▶ AddEnumerable<IScheduledJobMiddleware>(CorrelationId, Logging, Retry)
 
 3. app.Build() → HostedServices.StartAsync:
    └─▶ QuartzJobSchedulerBootstrapper / HangfireJobSchedulerBootstrapper
@@ -161,10 +162,10 @@ Job Scheduler решает это через **middleware-pipeline** по ана
                        └──────────────────┬───────────────────┘
                                           │ restore JobType / Action
                                           ▼
-                       ┌──────────────────────────────────────┐
-                       │  ScheduledJobExecutor (Pipeline)     │
-                       │  Logging → Correlation → Retry →     │
-                       │  Terminal                            │
+                        ┌──────────────────────────────────────┐
+                        │  ScheduledJobExecutor (Pipeline)     │
+                        │  CorrelationId → Logging → Retry →   │
+                        │  Terminal                            │
                        └──────────────────┬───────────────────┘
                                           │ for class: resolve
                                           ▼

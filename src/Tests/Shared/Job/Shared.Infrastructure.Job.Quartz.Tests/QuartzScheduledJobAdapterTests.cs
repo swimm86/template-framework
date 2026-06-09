@@ -11,7 +11,6 @@ using Moq;
 using Quartz;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
-using Shared.Application.Core.Job.Scheduler;
 using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Job;
 
@@ -26,8 +25,9 @@ namespace Shared.Infrastructure.Job.Quartz.Tests;
 public sealed class QuartzScheduledJobAdapterTests
 {
     /// <summary>
-    /// Если в <see cref="JobDataMap"/> нет ни <c>JobType</c>, ни <c>JobAction</c>,
-    /// адаптер логирует ошибку и не вызывает executor.
+    /// Если в <see cref="JobDataMap"/> нет ни <see cref="Constants.JobTypeKey"/>,
+    /// ни <see cref="Constants.ActionDataKey"/>, адаптер логирует ошибку
+    /// и не вызывает executor.
     /// </summary>
     [Fact]
     public async Task Execute_NoJobTypeNoAction_LogsErrorAndSkipsExecutor()
@@ -56,9 +56,9 @@ public sealed class QuartzScheduledJobAdapterTests
     }
 
     /// <summary>
-    /// Классовая джоба: <see cref="JobDataMap"/> содержит <c>JobType</c>
-    /// с корректным <c>AssemblyQualifiedName</c>. Адаптер передаёт в executor
-    /// контекст с этим <c>JobType</c> и без <c>Action</c>.
+    /// Классовая джоба: <see cref="JobDataMap"/> содержит
+    /// <see cref="Constants.JobTypeKey"/> с корректным <c>AssemblyQualifiedName</c>.
+    /// Адаптер передаёт в executor контекст с этим <c>JobType</c> и без <c>Action</c>.
     /// </summary>
     [Fact]
     public async Task Execute_ClassJob_BuildsContextWithJobTypeAndNoAction()
@@ -73,7 +73,7 @@ public sealed class QuartzScheduledJobAdapterTests
 
         var data = new JobDataMap
         {
-            [QuartzScheduledJobAdapter.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
         };
         var context = NewExecutionContext("classJob", data, TestContext.Current.CancellationToken);
 
@@ -95,7 +95,7 @@ public sealed class QuartzScheduledJobAdapterTests
     }
 
     /// <summary>
-    /// Классовая джоба с <see cref="JobDefinition.ServiceKey"/>:
+    /// Классовая джоба с <c>JobDefinition.ServiceKey</c>:
     /// адаптер пробрасывает <c>ServiceKey</c> в контекст.
     /// </summary>
     [Fact]
@@ -111,8 +111,8 @@ public sealed class QuartzScheduledJobAdapterTests
 
         var data = new JobDataMap
         {
-            [QuartzScheduledJobAdapter.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
-            [QuartzScheduledJobAdapter.ServiceKeyKey] = "primary",
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.ServiceKeyKey] = "primary",
         };
         var context = NewExecutionContext("keyed", data, TestContext.Current.CancellationToken);
 
@@ -134,7 +134,7 @@ public sealed class QuartzScheduledJobAdapterTests
 
     /// <summary>
     /// Лямбда-джоба: <c>JobType</c> в <see cref="JobDataMap"/> отсутствует,
-    /// но есть <see cref="JobDefinition.ActionDataKey"/>. Адаптер передаёт
+    /// но есть <see cref="Constants.ActionDataKey"/>. Адаптер передаёт
     /// делегат в <see cref="ScheduledJobContext.Action"/>.
     /// </summary>
     [Fact]
@@ -151,7 +151,7 @@ public sealed class QuartzScheduledJobAdapterTests
         Func<IServiceProvider, CancellationToken, Task> action = (_, _) => Task.CompletedTask;
         var data = new JobDataMap
         {
-            [JobDefinition.ActionDataKey] = action,
+            [Constants.ActionDataKey] = action,
         };
         var context = NewExecutionContext("lambda", data, TestContext.Current.CancellationToken);
 
@@ -190,8 +190,8 @@ public sealed class QuartzScheduledJobAdapterTests
         var data = new JobDataMap
         {
             // Имя, которое точно не резолвится в Type.
-            [QuartzScheduledJobAdapter.JobTypeKey] = "Definitely.Not.A.Type, Nowhere",
-            [JobDefinition.ActionDataKey] = action,
+            [Constants.JobTypeKey] = "Definitely.Not.A.Type, Nowhere",
+            [Constants.ActionDataKey] = action,
         };
         var context = NewExecutionContext("fallback", data, TestContext.Current.CancellationToken);
 
@@ -228,7 +228,7 @@ public sealed class QuartzScheduledJobAdapterTests
         using var cts = new CancellationTokenSource();
         var data = new JobDataMap
         {
-            [QuartzScheduledJobAdapter.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
         };
         var context = NewExecutionContext("ct", data, cts.Token);
 
@@ -263,7 +263,7 @@ public sealed class QuartzScheduledJobAdapterTests
 
         var data = new JobDataMap
         {
-            [QuartzScheduledJobAdapter.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
         };
         var context = NewExecutionContext("sp", data, TestContext.Current.CancellationToken);
 
@@ -298,7 +298,7 @@ public sealed class QuartzScheduledJobAdapterTests
 
         var data = new JobDataMap
         {
-            [QuartzScheduledJobAdapter.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
         };
         var context = NewExecutionContext("billing-jobs-nightly", data, TestContext.Current.CancellationToken);
 
@@ -314,6 +314,83 @@ public sealed class QuartzScheduledJobAdapterTests
         // Assert
         captured.Should().NotBeNull();
         captured!.JobKey.Should().Be("billing-jobs-nightly");
+    }
+
+    /// <summary>
+    /// <see cref="RetryOptions"/> из <see cref="Constants.RetryOptionsKey"/>
+    /// в <see cref="JobDataMap"/> пробрасывается в <see cref="ScheduledJobContext.RetryOptions"/>.
+    /// </summary>
+    [Fact]
+    public async Task Execute_WithRetryOptions_ForwardsToContext()
+    {
+        // Arrange
+        var executor = new Mock<IScheduledJobExecutor>();
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var adapter = new QuartzScheduledJobAdapter(
+            sp,
+            executor.Object,
+            NullLogger<QuartzScheduledJobAdapter>.Instance);
+
+        var retryOptions = new RetryOptions
+        {
+            MaxAttempts = 5,
+            Delay = TimeSpan.FromMinutes(1),
+        };
+        var data = new JobDataMap
+        {
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.RetryOptionsKey] = retryOptions,
+        };
+        var context = NewExecutionContext("with-retry", data, TestContext.Current.CancellationToken);
+
+        ScheduledJobContext? captured = null;
+        executor
+            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
+            .Callback<ScheduledJobContext>(ctx => captured = ctx)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await adapter.Execute(context);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.RetryOptions.Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// Если <see cref="Constants.RetryOptionsKey"/> отсутствует в <see cref="JobDataMap"/>,
+    /// <see cref="ScheduledJobContext.RetryOptions"/> остаётся <c>null</c> —
+    /// <c>RetryMiddleware</c> интерпретирует это как «без retry».
+    /// </summary>
+    [Fact]
+    public async Task Execute_WithoutRetryOptions_LeavesContextRetryOptionsNull()
+    {
+        // Arrange
+        var executor = new Mock<IScheduledJobExecutor>();
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var adapter = new QuartzScheduledJobAdapter(
+            sp,
+            executor.Object,
+            NullLogger<QuartzScheduledJobAdapter>.Instance);
+
+        var data = new JobDataMap
+        {
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+        };
+        var context = NewExecutionContext("no-retry", data, TestContext.Current.CancellationToken);
+
+        ScheduledJobContext? captured = null;
+        executor
+            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
+            .Callback<ScheduledJobContext>(ctx => captured = ctx)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await adapter.Execute(context);
+
+        // Assert
+        captured.Should().NotBeNull();
+        captured!.RetryOptions.Should().BeNull();
     }
 
     /// <summary>
@@ -337,7 +414,7 @@ public sealed class QuartzScheduledJobAdapterTests
 
         var data = new JobDataMap
         {
-            [QuartzScheduledJobAdapter.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
+            [Constants.JobTypeKey] = typeof(FakeScheduledJob).AssemblyQualifiedName!,
         };
         var context = NewExecutionContext("boom", data, TestContext.Current.CancellationToken);
 

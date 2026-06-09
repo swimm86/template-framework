@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using Hangfire.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Job.Interfaces;
@@ -50,11 +49,15 @@ internal sealed class HangfireScheduledJobAdapter(
     /// </summary>
     /// <param name="typeName">AssemblyQualifiedName типа, реализующего <see cref="IScheduledJob"/>.</param>
     /// <param name="serviceKey">Ключ keyed-сервиса или <c>null</c>.</param>
+    /// <param name="retryOptions"><inheritdoc cref="Shared.Application.Core.Job.Pipeline.RetryOptions" path="/summary"/></param>
     /// <returns>Сериализуемая <see cref="HangfireJob"/>-обёртка.</returns>
-    public static HangfireJob CreateHangfireJob(string typeName, string? serviceKey)
+    public static HangfireJob CreateHangfireJob(
+        string typeName,
+        string? serviceKey,
+        RetryOptions? retryOptions)
     {
         Expression<Func<HangfireScheduledJobAdapter, Task>> expression =
-            bridge => bridge.RunScheduledJobAsync(typeName, serviceKey, CancellationToken.None);
+            bridge => bridge.RunScheduledJobAsync(typeName, serviceKey, retryOptions, CancellationToken.None);
         return HangfireJob.FromExpression(expression);
     }
 
@@ -63,11 +66,13 @@ internal sealed class HangfireScheduledJobAdapter(
     /// </summary>
     /// <param name="jobTypeName">AssemblyQualifiedName типа, реализующего <see cref="IScheduledJob"/>.</param>
     /// <param name="serviceKey">Ключ keyed-сервиса (если задача зарегистрирована через <c>AddKeyedSingleton</c>), иначе <c>null</c>.</param>
+    /// <param name="retryOptions"><inheritdoc cref="Shared.Application.Core.Job.Pipeline.RetryOptions" path="/summary"/></param>
     /// <param name="cancellationToken">Токен отмены (пробрасывается через конвейер/pipeline).</param>
     /// <returns>Задача, представляющая асинхронное выполнение фоновой задачи.</returns>
     public Task RunScheduledJobAsync(
         string jobTypeName,
         string? serviceKey,
+        RetryOptions? retryOptions,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(jobTypeName))
@@ -95,6 +100,7 @@ internal sealed class HangfireScheduledJobAdapter(
         {
             JobType = jobType,
             ServiceKey = serviceKey,
+            RetryOptions = retryOptions,
         };
 
         logger.LogDebug(

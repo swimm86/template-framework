@@ -9,7 +9,6 @@ using Quartz;
 using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
-using Shared.Application.Core.Job.Scheduler;
 
 namespace Shared.Infrastructure.Job.Quartz;
 
@@ -28,28 +27,16 @@ internal sealed class QuartzScheduledJobAdapter(
     ILogger<QuartzScheduledJobAdapter> logger)
     : IJob
 {
-    /// <summary>
-    /// Ключ в <see cref="JobDataMap"/>, под которым хранится полное имя типа фоновой задачи
-    /// (для получения из DI при выполнении).
-    /// </summary>
-    public const string JobTypeKey = "JobType";
-
-    /// <summary>
-    /// Ключ в <see cref="JobDataMap"/>, под которым хранится ключ keyed-сервиса в DI
-    /// (опционально).
-    /// </summary>
-    public const string ServiceKeyKey = "ServiceKey";
-
     /// <inheritdoc />
     public async Task Execute(IJobExecutionContext context)
     {
         var jobKey = context.JobDetail.Key.Name;
         var cancellationToken = context.CancellationToken;
 
-        var jobTypeName = context.JobDetail.JobDataMap[JobTypeKey] as string;
-        var jobType = jobTypeName is null ? null : Type.GetType(jobTypeName, throwOnError: false);
-        var serviceKey = context.JobDetail.JobDataMap[ServiceKeyKey] as string;
-        var action = context.JobDetail.JobDataMap[JobDefinition.ActionDataKey] as Func<IServiceProvider, CancellationToken, Task>;
+        var jobType = context.JobDetail.JobDataMap[Constants.JobTypeKey] is not string jobTypeName
+            ? null
+            : Type.GetType(jobTypeName, throwOnError: false);
+        var action = context.JobDetail.JobDataMap[Constants.ActionDataKey] as Func<IServiceProvider, CancellationToken, Task>;
 
         if (jobType is null && action is null)
         {
@@ -60,11 +47,14 @@ internal sealed class QuartzScheduledJobAdapter(
             return;
         }
 
+        var serviceKey = context.JobDetail.JobDataMap[Constants.ServiceKeyKey] as string;
+        var retryOptions = context.JobDetail.JobDataMap[Constants.RetryOptionsKey] as RetryOptions;
         var ctx = new ScheduledJobContext(jobKey, serviceProvider, cancellationToken)
         {
             JobType = jobType,
             ServiceKey = serviceKey,
             Action = action,
+            RetryOptions = retryOptions,
         };
 
         await executor.ExecuteAsync(ctx);

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shared.Application.Core.Job.Enums;
 using Shared.Application.Core.Job.Interfaces;
+using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Testing.Job;
 using HangfireJob = Hangfire.Common.Job;
@@ -112,6 +113,75 @@ public sealed class HangfireJobSchedulerTests
                 It.Is<IState>(s => s is ScheduledState)),
             Times.Once);
         recurring.VerifyNoOtherCalls();
+    }
+
+    /// <summary>
+    /// Cron-джоба передаёт <see cref="RetryOptions"/> в <c>HangfireJob.Args[2]</c>
+    /// с тем же экземпляром, что указан в <see cref="JobDefinition.RetryOptions"/>.
+    /// </summary>
+    [Fact]
+    public async Task PassesRetryOptions_WhenCronScheduled()
+    {
+        // Arrange
+        var recurring = new Mock<IRecurringJobManager>();
+        var background = new Mock<IBackgroundJobClient>();
+        var scheduler = CreateScheduler(recurring, background);
+
+        var retryOptions = new RetryOptions
+        {
+            MaxAttempts = 4,
+            Delay = TimeSpan.FromMinutes(1),
+        };
+        var definition = NewClassDefinition(
+            "cron-with-retry",
+            typeof(FakeScheduledJob),
+            new JobSchedule.Cron(SampleCron),
+            retryOptions: retryOptions);
+
+        // Act
+        await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        recurring.Verify(
+            r => r.AddOrUpdate(
+                It.IsAny<string>(),
+                It.Is<HangfireJob>(j =>
+                    j.Args.Count == 4
+                    && j.Args[0] is string
+                    && ReferenceEquals(j.Args[2], retryOptions)),
+                It.IsAny<string>(),
+                It.IsAny<RecurringJobOptions>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// Cron-джоба без <see cref="RetryOptions"/>:
+    /// <c>HangfireJob.Args[2]</c> = <c>null</c> (контракт: «нет retry»).
+    /// </summary>
+    [Fact]
+    public async Task PassesNullRetryOptions_WhenRetryOptionsNotSpecified()
+    {
+        // Arrange
+        var recurring = new Mock<IRecurringJobManager>();
+        var background = new Mock<IBackgroundJobClient>();
+        var scheduler = CreateScheduler(recurring, background);
+
+        var definition = NewClassDefinition(
+            "cron-no-retry",
+            typeof(FakeScheduledJob),
+            new JobSchedule.Cron(SampleCron));
+
+        // Act
+        await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        recurring.Verify(
+            r => r.AddOrUpdate(
+                It.IsAny<string>(),
+                It.Is<HangfireJob>(j => j.Args.Count == 4 && j.Args[2] == null),
+                It.IsAny<string>(),
+                It.IsAny<RecurringJobOptions>()),
+            Times.Once);
     }
 
     /// <summary>
@@ -374,6 +444,83 @@ public sealed class HangfireJobSchedulerTests
     }
 
     /// <summary>
+    /// Исключение из <see cref="IRecurringJobManager.AddOrUpdate"/> пробрасывается
+    /// из <see cref="HangfireJobScheduler.ScheduleAsync"/> вызывающему коду —
+    /// <c>bootstrapper.StartAsync</c> узнает об ошибке регистрации.
+    /// <para>
+    /// <b>Контракт:</b> если Hangfire storage недоступен (SQL/Redis down),
+    /// <see cref="HangfireJobScheduler"/> НЕ проглатывает ошибку —
+    /// <see cref="Exception"/> всплывает синхронно, потому что
+    /// <see cref="IRecurringJobManager.AddOrUpdate"/> вызывается
+    /// синхронно (без <c>await</c>) и любое исключение из API пробрасывается
+    /// наверх через стек <c>ScheduleCron → ScheduleAsync → caller</c>.
+    /// </para>
+    /// <para>
+    /// Это аналог поведения <c>QuartzJobScheduler.ScheduleAsync</c>, где
+    /// <c>await scheduler.ScheduleJob(...)</c> тоже пробрасывает ошибки.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task ScheduleAsync_PropagatesException_WhenRecurringApiThrows()
+    {
+        // Arrange
+        var recurring = new Mock<IRecurringJobManager>();
+        var background = new Mock<IBackgroundJobClient>();
+        var scheduler = CreateScheduler(recurring, background);
+
+        var storageDown = new InvalidOperationException("Hangfire storage is down");
+        recurring
+            .Setup(r => r.AddOrUpdate(
+                It.IsAny<string>(),
+                It.IsAny<HangfireJob>(),
+                It.IsAny<string>(),
+                It.IsAny<RecurringJobOptions>()))
+            .Throws(storageDown);
+
+        var definition = NewClassDefinition(
+            "broken-recurring",
+            typeof(FakeScheduledJob),
+            new JobSchedule.Cron(SampleCron));
+
+        // Act + Assert — исключение пробрасывается в вызывающий код.
+        var act = () => scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*storage is down*");
+    }
+
+    /// <summary>
+    /// Исключение из <see cref="IBackgroundJobClient.Create"/> пробрасывается
+    /// из <see cref="HangfireJobScheduler.ScheduleAsync"/> вызывающему коду.
+    /// <para>
+    /// Аналогично <see cref="ScheduleAsync_PropagatesException_WhenRecurringApiThrows"/>,
+    /// но для <see cref="JobSchedule.OnStartup"/> через <see cref="IBackgroundJobClient"/>.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task ScheduleAsync_PropagatesException_WhenBackgroundCreateThrows()
+    {
+        // Arrange
+        var recurring = new Mock<IRecurringJobManager>();
+        var background = new Mock<IBackgroundJobClient>();
+        var scheduler = CreateScheduler(recurring, background);
+
+        var clientDown = new InvalidOperationException("BackgroundJobClient broken");
+        background
+            .Setup(b => b.Create(It.IsAny<HangfireJob>(), It.IsAny<IState>()))
+            .Throws(clientDown);
+
+        var definition = NewClassDefinition(
+            "broken-startup",
+            typeof(FakeScheduledJob),
+            new JobSchedule.OnStartup());
+
+        // Act + Assert
+        var act = () => scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*BackgroundJobClient broken*");
+    }
+
+    /// <summary>
     /// Защитная проверка <c>JobType.AssemblyQualifiedName</c> существует в production-коде,
     /// но недостижима в чистом .NET: ни один реальный <see cref="Type"/>, реализующий
     /// <see cref="IScheduledJob"/>, не имеет <c>AssemblyQualifiedName == null</c> (это свойство
@@ -397,13 +544,15 @@ public sealed class HangfireJobSchedulerTests
         string jobKey,
         Type jobType,
         JobSchedule schedule,
-        string? serviceKey = null) =>
+        string? serviceKey = null,
+        RetryOptions? retryOptions = null) =>
         new(
             JobKey: jobKey,
             Action: null,
             Schedule: schedule,
             JobType: jobType,
-            ServiceKey: serviceKey);
+            ServiceKey: serviceKey,
+            RetryOptions: retryOptions);
 
     private static bool VerifyBridgeArgs(HangfireJob job, Type expectedType, string? expectedServiceKey)
     {
@@ -413,10 +562,11 @@ public sealed class HangfireJobSchedulerTests
             return false;
         }
 
-        return job.Args.Count == 3
+        return job.Args.Count == 4
             && job.Args[0] is string actualTypeName && actualTypeName == expectedTypeName
             && ((job.Args[1] is null && expectedServiceKey is null)
                 || (job.Args[1] is string actualServiceKey && actualServiceKey == expectedServiceKey))
-            && job.Args[2] is CancellationToken;
+            && (job.Args[2] == null || typeof(RetryOptions).IsAssignableFrom(job.Args[2]?.GetType() ?? typeof(object)))
+            && job.Args[3] is CancellationToken;
     }
 }

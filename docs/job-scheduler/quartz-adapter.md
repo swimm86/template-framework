@@ -15,8 +15,9 @@ Quartz Adapter — основная реализация `IJobScheduler` на б
 
 | Класс | Назначение |
 |-------|-----------|
-| `QuartzJobScheduler` | `IJobScheduler` — маппит `JobDefinition` в Quartz Job + Trigger и регистрирует в `IScheduler`. |
-| `QuartzScheduledJobAdapter` | `internal sealed` — Quartz-обёртка, реализующая `IJob`. Получает `ScheduledJobContext`, вызывает executor. |
+| `Constants` | Контейнер констант — ключи `JobDataMap` (`JobTypeKey`, `ServiceKeyKey`, `ActionDataKey`, `RetryOptionsKey`). Раньше были разбросаны по `QuartzScheduledJobAdapter` / `JobDefinition` — теперь единая точка. |
+| `QuartzJobScheduler` | `IJobScheduler` — маппит `JobDefinition` в Quartz Job + Trigger и регистрирует в `IScheduler`. Кладёт `RetryOptions` в `JobDataMap[Constants.RetryOptionsKey]`. |
+| `QuartzScheduledJobAdapter` | `internal sealed` — Quartz-обёртка, реализующая `IJob`. Достаёт из `JobDataMap` `JobType` / `ServiceKey` / `Action` / `RetryOptions` и строит `ScheduledJobContext`. |
 | `QuartzJobSchedulerBootstrapper` | `IHostedService` — на старте поднимает `IScheduler`, регистрирует все `JobDefinition` из `JobSchedulerOptions`, запускает scheduler. На shutdown — `Shutdown(true)`. |
 | `QuartzDependencyInjector` | `DependencyInjectorBase` — регистрирует `ISchedulerFactory`, `IJobScheduler`, bootstrapper. |
 
@@ -55,12 +56,14 @@ protected override IServiceCollection Process(IServiceCollection serviceCollecti
 
 ```csharp
 // Бизнес-код:
-opts.AddJob<MyJob>(new JobSchedule.Cron("0 0/5 * * * ?"));
+opts.AddJob<MyJob>(
+    new JobSchedule.Cron("0 0/5 * * * ?"),
+    new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMinutes(1) });
 
 // Внутри QuartzJobScheduler.ScheduleAsync:
 var job = JobBuilder.Create<QuartzScheduledJobAdapter>()
     .WithIdentity(new JobKey(definition.JobKey))
-    .SetJobData(jobData)             // JobType / ServiceKey / Action
+    .SetJobData(jobData)             // JobType / ServiceKey / Action / RetryOptions
     .Build();
 
 var trigger = TriggerBuilder.Create()
@@ -77,23 +80,38 @@ await scheduler.ScheduleJob(job, trigger, ct);
 `internal sealed` класс, реализующий `Quartz.IJob`. Quartz-триггер дёргает его `Execute(IJobExecutionContext)`:
 
 ```csharp
-internal sealed class QuartzScheduledJobAdapter : IJob
+internal sealed class QuartzScheduledJobAdapter(
+    IServiceProvider serviceProvider,
+    IScheduledJobExecutor executor,
+    ILogger<QuartzScheduledJobAdapter> logger)
+    : IJob
 {
-    public const string JobTypeKey = "JobType";
-    public const string ServiceKeyKey = "ServiceKey";
-
     public async Task Execute(IJobExecutionContext context)
     {
-        var jobTypeName = context.JobDetail.JobDataMap[JobTypeKey] as string;
-        var jobType = jobTypeName is null ? null : Type.GetType(jobTypeName, throwOnError: false);
-        var serviceKey = context.JobDetail.JobDataMap[ServiceKeyKey] as string;
-        var action = context.JobDetail.JobDataMap[JobDefinition.ActionDataKey] as Func<IServiceProvider, CancellationToken, Task>;
+        var jobKey = context.JobDetail.Key.Name;
+        var cancellationToken = context.CancellationToken;
 
+        var jobType = context.JobDetail.JobDataMap[Constants.JobTypeKey] is not string jobTypeName
+            ? null
+            : Type.GetType(jobTypeName, throwOnError: false);
+        var action = context.JobDetail.JobDataMap[Constants.ActionDataKey] as Func<IServiceProvider, CancellationToken, Task>;
+
+        if (jobType is null && action is null)
+        {
+            logger.LogError(
+                "Job '{JobKey}': {JobDataMap} not contains action for current keyed job type.",
+                jobKey, nameof(IJobDetail.JobDataMap));
+            return;
+        }
+
+        var serviceKey = context.JobDetail.JobDataMap[Constants.ServiceKeyKey] as string;
+        var retryOptions = context.JobDetail.JobDataMap[Constants.RetryOptionsKey] as RetryOptions;
         var ctx = new ScheduledJobContext(jobKey, serviceProvider, cancellationToken)
         {
             JobType = jobType,
             ServiceKey = serviceKey,
             Action = action,
+            RetryOptions = retryOptions,
         };
 
         await executor.ExecuteAsync(ctx);
@@ -105,9 +123,41 @@ internal sealed class QuartzScheduledJobAdapter : IJob
 |-----|----------|
 | 1 | Достать из `JobDataMap` `JobType` (AssemblyQualifiedName) или `Action` (делегат). |
 | 2 | Зарезолвить тип через `Type.GetType(...)`. |
-| 3 | Создать `ScheduledJobContext`. |
-| 4 | Вызвать `executor.ExecuteAsync(ctx)` — pipeline middleware (Logging → Correlation → Retry → Terminal). |
-| 5 | Terminal: для задачи в виде класса — `sp.GetRequiredService(JobType).ExecuteAsync(ct)`; для задачи, заданной делегатом — `ctx.Action(ctx.ServiceProvider, ctx.CancellationToken)`. |
+| 3 | Достать `ServiceKey` (опционально) и `RetryOptions` (опционально, из `Constants.RetryOptionsKey`). |
+| 4 | Создать `ScheduledJobContext`. |
+| 5 | Вызвать `executor.ExecuteAsync(ctx)` — pipeline middleware (CorrelationId → Logging → Retry → Terminal). |
+| 6 | Terminal: для задачи в виде класса — `sp.GetRequiredService(JobType).ExecuteAsync(ct)`; для задачи, заданной делегатом — `ctx.Action(ctx.ServiceProvider, ctx.CancellationToken)`. |
+
+## Ключи `JobDataMap` — `Constants`
+
+Класс `Shared.Infrastructure.Job.Quartz.Constants` инкапсулирует все ключи, под которыми Quartz-адаптер складывает данные в `JobDataMap`. Раньше они жили как `public const string` в `QuartzScheduledJobAdapter` (`JobTypeKey`, `ServiceKeyKey`) и в `JobDefinition` (`ActionDataKey`); `ActionDataKey` также дублировался по смыслу в Hangfire-адаптере. Теперь — единая точка истины на уровне Quartz-сборки:
+
+| Ключ | Тип значения | Кто кладёт | Кто читает |
+|------|--------------|-----------|------------|
+| `Constants.JobTypeKey` (`"JobType"`) | `string` (AssemblyQualifiedName) | `QuartzJobScheduler` | `QuartzScheduledJobAdapter` |
+| `Constants.ServiceKeyKey` (`"ServiceKey"`) | `string?` | `QuartzJobScheduler` | `QuartzScheduledJobAdapter` |
+| `Constants.ActionDataKey` (`"JobAction"`) | `Func<IServiceProvider, CancellationToken, Task>?` | `QuartzJobScheduler` (только для лямбда-джоб) | `QuartzScheduledJobAdapter` |
+| `Constants.RetryOptionsKey` (`"RetryOptions"`) | `RetryOptions?` | `QuartzJobScheduler` (если `JobDefinition.RetryOptions != null`) | `QuartzScheduledJobAdapter` |
+
+## ⚠️ Ограничения для Quartz Cluster / persistent JobStore
+
+Текущая реализация `JobDataMap` в `QuartzJobScheduler` / `QuartzScheduledJobAdapter` корректно работает **только в in-memory режиме** (`UseInMemoryStore` / `RAMJobStore`).
+
+При переходе на **persistent JobStore** (ADO.NET JobStore, Quartz Cluster с общей БД) возникают следующие ограничения:
+
+| Ключ | Тип значения | Проблема при persistence | Решение |
+|------|--------------|--------------------------|---------|
+| `Constants.ActionDataKey` | `Func<IServiceProvider, CancellationToken, Task>` | Делегат **не сериализуем** в принципе (замыкание на `Func`-переменную). При `JobStore` `BinaryFormatter` бросит `SerializationException` при сохранении триггера. | Не использовать lambda-jobs в кластере — только `IScheduledJob`-классы через `AddJob<T>()`. |
+| `Constants.RetryOptionsKey` | `RetryOptions` (POCO) | POCO сериализуем, но **содержит `TimeSpan`**, который Quartz сериализует как `long` (ticks). Это работает, но в JobStore будут храниться **только те `RetryOptions`, которые были на момент `ScheduleJob`** — изменить retry-политику существующего триггера нельзя без перерегистрации. | Если нужна динамическая retry-политика — вынести `RetryOptions` в `IOptionsMonitor<>` по `JobKey` и резолвить внутри `IScheduledJob` (не через `ScheduledJobContext.RetryOptions`). |
+| `Constants.JobTypeKey` / `ServiceKeyKey` | `string` | Сериализуемы, проблем нет. | — |
+
+**Вывод:** в текущей итерации Job Scheduler **поддерживает только single-instance deployment с in-memory Quartz** (или in-memory Hangfire). Для multi-instance / кластерных сценариев требуется:
+
+1. Убрать `Constants.ActionDataKey` из JobDataMap (запретить lambda-jobs);
+2. Вынести `RetryOptions` в отдельный `IOptionsMonitor`-канал, не сериализуемый в JobStore;
+3. Или использовать внешний storage для retry-конфигурации (БД / Redis).
+
+См. также: [Hangfire storage caveats](hangfire-adapter.md#-ограничения-для-multi-instance) — Hangfire имеет аналогичные, но более мягкие ограничения.
 
 ## Bootstrapper
 

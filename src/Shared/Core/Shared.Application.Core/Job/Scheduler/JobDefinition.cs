@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Application.Core.Job.Interfaces;
+using Shared.Application.Core.Job.Pipeline;
 
 namespace Shared.Application.Core.Job.Scheduler;
 
@@ -26,16 +27,14 @@ namespace Shared.Application.Core.Job.Scheduler;
 /// зарегистрирован как несколько keyed-сервисов (например, несколько
 /// фоновых задач обновления кэша для разных ключей).
 /// </param>
+/// <param name="RetryOptions">
+/// <inheritdoc cref="Shared.Application.Core.Job.Pipeline.RetryOptions" path="/summary"/>
+/// </param>
+
 public sealed record JobDefinition(
     string JobKey,
     Func<IServiceProvider, CancellationToken, Task>? Action,
     JobSchedule Schedule,
     Type? JobType = null,
-    string? ServiceKey = null)
-{
-    /// <summary>
-    /// Ключ в Quartz <c>JobDataMap</c> для лямбда-действия.
-    /// Используется <c>QuartzScheduledJobAdapter</c> для восстановления делегата при выполнении.
-    /// </summary>
-    public const string ActionDataKey = "JobAction";
-}
+    string? ServiceKey = null,
+    RetryOptions? RetryOptions = null);

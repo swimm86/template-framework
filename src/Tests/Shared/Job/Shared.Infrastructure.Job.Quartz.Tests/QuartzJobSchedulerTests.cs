@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Quartz;
 using Shared.Application.Core.Job.Enums;
+using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Infrastructure.Job.Quartz.Tests.Fakes;
 using Shared.Testing.Doubles.Logging;
@@ -308,8 +309,8 @@ public sealed class QuartzJobSchedulerTests
 
     /// <summary>
     /// Классовая джоба: <see cref="JobDataMap"/> содержит
-    /// <see cref="QuartzScheduledJobAdapter.JobTypeKey"/> с <c>AssemblyQualifiedName</c>
-    /// и НЕ содержит <see cref="JobDefinition.ActionDataKey"/>.
+    /// <see cref="Constants.JobTypeKey"/> с <c>AssemblyQualifiedName</c>
+    /// и НЕ содержит <see cref="Constants.ActionDataKey"/>.
     /// </summary>
     [Fact]
     public async Task ScheduleAsync_ClassJob_StoresTypeAndOmitsAction()
@@ -329,9 +330,9 @@ public sealed class QuartzJobSchedulerTests
 
         // Assert
         var data = ExtractSingleJob(mock).JobDataMap;
-        data.Should().ContainKey(QuartzScheduledJobAdapter.JobTypeKey);
-        data[QuartzScheduledJobAdapter.JobTypeKey].Should().Be(typeof(FakeScheduledJob).AssemblyQualifiedName);
-        data.Should().NotContainKey(JobDefinition.ActionDataKey);
+        data.Should().ContainKey(Constants.JobTypeKey);
+        data[Constants.JobTypeKey].Should().Be(typeof(FakeScheduledJob).AssemblyQualifiedName);
+        data.Should().NotContainKey(Constants.ActionDataKey);
     }
 
     /// <summary>
@@ -357,14 +358,14 @@ public sealed class QuartzJobSchedulerTests
 
         // Assert
         var data = ExtractSingleJob(mock).JobDataMap;
-        data[QuartzScheduledJobAdapter.JobTypeKey].Should().Be(typeof(FakeScheduledJob).AssemblyQualifiedName);
-        data[QuartzScheduledJobAdapter.ServiceKeyKey].Should().Be("primary");
+        data[Constants.JobTypeKey].Should().Be(typeof(FakeScheduledJob).AssemblyQualifiedName);
+        data[Constants.ServiceKeyKey].Should().Be("primary");
     }
 
     /// <summary>
     /// Лямбда-джоба (<see cref="JobDefinition.JobType"/> = <c>null</c>):
-    /// <see cref="JobDataMap"/> содержит делегат по <see cref="JobDefinition.ActionDataKey"/>
-    /// и НЕ содержит <see cref="QuartzScheduledJobAdapter.JobTypeKey"/>.
+    /// <see cref="JobDataMap"/> содержит делегат по <see cref="Constants.ActionDataKey"/>
+    /// и НЕ содержит <see cref="Constants.JobTypeKey"/>.
     /// </summary>
     [Fact]
     public async Task ScheduleAsync_LambdaJob_StoresActionAndOmitsJobType()
@@ -384,8 +385,67 @@ public sealed class QuartzJobSchedulerTests
 
         // Assert
         var data = ExtractSingleJob(mock).JobDataMap;
-        data.Should().NotContainKey(QuartzScheduledJobAdapter.JobTypeKey);
-        data[JobDefinition.ActionDataKey].Should().BeSameAs(action);
+        data.Should().NotContainKey(Constants.JobTypeKey);
+        data[Constants.ActionDataKey].Should().BeSameAs(action);
+    }
+
+    /// <summary>
+    /// Классовая джоба + <see cref="JobDefinition.RetryOptions"/>:
+    /// <see cref="Constants.RetryOptionsKey"/> попадает в <see cref="JobDataMap"/>
+    /// с тем же экземпляром <see cref="RetryOptions"/>.
+    /// </summary>
+    [Fact]
+    public async Task ScheduleAsync_ClassJobWithRetryOptions_StoresInJobDataMap()
+    {
+        // Arrange
+        var retryOptions = new RetryOptions
+        {
+            MaxAttempts = 5,
+            Delay = TimeSpan.FromMinutes(1),
+        };
+        var definition = new JobDefinition(
+            JobKey: "retryableJob",
+            Action: null,
+            Schedule: new JobSchedule.Cron("0 0 * * * ?"),
+            JobType: typeof(FakeScheduledJob),
+            RetryOptions: retryOptions);
+
+        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var sut = NewScheduler(factory);
+
+        // Act
+        await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        var data = ExtractSingleJob(mock).JobDataMap;
+        data.Should().ContainKey(Constants.RetryOptionsKey);
+        data[Constants.RetryOptionsKey].Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// Классовая джоба без <see cref="JobDefinition.RetryOptions"/>:
+    /// <see cref="Constants.RetryOptionsKey"/> НЕ попадает в <see cref="JobDataMap"/>
+    /// (контракт: «нет ключа — нет retry» в <c>QuartzScheduledJobAdapter</c>).
+    /// </summary>
+    [Fact]
+    public async Task ScheduleAsync_ClassJobWithoutRetryOptions_OmitsKey()
+    {
+        // Arrange
+        var definition = new JobDefinition(
+            JobKey: "noRetryJob",
+            Action: null,
+            Schedule: new JobSchedule.Cron("0 0 * * * ?"),
+            JobType: typeof(FakeScheduledJob));
+
+        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var sut = NewScheduler(factory);
+
+        // Act
+        await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        var data = ExtractSingleJob(mock).JobDataMap;
+        data.Should().NotContainKey(Constants.RetryOptionsKey);
     }
 
     /// <summary>

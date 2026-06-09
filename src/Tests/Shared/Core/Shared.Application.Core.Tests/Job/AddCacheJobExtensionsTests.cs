@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Shared.Application.Core.Cache;
 using Shared.Application.Core.Cache.Interfaces;
 using Shared.Application.Core.Job.Cache;
@@ -15,6 +14,7 @@ using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
 using Shared.Application.Core.Job.Pipeline.Middlewares;
 using Shared.Application.Core.Job.Scheduler;
+using Shared.Application.Core.Tests.Support;
 
 namespace Shared.Application.Core.Tests.Job;
 
@@ -423,6 +423,11 @@ public sealed class AddCacheJobExtensionsTests
     /// <summary>
     /// Действие задачи выполняется через <see cref="RetryMiddleware"/>, который
     /// повторяет попытки при неудаче вплоть до <see cref="RetryOptions.MaxAttempts"/>.
+    /// <para>
+    /// <see cref="RetryOptions"/> передаётся per-execution через
+    /// <see cref="ScheduledJobContext.RetryOptions"/>, а НЕ через
+    /// <c>IOptions&lt;RetryOptions&gt;</c> в DI (см. <c>arch-retryoptions-not-di-injectable</c>).
+    /// </para>
     /// </summary>
     [Fact]
     public async Task AddCronCacheJob_Lambda_RetriesOnFailure()
@@ -430,8 +435,6 @@ public sealed class AddCacheJobExtensionsTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton(
-            Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMilliseconds(1) }));
 
         var attempts = 0;
         services.AddCronCacheJob<string>(
@@ -457,6 +460,7 @@ public sealed class AddCacheJobExtensionsTests
             CancellationToken.None)
         {
             Action = options.Definitions[0].Action,
+            RetryOptions = RetryTestSupport.DefaultOptions(),
         };
 
         // Act
@@ -468,6 +472,11 @@ public sealed class AddCacheJobExtensionsTests
 
     /// <summary>
     /// При исчерпании всех попыток retry-middleware пробрасывает последнее исключение.
+    /// <para>
+    /// <see cref="RetryOptions"/> передаётся per-execution через
+    /// <see cref="ScheduledJobContext.RetryOptions"/>, а НЕ через
+    /// <c>IOptions&lt;RetryOptions&gt;</c> в DI.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task AddCronCacheJob_Lambda_ThrowsAfterMaxRetries()
@@ -475,8 +484,6 @@ public sealed class AddCacheJobExtensionsTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton(
-            Options.Create(new RetryOptions { MaxAttempts = 2, Delay = TimeSpan.FromMilliseconds(1) }));
 
         services.AddCronCacheJob<string>(
             TestCacheKey,
@@ -492,6 +499,7 @@ public sealed class AddCacheJobExtensionsTests
             CancellationToken.None)
         {
             Action = options.Definitions[0].Action,
+            RetryOptions = RetryTestSupport.WithMaxAttempts(2),
         };
 
         // Act
@@ -540,6 +548,11 @@ public sealed class AddCacheJobExtensionsTests
     /// <summary>
     /// Отмена <see cref="CancellationToken"/> во время retry-задержки пробрасывает
     /// <see cref="OperationCanceledException"/>.
+    /// <para>
+    /// <see cref="RetryOptions"/> передаётся per-execution через
+    /// <see cref="ScheduledJobContext.RetryOptions"/>, а НЕ через
+    /// <c>IOptions&lt;RetryOptions&gt;</c> в DI.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task AddCronCacheJob_Lambda_CancellationDuringRetryDelayThrows()
@@ -547,8 +560,6 @@ public sealed class AddCacheJobExtensionsTests
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton(
-            Options.Create(new RetryOptions { MaxAttempts = 5, Delay = TimeSpan.FromSeconds(30) }));
 
         services.AddCronCacheJob<string>(
             TestCacheKey,
@@ -566,6 +577,7 @@ public sealed class AddCacheJobExtensionsTests
             cts.Token)
         {
             Action = options.Definitions[0].Action,
+            RetryOptions = RetryTestSupport.WithDelay(TimeSpan.FromSeconds(30)),
         };
 
         // Act — cancel after a short delay, while middleware is in its Task.Delay.
@@ -637,9 +649,14 @@ public sealed class AddCacheJobExtensionsTests
 
     /// <summary>
     /// Вызов любого из методов расширения регистрирует полный конвейер:
-    /// <see cref="IScheduledJobExecutor"/>, три middleware
+    /// <see cref="IScheduledJobExecutor"/> и три middleware
     /// (<see cref="LoggingMiddleware"/>, <see cref="CorrelationIdMiddleware"/>,
-    /// <see cref="RetryMiddleware"/>) и <see cref="RetryOptions"/>.
+    /// <see cref="RetryMiddleware"/>).
+    /// <para>
+    /// <see cref="RetryOptions"/> НЕ регистрируется в DI как singleton
+    /// (см. <c>arch-retryoptions-not-di-injectable</c>) — он передаётся
+    /// per-execution через <see cref="ScheduledJobContext.RetryOptions"/>.
+    /// </para>
     /// </summary>
     [Fact]
     public void AddCronCacheJob_Lambda_RegistersFullPipeline()
@@ -658,11 +675,13 @@ public sealed class AddCacheJobExtensionsTests
 
         // Assert
         sp.GetRequiredService<IScheduledJobExecutor>().Should().NotBeNull();
-        sp.GetRequiredService<RetryOptions>().Should().NotBeNull();
         var middlewares = sp.GetServices<IScheduledJobMiddleware>().ToArray();
         middlewares.OfType<LoggingMiddleware>().Should().HaveCount(1);
         middlewares.OfType<CorrelationIdMiddleware>().Should().HaveCount(1);
         middlewares.OfType<RetryMiddleware>().Should().HaveCount(1);
+
+        // RetryOptions не регистрируется как singleton — он per-execution.
+        sp.GetService<RetryOptions>().Should().BeNull();
     }
 
     // ─── Typed job resolves via DI and uses GetCacheDataAsync ───────────────
