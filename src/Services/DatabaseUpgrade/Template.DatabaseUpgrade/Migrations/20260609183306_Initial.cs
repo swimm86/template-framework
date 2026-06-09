@@ -17,7 +17,8 @@ namespace Template.DatabaseUpgrade.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false, comment: "Идентификатор."),
                     name = table.Column<string>(type: "text", nullable: false, comment: "Имя"),
-                    email = table.Column<string>(type: "text", nullable: false, comment: "Адрес электронной почты")
+                    email = table.Column<string>(type: "text", nullable: false, comment: "Адрес электронной почты"),
+                    hash = table.Column<byte[]>(type: "bytea", fixedLength: true, maxLength: 32, nullable: false, comment: "SHA-256 хэш")
                 },
                 constraints: table =>
                 {
@@ -36,6 +37,12 @@ namespace Template.DatabaseUpgrade.Migrations
                     table.PrimaryKey("PK_seed", x => x.id);
                 },
                 comment: "Таблица с сущностями \"Сид БД\".");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_person_hash",
+                table: "person",
+                column: "hash",
+                unique: true);
         }
 
         /// <inheritdoc />

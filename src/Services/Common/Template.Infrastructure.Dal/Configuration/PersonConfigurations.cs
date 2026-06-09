@@ -22,7 +22,11 @@ public class PersonConfigurations
     {
         base.ConfigureProcess(builder);
 
-        builder.ToTable("person", t => t.HasComment("Таблица с сущностями \"Персона\"."));
+        builder
+            .ToTable(
+                "person",
+                t => t.HasComment("Таблица с сущностями \"Персона\"."));
+
         builder
             .Property(x => x.Name)
             .HasComment("Имя");
@@ -30,5 +34,15 @@ public class PersonConfigurations
         builder
             .Property(x => x.Email)
             .HasComment("Адрес электронной почты");
+
+        builder
+            .Property(x => x.Hash)
+            .HasMaxLength(32)
+            .IsFixedLength()
+            .HasComment("SHA-256 хэш");
+
+        builder
+            .HasIndex(x => x.Hash)
+            .IsUnique(unique: true);
     }
 }
