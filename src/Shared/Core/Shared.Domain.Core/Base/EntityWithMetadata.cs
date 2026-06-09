@@ -17,7 +17,7 @@ namespace Shared.Domain.Core.Base;
 /// <typeparam name="TEntity">Тип сущности.</typeparam>
 /// <typeparam name="TKey">Тип ключа сущности.</typeparam>
 public abstract class EntityWithMetadata<TEntity, TKey>
-    : BaseEntity<TKey>, IEntityWithMetadata, IWithDeleteAction<TEntity>
+    : EntityBase<TKey>, IEntityWithMetadata, IWithDeleteAction<TEntity>
     where TEntity : class, IEntity<TKey>
 {
     /// <inheritdoc/>

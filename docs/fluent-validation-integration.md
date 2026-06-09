@@ -29,7 +29,7 @@ public class PersonCreateRequestValidator : AbstractValidator<PersonCreateReques
 }
 
 // Command/Query — валидация происходит автоматически
-var command = new PersonCreateCommand(new PersonCreateRequest("", "invalid"));
+var command = new PersonCreateCommand(new PersonCreateRequest { Name = "", Email = "invalid" });
 var response = await mediator.Send(command, ct);
 // → ValidationException → 400 Bad Request
 ```

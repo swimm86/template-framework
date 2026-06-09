@@ -4,7 +4,8 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Domain.Core.Interfaces;
+using Shared.Common.Helpers;
+using Shared.Domain.Core.Base;
 
 namespace Template.Domain.Entities;
 
@@ -12,11 +13,8 @@ namespace Template.Domain.Entities;
 /// Сущность "Персона".
 /// </summary>
 public class Person
-    : IEntity<Guid>
+    : EntityBase<Guid>
 {
-    /// <inheritdoc cref="IEntity.Id"/>
-    public Guid Id { get; init; }
-
     /// <summary>
     /// Имя.
     /// </summary>
@@ -26,6 +24,11 @@ public class Person
     /// Адрес электронной почты.
     /// </summary>
     public string Email { get; private set; }
+
+    /// <summary>
+    /// Хэш.
+    /// </summary>
+    public byte[] Hash { get; private set; }
 
     /// <summary>
     /// Создает сущность "Персона".
@@ -43,5 +46,17 @@ public class Person
             Name = name,
             Email = email,
         };
+    }
+
+    /// <summary>
+    /// Обновляет хэш сущности на основе текущих значений <see cref="Name"/> и <see cref="Email"/>.
+    /// </summary>
+    /// <remarks>
+    /// Хэш используется для обеспечения уникальности персоны и вычисляется детерминированно:
+    /// одинаковые пары <c>(Name, Email)</c> всегда дают идентичный массив байт.
+    /// </remarks>
+    public void UpdateHash()
+    {
+        Hash = HashHelper.ComputeSha256(Name, Email);
     }
 }

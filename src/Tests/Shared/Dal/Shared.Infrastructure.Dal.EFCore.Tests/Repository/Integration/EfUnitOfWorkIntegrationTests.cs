@@ -148,11 +148,15 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
         IntegrationTestUnitOfWorkDbContext dbContext,
         IServiceProvider serviceProvider,
         EfDbSettingsBase<IntegrationTestUnitOfWorkDbContext> settings,
-        IBeforeSaveChangesService? beforeSaveChangesService = default)
+        IBeforeSaveChangesService? beforeSaveChangesService = null)
         : EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
             dbContext,
             serviceProvider,
             settings,
+            new Shared.Application.Core.LifecycleAction.LifecycleActionOrchestrator(
+                [],
+                new Shared.Application.Core.LifecycleAction.LifecycleEntityRegistry(),
+                new Shared.Application.Core.LifecycleAction.LifecycleActionGate()),
             beforeSaveChangesService)
     {
         public bool IsTransactionEnabled => UseTransaction;

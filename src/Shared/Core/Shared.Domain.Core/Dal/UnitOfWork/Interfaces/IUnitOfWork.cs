@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Shared.Domain.Core.Dal.Repository.Interfaces;
-using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
@@ -78,62 +77,6 @@ public interface IUnitOfWork
     /// </summary>
     /// <returns><see cref="IUnitOfWork"/>.</returns>
     IUnitOfWork DisableTransaction();
-
-    /// <summary>
-    /// Отключает действия перехвата жизненного цикла.
-    /// </summary>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork DisableLifecycleActions();
-
-    /// <summary>
-    /// Включает действия перехвата жизненного цикла.
-    /// </summary>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork EnableLifecycleActions();
-
-    /// <summary>
-    /// Отключает действия перехвата жизненного цикла для типа сущности.
-    /// </summary>
-    /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="hookType">Тип перехвата (если <see langword="null"/>, то отключаются действия для всего типа).</param>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
-        where TEntity : IEntity, IWithLifecycleActions;
-
-    /// <summary>
-    /// Включает действия перехвата жизненного цикла для типа сущности.
-    /// </summary>
-    /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="hookType">Тип перехвата (если <see langword="null"/>, то включаются действия для всего типа).</param>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
-        where TEntity : IEntity, IWithLifecycleActions;
-
-    /// <summary>
-    /// Отключает действия перехвата жизненного цикла для типа сущности по флагам.
-    /// </summary>
-    /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="hookType">Тип перехвата.</param>
-    /// <param name="actionKeyFlags">Флаги действий.</param>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions;
-
-    /// <summary>
-    /// Включает действия перехвата жизненного цикла для типа сущности по флагам.
-    /// </summary>
-    /// <typeparam name="TEntity">Тип сущности.</typeparam>
-    /// <param name="hookType">Тип перехвата.</param>
-    /// <param name="actionKeyFlags">Флаги действий.</param>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions;
-
-    /// <summary>
-    /// Сбрасывает настройки действий перехвата жизненного цикла.
-    /// </summary>
-    /// <returns><see cref="IUnitOfWork"/>.</returns>
-    IUnitOfWork ResetLifecycleActionSettings();
 
     /// <summary>
     /// Очищает отслеживание всех сущностей.

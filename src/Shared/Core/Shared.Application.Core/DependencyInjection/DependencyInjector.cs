@@ -14,6 +14,7 @@ using Shared.Application.Core.Dal.DbUpdater.Extensions;
 using Shared.Application.Core.Dal.Repository.Extensions;
 using Shared.Application.Core.DependencyInjection.Base;
 using Shared.Application.Core.Json;
+using Shared.Application.Core.LifecycleAction.Extensions;
 using Shared.Domain.Core.Cache.Interfaces;
 using Shared.Domain.Core.Utils.Extensions;
 
@@ -46,6 +47,7 @@ public class DependencyInjector(
             .AddPropertyUtil()
             .AddSingleton<IUriValidator, RelativeUriValidator>()
             .AddSingleton<IResponseValidator, ProxiedResponseValidator>()
-            .AddScoped<IScopedMemoryCache, ScopedMemoryCache>();
+            .AddScoped<IScopedMemoryCache, ScopedMemoryCache>()
+            .AddLifecycleActions();
     }
 }

@@ -22,18 +22,22 @@ Domain-слой — это **ядро** Clean Architecture. Он содержи�
 
 ```
 Shared.Domain.Core/
-├── Base/                    ← BaseEntity, EntityWithMetadata
-├── Interfaces/              ← IEntity, IWithLifecycleActions, IEntityWithMetadata
-├── Enums/                   ← LifecycleHookType
-├── LifecycleAction/         ← IEntityLifecycleAction и реализации
+├── Base/                    ← EntityBase, EntityWithMetadata
+├── Interfaces/              ← IEntity, IEntityWithMetadata
+├── Enums/                   ← LifecyclePhase
 ├── Exceptions/              ← AppException, BusinessLogicException, NotFoundException
 ├── Attributes/              ← EntityName, EntityComparableName
 └── ValueObjects/            ← Неизменяемые объекты-значения
+
+Shared.Application.Core/
+└── LifecycleAction/         ← ILifecycleActionHandler, LifecycleActionHandlerBase, ILifecycleActionOrchestrator
 ```
+
+> **Примечание:** начиная с рефакторинга 2026-06-09 lifecycle-действия перенесены из Domain слоя в Application слой. Сущности больше **не реализуют** `IWithLifecycleActions` и не хранят `BeforeSaveActions`/`AfterSaveActions` — обработчики регистрируются отдельно как `ILifecycleActionHandler<TEntity>`. См. [Lifecycle Actions](lifecycle-actions.md).
 
 ---
 
-## 2. BaseEntity
+## 2. EntityBase
 
 ### 2.1. Иерархия интерфейсов
 
@@ -44,162 +48,23 @@ IEntity
               ├── IWithCreated (CreatedByUserId, CreatedByUserName, DateCreated)
               ├── IWithUpdated (UpdatedByUserId, DateUpdated)
               └── IWithDeleted (DeletedByUserId, DateDeleted, IsDeleted)
-
-IWithLifecycleActions
-  ├── TryGetAction()
-  ├── ResetActions()
-  ├── GetAllKeys()
-  ├── ProcessLifecycleActionAsync()
-  └── ProcessLifecycleActionsAsync()
 ```
 
-### 2.2. BaseEntity<TKey>
+### 2.2. EntityBase<TKey>
 
 **Assembly:** `Shared.Domain.Core.dll`
 **Namespace:** `Shared.Domain.Core.Base`
 
 ```csharp
-public abstract class BaseEntity<TKey> : IEntity<TKey>, IWithLifecycleActions
+public abstract class EntityBase<TKey>
+    : IEntity<TKey>
 {
     /// <summary>Идентификатор сущности.</summary>
     public virtual TKey Id { get; set; } = default!;
-
-    /// <summary>Имена navigation-свойств, необходимых для сохранения.</summary>
-    public virtual string[] RequiredToSaveNavigationPropertiesNames => [];
-
-    /// <summary>Действия, выполняемые ПЕРЕД сохранением в БД.</summary>
-    protected virtual IEntityLifecycleAction[] BeforeSaveActions => [];
-
-    /// <summary>Действия, выполняемые ПОСЛЕ сохранения в БД.</summary>
-    protected virtual IEntityLifecycleAction[] AfterSaveActions => [];
-
-    // Lifecycle actions management
-    public bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction lifecycleAction);
-    public void ResetActions();
-    public ICollection<Enum> GetAllKeys(LifecycleHookType hookType);
-    public void DisableLifecycleActions();
-    public void DisableLifecycleActions(LifecycleHookType hookType, Enum? flags = default);
-    public void EnableLifecycleActions();
-    public void EnableLifecycleActions(LifecycleHookType hookType, Enum? flags = default);
 }
 ```
 
-### 2.3. Lifecycle Actions
-
-Действия перехвата разделены на два типа по моменту выполнения:
-
-```csharp
-public enum LifecycleHookType
-{
-    BeforeSave,  // Выполняются ДО SaveChanges()
-    AfterSave,   // Выполняются ПОСЛЕ SaveChanges()
-}
-```
-
-**Пример использования:**
-
-```csharp
-public class OrderCreatedAction : IEntityLifecycleAction
-{
-    public Enum Key => OrderActions.Created;
-    public bool IsEnabled { get; private set; } = true;
-
-    public void Enable() => IsEnabled = true;
-    public void Disable() => IsEnabled = false;
-
-    public async Task ProcessAsync(
-        LifecycleHookType hookType,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
-        CancellationToken cancellationToken)
-    {
-        var publisher = serviceProvider.GetRequiredService<ILifecycleActionPublisher>();
-        await publisher.PublishAsync(this, cancellationToken);
-    }
-}
-```
-
-```csharp
-public class Order : BaseEntity<int>
-{
-    public string Number { get; private set; } = null!;
-    public OrderStatus Status { get; private set; }
-
-    protected override IEntityLifecycleAction[] BeforeSaveActions =>
-    [
-        new OrderValidatedAction(),  // Валидация перед сохранением
-    ];
-
-    protected override IEntityLifecycleAction[] AfterSaveActions =>
-    [
-        new OrderCreatedAction(),    // Уведомление после сохранения
-        new OrderStatusChangedAction(),
-    ];
-
-    public static Order Create(string number)
-    {
-        var order = new Order { Number = number, Status = OrderStatus.Created };
-        // Действия сгенерируются автоматически при сохранении
-        return order;
-    }
-}
-```
-
-### 2.4. Управление действиями
-
-#### Включение/отключение по флагам
-
-```csharp
-// Отключить ВСЕ действия
-order.DisableLifecycleActions();
-
-// Отключить только BeforeSave-действия
-order.DisableLifecycleActions(LifecycleHookType.BeforeSave);
-
-// Отключить конкретные флаги (flag-based filtering)
-order.DisableLifecycleActions(LifecycleHookType.AfterSave, OrderActions.StatusChanged);
-
-// Включить обратно
-order.EnableLifecycleActions();
-order.EnableLifecycleActions(LifecycleHookType.AfterSave, OrderActions.StatusChanged);
-```
-
-#### TryGetAction — безопасное получение
-
-```csharp
-if (order.TryGetAction(LifecycleHookType.AfterSave, OrderActions.Created, out var evt))
-{
-    await evt.ProcessAsync(LifecycleHookType.AfterSave, serviceProvider, [order], ct);
-}
-```
-
-#### ResetActions — переинициализация
-
-```csharp
-// Переинициализирует действия (вызывает EnableLifecycleActions())
-order.ResetActions();
-```
-
-### 2.5. IWithLifecycleActions — обработка действий
-
-Интерфейс предоставляет методы для пакетной обработки:
-
-```csharp
-// Обработать одно действие
-await entity.ProcessLifecycleActionAsync(
-    LifecycleHookType.AfterSave,
-    OrderActions.Created,
-    serviceProvider,
-    entities: [order],
-    cancellationToken);
-
-// Обработать ВСЕ действия указанного типа
-await entity.ProcessLifecycleActionsAsync(
-    LifecycleHookType.AfterSave,
-    serviceProvider,
-    entities: [order],
-    cancellationToken);
-```
+> **Изменение:** ранее класс назывался `BaseEntity<TKey>` и реализовывал `IWithLifecycleActions` с поддержкой `BeforeSaveActions`/`AfterSaveActions`/`TryGetAction` и т.д. После рефакторинга 2026-06-09 он переименован в `EntityBase<TKey>` и сокращён до минимума: только `IEntity<TKey>`. Lifecycle-функционал перенесён в `ILifecycleActionHandler<TEntity>` (см. [Lifecycle Actions](lifecycle-actions.md)).
 
 ---
 
@@ -214,7 +79,7 @@ await entity.ProcessLifecycleActionsAsync(
 
 ```csharp
 public abstract class EntityWithMetadata<TEntity, TKey>
-    : BaseEntity<TKey>, IEntityWithMetadata, IWithDeleteAction<TEntity>
+    : EntityBase<TKey>, IEntityWithMetadata, IWithDeleteAction<TEntity>
     where TEntity : class, IEntity<TKey>
 {
     // Audit-поля
@@ -301,10 +166,6 @@ public class Person : EntityWithMetadata<Person, int>
 
     public string FullName => $"{LastName} {FirstName} {MiddleName}".Trim();
 
-    protected override IEntityLifecycleAction[] AfterSaveActions =>
-    [
-        new PersonCreatedAction(),
-    ];
 
     public static Person Create(string firstName, string lastName, DateTime birthDate)
     {
@@ -576,36 +437,55 @@ repository.RemoveAsync(person, soft: true);
 
 ### 6.2. Обработка Lifecycle Actions
 
-EfRepository обрабатывает действия перехвата в два этапа:
+`EfUnitOfWork` диспетчеризует lifecycle-действия через `ILifecycleActionOrchestrator` в два этапа:
 
 ```csharp
 // 1. ДО SaveChanges()
-await ProcessLifecycleActionsAsync(LifecycleHookType.BeforeSave, serviceProvider, entities);
+await _lifecycleActionOrchestrator.DispatchAsync(LifecyclePhase.BeforeSave, cancellationToken);
 
 // 2. SaveChanges()
 await _context.SaveChangesAsync(cancellationToken);
 
 // 3. ПОСЛЕ SaveChanges()
-await ProcessLifecycleActionsAsync(LifecycleHookType.AfterSave, serviceProvider, entities);
+await _lifecycleActionOrchestrator.DispatchAsync(LifecyclePhase.AfterSave, cancellationToken);
 ```
 
-### 6.3. RequiredToSaveNavigationPropertiesNames
+> Обработчики (`ILifecycleActionHandler<TEntity>`) — отдельные классы в Application слое, регистрируются через `AddLifecycleActions()`. См. [Lifecycle Actions](lifecycle-actions.md).
 
-Свойство указывает, какие navigation-свойства должны быть загружены перед сохранением:
+### 6.3. RequiredNavigationProperties
+
+Имена navigation-свойств, которые нужно загрузить перед выполнением действия, объявляются **на обработчике** (а не на сущности):
 
 ```csharp
-public class Order : BaseEntity<int>
+public class OrderItemsValidationHandler
+    : LifecycleActionHandlerBase<Order>
 {
-    public OrderItem[] Items { get; private set; } = [];
+    public override LifecyclePhase Phase => LifecyclePhase.BeforeSave;
+    public override string Key => "ValidateOrderItems";
+    public override int Order => 0;
 
-    public override string[] RequiredToSaveNavigationPropertiesNames =>
+    public override string[] RequiredNavigationProperties =>
     [
-        nameof(Items),  // Items должны быть загружены перед сохранением
+        nameof(Order.Items),  // Items должны быть загружены перед вызовом
     ];
+
+    protected override Task ExecuteActionAsync(
+        ICollection<Order> entities,
+        CancellationToken cancellationToken)
+    {
+        foreach (var order in entities)
+        {
+            if (order.Items.Count == 0)
+            {
+                throw new BusinessLogicException("Заказ должен содержать хотя бы одну позицию.");
+            }
+        }
+        return Task.CompletedTask;
+    }
 }
 ```
 
-EfRepository проверяет это свойство и загружает указанные navigation-свойства если они ещё не загружены.
+`EfUnitOfWork.IncludeRequiredNavigationPropertiesAsync` объединяет `RequiredNavigationProperties` всех обработчиков для каждого типа и выполняет `Include` одним запросом на каждое navigation property для всего типа (батчинг).
 
 ---
 
@@ -644,75 +524,50 @@ public class Person : EntityWithMetadata<Person, int>
 }
 ```
 
-### 7.2. Lifecycle Action в сущности
+### 7.2. Lifecycle Action для сущности
+
+Обработчик регистрируется отдельно в Application слое. Ключ — стабильная строка, по которой можно точечно отключать действие через `ILifecycleActionOrchestrator`.
 
 ```csharp
-public enum PersonActions
+// В Application-слое сервиса
+public class PersonNameChangedHandler(ILogger<PersonNameChangedHandler> logger)
+    : LifecycleActionHandlerBase<Person>
 {
-    Created,
-    NameChanged,
-    Deleted,
-}
+    public override LifecyclePhase Phase => LifecyclePhase.AfterSave;
+    public override string Key => "PersonNameChanged";
+    public override int Order => 0;
 
-public class PersonNameChangedAction : IEntityLifecycleAction
-{
-    public Enum Key => PersonActions.NameChanged;
-    public bool IsEnabled { get; private set; } = true;
-    public int PersonId { get; }
-    public string OldName { get; }
-    public string NewName { get; }
-
-    public PersonNameChangedAction(int personId, string oldName, string newName)
-    {
-        PersonId = personId;
-        OldName = oldName;
-        NewName = newName;
-    }
-
-    public void Enable() => IsEnabled = true;
-    public void Disable() => IsEnabled = false;
-
-    public async Task ProcessAsync(
-        LifecycleHookType hookType,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
+    protected override Task ExecuteActionAsync(
+        ICollection<Person> entities,
         CancellationToken cancellationToken)
     {
-        var logger = serviceProvider.GetRequiredService<ILogger<PersonNameChangedAction>>();
-        logger.LogInformation("Person {PersonId} name changed: {Old} → {New}",
-            PersonId, OldName, NewName);
+        foreach (var person in entities)
+        {
+            logger.LogInformation("Person {PersonId} обработан", person.Id);
+        }
+        return Task.CompletedTask;
     }
 }
 ```
 
 ```csharp
+// Сущность остаётся чистой Domain-моделью без lifecycle
 public class Person : EntityWithMetadata<Person, int>
 {
     private string _firstName = null!;
     private string _lastName = null!;
-
-    protected override IEntityLifecycleAction[] AfterSaveActions =>
-    [
-        new PersonCreatedAction(),
-        new PersonNameChangedAction(0, string.Empty, string.Empty), // Placeholder
-    ];
 
     public void ChangeName(string firstName, string lastName)
     {
         var oldName = FullName;
         _firstName = firstName;
         _lastName = lastName;
-
-        // Обновляем действие с актуальными данными
-        if (TryGetAction(LifecycleHookType.AfterSave, PersonActions.NameChanged, out var evt)
-            && evt is PersonNameChangedAction nameChangedAction)
-        {
-            // Обновляем данные действия
-            // (в реальной реализации действие пересоздаётся)
-        }
+        // Действия обрабатываются отдельным обработчиком при SaveChanges
     }
 }
 ```
+
+> См. [Lifecycle Actions](lifecycle-actions.md) — полный разбор архитектуры, `ILifecycleActionHandler`, `ILifecycleActionOrchestrator` и миграция со старого `IWithLifecycleActions`.
 
 ### 7.3. Обработка в Command Handler
 

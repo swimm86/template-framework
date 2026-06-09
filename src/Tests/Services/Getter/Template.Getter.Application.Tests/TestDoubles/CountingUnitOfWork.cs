@@ -6,7 +6,6 @@
 
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
-using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
 using Shared.Testing.Doubles.Repository;
 
@@ -81,34 +80,8 @@ internal sealed class CountingUnitOfWork : IUnitOfWork
     public IUnitOfWork DisableTransaction() => this;
 
     /// <inheritdoc />
-    public IUnitOfWork DisableLifecycleActions() => this;
-
-    /// <inheritdoc />
-    public IUnitOfWork EnableLifecycleActions() => this;
-
-    /// <inheritdoc />
-    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    /// <inheritdoc />
-    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    /// <inheritdoc />
-    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum hookKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    /// <inheritdoc />
-    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum hookKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    /// <inheritdoc />
-    public IUnitOfWork ResetLifecycleActionSettings() => this;
-
-    /// <inheritdoc />
     public void ClearTracking() => _inner.ClearTracking();
 
     /// <inheritdoc />
     public void Dispose() => _inner.Dispose();
 }
-

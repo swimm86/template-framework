@@ -10,7 +10,8 @@
 
 ```csharp
 // 1. Команда на создание
-public record PersonCreateRequest(string Name, string Email);
+// DTO сущности "Person" переиспользуется как Request: поля Id/Name/Email/Hash.
+public sealed record PersonCreateRequest : PersonDto;
 
 public record PersonCreateCommand(PersonCreateRequest Request)
     : CreateCommand<PersonCreateRequest, PersonCreateResponse>(Request);
@@ -111,7 +112,8 @@ public abstract record CreateCommand<TRequest, TResponse>(TRequest Request) : IC
 
 **Пример:**
 ```csharp
-public record PersonCreateRequest(string Name, string Email);
+// Request наследует общий PersonDto (record-to-record)
+public sealed record PersonCreateRequest : PersonDto;
 
 public record PersonCreateCommand(PersonCreateRequest Request)
     : CreateCommand<PersonCreateRequest, PersonCreateResponse>(Request);
@@ -169,7 +171,7 @@ public class PersonCreateCommandHandler(
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<Person>> validators,
     IUserProvider userProvider)
-    : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Person, PersonResponse, PersonCreateResponse>(
+    : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Person, PersonDto, PersonCreateResponse>(
         loggerFactory, mapper, unitOfWork, validators, userProvider)
 {
     // Переопределение ProcessEntityAsync для кастомной логики

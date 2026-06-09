@@ -50,7 +50,7 @@ public class PersonCreateCommandHandler(
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<Person>> validators,
     IUserProvider userProvider)
-    : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Person, PersonResponse, PersonCreateResponse>(
+    : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Person, PersonDto, PersonCreateResponse>(
         loggerFactory, mapper, unitOfWork, validators, userProvider)
 {
     protected override Task ProcessEntityAsync(Person entity, PersonCreateCommand command)

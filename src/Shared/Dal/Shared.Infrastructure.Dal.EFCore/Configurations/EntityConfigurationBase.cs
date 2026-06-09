@@ -31,7 +31,6 @@ public abstract class EntityConfigurationBase<TEntity>
             .ValueGeneratedNever()
             .HasComment("Идентификатор.");
 
-        ConfigureLifecycleActions(builder);
         ConfigureMeta(builder);
         ConfigureProcess(builder);
     }
@@ -42,14 +41,6 @@ public abstract class EntityConfigurationBase<TEntity>
     /// <param name="builder">Построитель сущности.</param>
     protected virtual void ConfigureProcess(EntityTypeBuilder<TEntity> builder)
     {
-    }
-
-    private static void ConfigureLifecycleActions(EntityTypeBuilder builder)
-    {
-        if (typeof(IWithLifecycleActions).IsAssignableFrom(typeof(TEntity)))
-        {
-            builder.Ignore(nameof(IWithLifecycleActions.RequiredToSaveNavigationPropertiesNames));
-        }
     }
 
     private static void ConfigureMeta(EntityTypeBuilder builder)

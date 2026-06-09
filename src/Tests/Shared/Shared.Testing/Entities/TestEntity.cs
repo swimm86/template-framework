@@ -3,7 +3,8 @@ using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Testing.Entities;
 
-public class TestEntity : BaseEntity<Guid>, IWithDeleted, IWithDateCreated, IWithUpdated
+public class TestEntity
+    : EntityBase<Guid>, IWithDeleted, IWithDateCreated, IWithUpdated
 {
     public string Name { get; set; } = string.Empty;
 

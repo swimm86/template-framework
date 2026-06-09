@@ -50,6 +50,14 @@ namespace Template.DatabaseUpgrade.Migrations
                         .HasColumnName("email")
                         .HasComment("Адрес электронной почты");
 
+                    b.Property<byte[]>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea")
+                        .HasColumnName("hash")
+                        .IsFixedLength()
+                        .HasComment("SHA-256 хэш");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -57,6 +65,9 @@ namespace Template.DatabaseUpgrade.Migrations
                         .HasComment("Имя");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Hash")
+                        .IsUnique();
 
                     b.ToTable("person", null, t =>
                         {

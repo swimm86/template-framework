@@ -4,9 +4,11 @@
 
 Unit of Work (UoW) — это паттерн, который координирует работу нескольких репозиториев в рамках одной бизнес-транзакции, обеспечивая атомарность операций и согласованность данных. В фреймворке Shared реализован через интерфейс `IUnitOfWork`.
 
+**Assembly / Namespace:** `Shared.Domain.Core.Dal.UnitOfWork.Interfaces` (контракт) и `Shared.Infrastructure.Dal.EFCore.EfUnitOfWork<TDbContext>` (реализация).
+
 ## Интерфейс IUnitOfWork
 
-Базовый интерфейс определен в `Shared.Domain.Core.Dal.UnitOfWork.Interfaces.IUnitOfWork`:
+Базовый интерфейс определён в `Shared.Domain.Core.Dal.UnitOfWork.Interfaces.IUnitOfWork`:
 
 ```csharp
 public interface IUnitOfWork : IDisposable
@@ -25,48 +27,38 @@ public interface IUnitOfWork : IDisposable
     IUnitOfWork EnableTransaction();
     IUnitOfWork DisableTransaction();
 
-    // Управление действиями перехвата
-    IUnitOfWork EnableLifecycleActions();
-    IUnitOfWork DisableLifecycleActions();
-    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default) where TEntity : IEntity, IWithLifecycleActions;
-    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default) where TEntity : IEntity, IWithLifecycleActions;
-    IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags) where TEntity : IEntity, IWithLifecycleActions;
-    IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags) where TEntity : IEntity, IWithLifecycleActions;
-    IUnitOfWork ResetLifecycleActionSettings();
-
     // Управление отслеживанием
     void ClearTracking();
 }
 ```
 
+> **⚠️ Критично про `SaveChangesAsync(commitTransaction: true)`.**  
+> В `EfUnitOfWork` параметр `commitTransaction` имеет дефолт `true` (см. `EfUnitOfWork.cs:106-110`). Это означает, что **любой** `await _unitOfWork.SaveChangesAsync()` **сразу** делает `CommitTransactionAsync` + `ResetTransactionAsync` (см. блок `finally` в `SaveChangesAsync`). После такого `SaveChangesAsync` текущая транзакция уже зафиксирована и заменена на новую (или вообще сброшена, если транзакции отключены). Для **многошаговой** транзакции, где `SaveChanges` вызывается несколько раз **до** финального коммита, передавайте `commitTransaction: false` явно на каждом промежуточном вызове. Иначе первый же `SaveChanges` завершит всю транзакцию.
+
 ## Ключевые возможности
 
 ### 1. Централизованное получение репозиториев
 
-Все репозитории создаются в рамках одного контекста данных:
+`IUnitOfWork` инжектируется в Scoped-scope через DI. Все репозитории создаются в рамках одного контекста данных:
 
 ```csharp
-using var uow = _unitOfWorkFactory.Create();
-
-var userRepo = uow.GetRepository<User>();
-var orderRepo = uow.GetRepository<Order>();
-var productRepo = uow.GetRepository<Product>();
+var userRepo = _unitOfWork.GetRepository<User>();
+var orderRepo = _unitOfWork.GetRepository<Order>();
+var productRepo = _unitOfWork.GetRepository<Product>();
 
 // Все операции выполняются в рамках одного DbContext
 ```
 
 ### 2. Атомарное сохранение изменений
 
-Гарантия того, что все изменения сохраняются как единая транзакция:
+Для многошаговых операций (несколько `SaveChanges` внутри одной транзакции) используйте `commitTransaction: false` на промежуточных вызовах:
 
 ```csharp
 public async Task CreateOrder(CreateOrderRequest request)
 {
-    using var uow = _unitOfWorkFactory.Create();
-
-    var userRepo = uow.GetRepository<User>();
-    var orderRepo = uow.GetRepository<Order>();
-    var productRepo = uow.GetRepository<Product>();
+    var userRepo = _unitOfWork.GetRepository<User>();
+    var orderRepo = _unitOfWork.GetRepository<Order>();
+    var productRepo = _unitOfWork.GetRepository<Product>();
 
     // Проверка пользователя
     var user = await userRepo.GetAsync(request.UserId);
@@ -78,13 +70,16 @@ public async Task CreateOrder(CreateOrderRequest request)
     // Проверка и резервирование товаров
     foreach (var item in request.Items)
     {
-        var product = await productRepo.GetAsync(item.ProductId);
+        // Change tracking: модифицируем загруженную сущность, а не вызываем UpdateAsync —
+        // у IRepository<T> нет метода UpdateAsync; обновление идёт через SaveChangesAsync
+        // при условии, что сущность была прочитана с withTracking: true.
+        var options = new QueryOptions<Product>(withTracking: true);
+        var product = await productRepo.GetAsync(item.ProductId, options);
         if (product.Stock < item.Quantity)
         {
             throw new InvalidOperationException($"Insufficient stock for product {product.Name}");
         }
         product.Stock -= item.Quantity;
-        await productRepo.UpdateAsync(product);
     }
 
     // Создание заказа
@@ -97,27 +92,29 @@ public async Task CreateOrder(CreateOrderRequest request)
 
     await orderRepo.AddAsync(order);
 
-    // Атомарное сохранение всех изменений
-    await uow.SaveChangesAsync();
+    // Один SaveChanges в конце — дефолтный commitTransaction: true сразу коммитит транзакцию
+    await _unitOfWork.SaveChangesAsync();
 }
 ```
 
+> **Альтернатива для bulk-операций:** если нужно обновить много продуктов одним SQL-запросом без загрузки в память, используйте `productRepo.UpdateRangeAsync(x => productIds.Contains(x.Id), IRepository<Product>.GetUpdateRangeAsyncLambdaFunc(x => x.Stock, x => x.Stock - delta))`.
+
 ### 3. Явное управление транзакциями
 
-Контроль над транзакциями с возможностью commit/rollback:
+Контроль над транзакциями с возможностью commit/rollback. **Не** вызывайте `SaveChangesAsync()` без `commitTransaction: false` между `EnableTransaction()` и `CommitTransactionAsync()` — это завершит транзакцию преждевременно.
 
 ```csharp
 public async Task TransferMoney(Guid fromAccountId, Guid toAccountId, decimal amount)
 {
-    using var uow = _unitOfWorkFactory.Create();
-    uow.EnableTransaction();
+    _unitOfWork.EnableTransaction();
 
     try
     {
-        var accountRepo = uow.GetRepository<Account>();
+        var accountRepo = _unitOfWork.GetRepository<Account>();
 
-        var fromAccount = await accountRepo.GetAsync(fromAccountId);
-        var toAccount = await accountRepo.GetAsync(toAccountId);
+        var options = new QueryOptions<Account>(withTracking: true);
+        var fromAccount = await accountRepo.GetAsync(fromAccountId, options);
+        var toAccount = await accountRepo.GetAsync(toAccountId, options);
 
         if (fromAccount.Balance < amount)
         {
@@ -127,14 +124,15 @@ public async Task TransferMoney(Guid fromAccountId, Guid toAccountId, decimal am
         fromAccount.Balance -= amount;
         toAccount.Balance += amount;
 
-        await accountRepo.UpdateAsync(fromAccount);
-        await accountRepo.UpdateAsync(toAccount);
+        // commitTransaction: false — НЕ коммитим промежуточный save,
+        // транзакция ждёт финального CommitTransactionAsync()
+        await _unitOfWork.SaveChangesAsync(commitTransaction: false);
 
-        await uow.CommitTransactionAsync();
+        await _unitOfWork.CommitTransactionAsync();
     }
     catch
     {
-        await uow.RollbackTransactionAsync();
+        await _unitOfWork.RollbackTransactionAsync();
         throw;
     }
 }
@@ -142,47 +140,83 @@ public async Task TransferMoney(Guid fromAccountId, Guid toAccountId, decimal am
 
 ### 4. Управление действиями перехвата
 
-Гибкий контроль над генерацией и обработкой действий перехвата:
+Управление активностью lifecycle-действий вынесено из `IUnitOfWork` в `ILifecycleActionOrchestrator` (см. [Lifecycle Actions](lifecycle-actions.md)). `EfUnitOfWork` интегрирован с оркестратором автоматически.
 
 ```csharp
-// Глобальное отключение действий
-using var uow = _unitOfWorkFactory.Create();
-uow.DisableLifecycleActions();
+public class MyService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILifecycleActionOrchestrator _orchestrator;
 
-await userRepository.AddAsync(user);
-await uow.SaveChangesAsync(); // Действия не будут сгенерированы
+    public async Task BulkImportAsync(IEnumerable<Person> people)
+    {
+        // Глобальное отключение действий на время операции
+        _orchestrator.DisableActions();
 
-// Отключение действий для конкретного типа сущности
-uow.DisableLifecycleActions<User>();
+        try
+        {
+            var personRepo = _unitOfWork.GetRepository<Person>();
+            foreach (var person in people)
+            {
+                await personRepo.AddAsync(person);
+            }
+            await _unitOfWork.SaveChangesAsync(); // Действия не будут выполнены
+        }
+        finally
+        {
+            // Гарантированный сброс состояния оркестратора даже при исключении
+            _orchestrator.ResetAllActions();
+        }
 
-// Отключение BeforeSave-действий для сущности
-uow.DisableLifecycleActions<User>(LifecycleHookType.BeforeSave);
+        // Отключение конкретной фазы для всех сущностей
+        _orchestrator.DisablePhase(LifecyclePhase.AfterSave);
+        try
+        {
+            // ...работа без AfterSave-действий...
+        }
+        finally
+        {
+            _orchestrator.EnablePhase(LifecyclePhase.AfterSave);
+        }
 
-// Отключение действий по флагам
-uow.DisableLifecycleActions<User>(LifecycleHookType.BeforeSave, UserUpdateFlags.EmailChanged);
-
-// Включение действий обратно
-uow.EnableLifecycleActions<User>();
-
-// Сброс всех настроек действий
-uow.ResetLifecycleActionSettings();
+        // Отключение действия по ключу для конкретной сущности
+        var order = await orderRepo.GetAsync(orderId);
+        _orchestrator.DisableActionForEntity("SendOrderConfirmation", order);
+        try
+        {
+            // ...работа без уведомления...
+        }
+        finally
+        {
+            // Включение обратно
+            _orchestrator.EnableActionForEntity("SendOrderConfirmation", order);
+        }
+    }
+}
 ```
 
-**Типы действий перехвата:**
-- `LifecycleHookType.BeforeSave` — действие до сохранения сущности
-- `LifecycleHookType.AfterSave` — действие после сохранения сущности
+> **Автоматический сброс:** `EfUnitOfWork.SaveChangesAsync` при `resetLifecycleActionSettingsAfterSave: true` (по умолчанию) вызывает `orchestrator.ResetAllActions()` в блоке `finally` (см. `EfUnitOfWork.cs:142-148`). Поэтому явный `try/finally` с `ResetAllActions()` нужен, если между `DisableActions()` и `SaveChangesAsync()` возможно исключение **до** самого `SaveChangesAsync` — иначе состояние не сбросится автоматически.
+
+**Фазы действий перехвата** (см. `Shared.Domain.Core.Enums.LifecyclePhase`):
+- `LifecyclePhase.BeforeSave` — действие до сохранения сущности
+- `LifecyclePhase.AfterSave` — действие после сохранения сущности
 
 ### 5. Управление отслеживанием изменений
 
-Контроль над tracking сущностей в EF Core:
+Контроль над tracking сущностей в EF Core. **Свойство называется `WithTracking`**, а не `AsNoTracking` — это **прямая** семантика (`true` = отслеживать, `false` = не отслеживать):
 
 ```csharp
 // Очистка всех отслеживаемых сущностей
 uow.ClearTracking();
 
-// Чтение без отслеживания (через QueryOptions)
-var options = new QueryOptions<User> { AsNoTracking = true };
+// Чтение БЕЗ отслеживания (по умолчанию)
+var options = new QueryOptions<User>(withTracking: false);
 var users = await repo.GetRangeAsync(options);
+
+// Чтение С отслеживанием — для последующего изменения сущности
+var trackedOptions = new QueryOptions<User>(withTracking: true);
+var trackedUser = await repo.GetAsync(userId, trackedOptions);
+trackedUser.Name = "new"; // change tracking в EF Core подхватит изменение
 ```
 
 ## Примеры использования
@@ -192,25 +226,23 @@ var users = await repo.GetRangeAsync(options);
 ```csharp
 public class OrderService
 {
-    private readonly IUnitOfWorkFactory _unitOfWorkFactory;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public OrderService(IUnitOfWorkFactory unitOfWorkFactory)
+    public OrderService(IUnitOfWork unitOfWork)
     {
-        _unitOfWorkFactory = unitOfWorkFactory;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<Order> CreateOrder(CreateOrderRequest request)
     {
-        using var uow = _unitOfWorkFactory.Create();
-
-        var userRepo = uow.GetRepository<User>();
-        var orderRepo = uow.GetRepository<Order>();
-        var productRepo = uow.GetRepository<Product>();
+        var userRepo = _unitOfWork.GetRepository<User>();
+        var orderRepo = _unitOfWork.GetRepository<Order>();
+        var productRepo = _unitOfWork.GetRepository<Product>();
 
         // Бизнес-логика...
 
         var result = await orderRepo.AddAsync(order);
-        await uow.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
 
         return result;
     }
@@ -222,15 +254,15 @@ public class OrderService
 ```csharp
 public async Task ProcessRefund(Guid orderId, decimal amount)
 {
-    using var uow = _unitOfWorkFactory.Create();
-    uow.EnableTransaction();
+    _unitOfWork.EnableTransaction();
 
     try
     {
-        var orderRepo = uow.GetRepository<Order>();
-        var paymentRepo = uow.GetRepository<Payment>();
+        var orderRepo = _unitOfWork.GetRepository<Order>();
+        var paymentRepo = _unitOfWork.GetRepository<Payment>();
 
-        var order = await orderRepo.GetAsync(orderId);
+        var options = new QueryOptions<Order>(withTracking: true);
+        var order = await orderRepo.GetAsync(orderId, options);
         if (order.Status != OrderStatus.Completed)
         {
             throw new InvalidOperationException("Order is not completed");
@@ -247,13 +279,16 @@ public async Task ProcessRefund(Guid orderId, decimal amount)
         order.Status = OrderStatus.Refunded;
 
         await paymentRepo.AddAsync(refund);
-        await orderRepo.UpdateAsync(order);
+        // order модифицирован через change tracking — отдельный UpdateAsync не нужен
 
-        await uow.CommitTransactionAsync();
+        // commitTransaction: false — НЕ коммитим, ждём CommitTransactionAsync
+        await _unitOfWork.SaveChangesAsync(commitTransaction: false);
+
+        await _unitOfWork.CommitTransactionAsync();
     }
     catch (Exception ex)
     {
-        await uow.RollbackTransactionAsync();
+        await _unitOfWork.RollbackTransactionAsync();
         // Логирование ошибки
         throw;
     }
@@ -265,25 +300,34 @@ public async Task ProcessRefund(Guid orderId, decimal amount)
 ```csharp
 public async Task BulkUpdatePrices(IEnumerable<PriceUpdate> updates)
 {
-    using var uow = _unitOfWorkFactory.Create();
+    // Отключаем BeforeSave-действия для массовой операции через orchestrator
+    _orchestrator.DisablePhase(LifecyclePhase.BeforeSave);
 
-    // Отключаем действия обновления для массовой операции
-    uow.DisableLifecycleActions<Product>(LifecycleHookType.BeforeSave);
-
-    var productRepo = uow.GetRepository<Product>();
-
-    foreach (var update in updates)
+    try
     {
-        var product = await productRepo.GetAsync(update.ProductId);
-        if (product != null)
-        {
-            product.Price = update.NewPrice;
-            product.UpdatedAt = DateTime.UtcNow;
-            await productRepo.UpdateAsync(product);
-        }
-    }
+        var productRepo = _unitOfWork.GetRepository<Product>();
 
-    await uow.SaveChangesAsync();
+        foreach (var update in updates)
+        {
+            var options = new QueryOptions<Product>(withTracking: true);
+            var product = await productRepo.GetAsync(update.ProductId, options);
+            if (product != null)
+            {
+                product.Price = update.NewPrice;
+                product.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        // resetLifecycleActionSettingsAfterSave = true сбросит orchestrator автоматически
+    }
+    catch
+    {
+        // Если исключение дошло до сюда (минуя SaveChanges),
+        // принудительно сбрасываем состояние оркестратора
+        _orchestrator.ResetAllActions();
+        throw;
+    }
 }
 ```
 
@@ -292,20 +336,19 @@ public async Task BulkUpdatePrices(IEnumerable<PriceUpdate> updates)
 ```csharp
 public async Task ComplexOperation()
 {
-    using var uow = _unitOfWorkFactory.Create();
-    uow.EnableTransaction();
+    _unitOfWork.EnableTransaction();
 
     // Первая часть операции
-    await PartOneAsync(uow);
+    await PartOneAsync(_unitOfWork);
 
     // Сброс транзакции для независимой второй части
-    await uow.ResetTransactionAsync();
-    uow.EnableTransaction();
+    await _unitOfWork.ResetTransactionAsync();
+    _unitOfWork.EnableTransaction();
 
     // Вторая часть операции (не зависит от первой)
-    await PartTwoAsync(uow);
+    await PartTwoAsync(_unitOfWork);
 
-    await uow.CommitTransactionAsync();
+    await _unitOfWork.CommitTransactionAsync();
 }
 ```
 
@@ -347,17 +390,39 @@ public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Ord
 
 ## Best Practices
 
-### 1. Используйте `using` для автоматического disposal
+### 1. Не оборачивайте инжектированный `IUnitOfWork` в `using`
+
+`IUnitOfWork` зарегистрирован в DI как **Scoped** (см. `Shared.Infrastructure.Dal.EFCore/Extensions/ServiceCollectionExtensions.cs:57`): dispose происходит автоматически при завершении scope. Повторный dispose инжектированного инстанса приводит к двойному освобождению ресурсов и потенциальным ошибкам в тестах.
 
 ```csharp
-// Правильно
-using var uow = _unitOfWorkFactory.Create();
-await uow.SaveChangesAsync();
+// Правильно — используем инжектированный инстанс напрямую
+public class OrderService
+{
+    private readonly IUnitOfWork _unitOfWork;
 
-// Неправильно - может привести к утечкам ресурсов
-var uow = _unitOfWorkFactory.Create();
-await uow.SaveChangesAsync();
+    public OrderService(IUnitOfWork unitOfWork)
+    {
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task CreateOrder(CreateOrderRequest request)
+    {
+        var orderRepo = _unitOfWork.GetRepository<Order>();
+        await orderRepo.AddAsync(/* ... */);
+        await _unitOfWork.SaveChangesAsync();
+    }
+}
+
+// Неправильно — двойной dispose инжектированного сервиса
+public async Task BadPractice()
+{
+    using var uow = _unitOfWork; // Scoped-инстанс будет утилизирован здесь
+    await uow.SaveChangesAsync();
+    // ... позже, при завершении scope, DI повторно вызовет Dispose
+}
 ```
+
+> Если в кодовой базе встречается паттерн `IUnitOfWorkFactory.Create()` (фабрика возвращает новый инстанс) — именно тогда `using` оправдан. Для DI-инжекции — нет.
 
 ### 2. Минимизируйте scope транзакции
 
@@ -365,27 +430,25 @@ await uow.SaveChangesAsync();
 // Правильно - короткая транзакция
 public async Task UpdateUserEmail(Guid userId, string email)
 {
-    using var uow = _unitOfWorkFactory.Create();
-    var repo = uow.GetRepository<User>();
-    var user = await repo.GetAsync(userId);
+    var options = new QueryOptions<User>(withTracking: true);
+    var repo = _unitOfWork.GetRepository<User>();
+    var user = await repo.GetAsync(userId, options);
     user.Email = email;
-    await repo.UpdateAsync(user);
-    await uow.SaveChangesAsync();
+    await _unitOfWork.SaveChangesAsync();
 }
 
 // Неправильно - длительная транзакция включает внешние вызовы
 public async Task UpdateUserWithEmailVerification(Guid userId, string email)
 {
-    using var uow = _unitOfWorkFactory.Create();
-    var repo = uow.GetRepository<User>();
-    var user = await repo.GetAsync(userId);
+    var options = new QueryOptions<User>(withTracking: true);
+    var repo = _unitOfWork.GetRepository<User>();
+    var user = await repo.GetAsync(userId, options);
 
     // Долгий внешний вызов внутри транзакции!
     await _emailService.SendVerificationEmail(email);
 
     user.Email = email;
-    await repo.UpdateAsync(user);
-    await uow.SaveChangesAsync();
+    await _unitOfWork.SaveChangesAsync();
 }
 ```
 
@@ -396,7 +459,7 @@ public async Task UpdateUserWithEmailVerification(Guid userId, string email)
 var user = await repo.GetAsync(id);
 
 // Для операций записи явно включайте транзакцию при необходимости
-uow.EnableTransaction();
+_unitOfWork.EnableTransaction();
 ```
 
 ### 4. Обрабатывайте исключения корректно
@@ -404,12 +467,12 @@ uow.EnableTransaction();
 ```csharp
 try
 {
-    await uow.SaveChangesAsync();
+    await _unitOfWork.SaveChangesAsync();
 }
 catch
 {
-    await uow.RollbackTransactionAsync();
-    throw; // Передаем исключение выше
+    await _unitOfWork.RollbackTransactionAsync();
+    throw; // Передаём исключение выше
 }
 ```
 
@@ -418,15 +481,36 @@ catch
 ```csharp
 foreach (var batch in batches)
 {
-    using var uow = _unitOfWorkFactory.Create();
-
     foreach (var item in batch)
     {
-        await ProcessItemAsync(uow, item);
+        await ProcessItemAsync(_unitOfWork, item);
     }
 
-    await uow.SaveChangesAsync();
-    uow.ClearTracking(); // Освобождаем память
+    await _unitOfWork.SaveChangesAsync();
+    _unitOfWork.ClearTracking(); // Освобождаем память
+}
+```
+
+### 6. Помните о дефолте `commitTransaction: true`
+
+```csharp
+// ❌ Внутри явной транзакции это ОБРВЁТ её после первого SaveChanges
+_unitOfWork.EnableTransaction();
+await _unitOfWork.SaveChangesAsync(); // ← уже закоммитили и сбросили транзакцию
+// ... дальнейшие операции вне транзакции
+
+// ✅ Правильно для многошаговых сценариев
+_unitOfWork.EnableTransaction();
+try
+{
+    await _unitOfWork.SaveChangesAsync(commitTransaction: false);
+    // ... ещё операции ...
+    await _unitOfWork.CommitTransactionAsync();
+}
+catch
+{
+    await _unitOfWork.RollbackTransactionAsync();
+    throw;
 }
 ```
 
@@ -445,4 +529,5 @@ foreach (var batch in batches)
 |----------|----------|
 | [Repository Pattern](repository.md) | Доступ к данным через репозиторий |
 | [Specification Pattern](specification.md) | Инкапсуляция критериев выборки |
-| [CQRS](cqrs.md) | Разделение команд и запросов
+| [Lifecycle Actions](lifecycle-actions.md) | Управление перехватом жизненного цикла |
+| [CQRS](cqrs.md) | Разделение команд и запросов |

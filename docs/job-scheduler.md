@@ -119,7 +119,7 @@ services.AddJobs(opts => opts
 | Тип | Где живёт | Назначение |
 |-----|-----------|-----------|
 | `IScheduledJob` | `Shared.Application.Core.Job` | Маркер для фоновой задачи в виде класса. Метод: `ExecuteAsync(CancellationToken)`. |
-| `JobDefinition` | `Shared.Application.Core.Job` | POCO-описание задачи: ключ, расписание, делегат или тип фоновой задачи, опциональный `ServiceKey` (keyed-DI) и `RetryOptions` (per-job retry-политика). |
+| `JobDefinition` | `Shared.Application.Core.Job.Scheduler` | `sealed record`: ключ, расписание, делегат или тип фоновой задачи, опциональный `ServiceKey` (keyed-DI) и `RetryOptions` (per-job retry-политика). |
 | `JobSchedule` | `Shared.Application.Core.Job` | Discriminated union: `Cron(expr)`, `Flags(flags, time)`, `OnStartup`. |
 | `JobTriggerFlags` | `Shared.Application.Core.Job` | `[Flags]`-перечисление: `Daily`, `Weekly`, `Monthly`, `OnStartup`, `EveryMinute`, `EveryHour`. |
 | `IJobScheduler` | `Shared.Application.Core.Job` | Runtime API: `ScheduleAsync(JobDefinition)`. |
@@ -160,7 +160,7 @@ services.AddJobs(opts => opts
 | Задачи в виде класса (`IScheduledJob`) | ✅ | ✅ |
 | Задачи, заданные делегатом | ✅ (через `JobDataMap` + adapter) | ❌ (NotSupportedException — замыкание не сериализуемо) |
 | `JobSchedule.Cron` | ✅ (`WithCronSchedule`) | ✅ (`RecurringJob.AddOrUpdate` + cron) |
-| `JobSchedule.OnStartup` | ✅ (`StartNow()`) | ✅ (`BackgroundJob.Schedule` + `TimeSpan.Zero`) |
+| `JobSchedule.OnStartup` | ✅ (`StartNow()`) | ✅ (`BackgroundJobClient.Create` + `new ScheduledState(TimeSpan.Zero)`) |
 | `JobSchedule.Flags` (Daily/Weekly/...) | ✅ (`WithCalendarIntervalSchedule`) | ⚠️ Маппится в синтетические cron-выражения |
 | In-memory storage | ✅ (по умолчанию) | ✅ (`UseInMemoryStorage`) |
 | DI-инжекция в `IJob`/`Bridge` | ✅ | ✅ (`AspNetCoreJobActivator`) |
