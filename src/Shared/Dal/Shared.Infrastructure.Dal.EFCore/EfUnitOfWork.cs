@@ -10,12 +10,12 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.Dal.Settings.Models.Base;
+using Shared.Application.Core.LifecycleAction.Interfaces;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
-using Shared.Domain.Core.LifecycleAction.Settings;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore;
@@ -25,25 +25,19 @@ public class EfUnitOfWork<TDbContext>
     : IUnitOfWork
     where TDbContext : DbContextBase
 {
-    private readonly LifecycleActionSettings _lifecycleActionSettings = new();
-
-    private EntityEntry<IWithLifecycleActions>[] EntriesWithLifecycleActions =>
-        DbContext.ChangeTracker.Entries<IWithLifecycleActions>().ToArray();
-
     /// <summary>
     /// DbContext.
     /// </summary>
     protected readonly TDbContext DbContext;
 
-    /// <summary>
     /// <inheritdoc cref="IServiceProvider"/>.
-    /// </summary>
     private readonly IServiceProvider _serviceProvider;
 
-    /// <summary>
-    /// <inheritdoc cref="IBeforeSaveChangesService"/>.
-    /// </summary>
+    /// <inheritdoc cref="IBeforeSaveChangesService"/>
     private readonly IBeforeSaveChangesService? _beforeSaveChangesService;
+
+    /// <inheritdoc cref="ILifecycleActionOrchestrator"/>
+    private readonly ILifecycleActionOrchestrator _lifecycleActionOrchestrator;
 
     /// <summary>
     /// Признак того, что необходимо использовать транзакцию.
@@ -66,26 +60,29 @@ public class EfUnitOfWork<TDbContext>
     protected IDbContextTransaction? CurrentDbTransaction => _currentTransaction;
 
     /// <summary>
-    /// Признак того, что включено хотя бы одно действие перехвата жизненного цикла.
-    /// </summary>
-    protected bool AreAnyLifecycleActionsEnabled => _lifecycleActionSettings.AnyEnabled;
-
-    /// <summary>
     /// Конструктор по умолчанию.
     /// </summary>
     /// <param name="dbContext"><see cref="TDbContext"/>.</param>
     /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="settings">Настройки.</param>
-    /// <param name="beforeSaveChangesService"><see cref="IBeforeSaveChangesService"/>.</param>
+    /// <param name="lifecycleActionOrchestrator"><inheritdoc cref="ILifecycleActionOrchestrator" path="/summary"/></param>
+    /// <param name="beforeSaveChangesService"><inheritdoc cref="IBeforeSaveChangesService" path="/summary"/></param>
     public EfUnitOfWork(
         TDbContext dbContext,
         IServiceProvider serviceProvider,
         DbSettingsBase settings,
+        ILifecycleActionOrchestrator lifecycleActionOrchestrator,
         IBeforeSaveChangesService? beforeSaveChangesService = null)
     {
+        ArgumentNullException.ThrowIfNull(lifecycleActionOrchestrator);
+
         DbContext = dbContext;
-        _beforeSaveChangesService = beforeSaveChangesService;
         _serviceProvider = serviceProvider;
+        _lifecycleActionOrchestrator = lifecycleActionOrchestrator;
+        _beforeSaveChangesService = beforeSaveChangesService;
+
+        DbContext.ChangeTracker.Tracked += OnEntityTracked;
+        DbContext.ChangeTracker.StateChanged += OnEntityStateChanged;
 
         _useTransaction = DbContext.Database.CanConnect() && settings.TransactionsEnabled;
         if (_useTransaction)
@@ -113,15 +110,11 @@ public class EfUnitOfWork<TDbContext>
         bool commitTransaction = true,
         bool resetLifecycleActionSettingsAfterSave = true)
     {
-        var entryTypeGroups = EntriesWithLifecycleActions
-            .GroupBy(e => e.Entity.GetType())
-            .ToArray();
-
         try
         {
-            await ProcessLifecycleActionsAsync(
-                entryTypeGroups,
-                LifecycleHookType.BeforeSave,
+            await IncludeRequiredNavigationPropertiesAsync(cancellationToken);
+            await _lifecycleActionOrchestrator.DispatchAsync(
+                LifecyclePhase.BeforeSave,
                 cancellationToken);
 
             await ProcessBeforeSaveChangesActionsAsync(cancellationToken);
@@ -133,9 +126,8 @@ public class EfUnitOfWork<TDbContext>
                 await CommitTransactionAsync(cancellationToken);
             }
 
-            await ProcessLifecycleActionsAsync(
-                entryTypeGroups,
-                LifecycleHookType.AfterSave,
+            await _lifecycleActionOrchestrator.DispatchAsync(
+                LifecyclePhase.AfterSave,
                 cancellationToken);
 
             return result;
@@ -145,20 +137,16 @@ public class EfUnitOfWork<TDbContext>
             if (commitTransaction)
             {
                 await RollbackTransactionAsync(cancellationToken);
+                ClearTracking();
             }
 
             throw;
         }
         finally
         {
-            if (_lifecycleActionSettings.AnyEnabled)
-            {
-                entryTypeGroups.SelectMany(x => x).ForEach(e => e.Entity.ResetActions());
-            }
-
             if (resetLifecycleActionSettingsAfterSave)
             {
-                ResetLifecycleActionSettings();
+                _lifecycleActionOrchestrator.ResetAllActions();
             }
 
             if (commitTransaction)
@@ -193,42 +181,6 @@ public class EfUnitOfWork<TDbContext>
     {
         _useTransaction = false;
         DisposeTransaction();
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public IUnitOfWork DisableLifecycleActions() =>
-        SwitchLifecycleActions(false);
-
-    /// <inheritdoc />
-    public IUnitOfWork EnableLifecycleActions() =>
-        SwitchLifecycleActions(true);
-
-    /// <inheritdoc />
-    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = null)
-        where TEntity : IEntity, IWithLifecycleActions =>
-        SwitchLifecycleActions<TEntity>(hookType, false);
-
-    /// <inheritdoc />
-    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = null)
-        where TEntity : IEntity, IWithLifecycleActions =>
-        SwitchLifecycleActions<TEntity>(hookType, true);
-
-    /// <inheritdoc />
-    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions =>
-        SwitchLifecycleActions<TEntity>(hookType, actionKeyFlags, false);
-
-    /// <inheritdoc />
-    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum actionKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions =>
-        SwitchLifecycleActions<TEntity>(hookType, actionKeyFlags, true);
-
-    /// <inheritdoc />
-    public IUnitOfWork ResetLifecycleActionSettings()
-    {
-        EnableLifecycleActions();
 
         return this;
     }
@@ -269,105 +221,73 @@ public class EfUnitOfWork<TDbContext>
         DisposeTransaction();
     }
 
-    private IUnitOfWork SwitchLifecycleActions(bool enable)
-    {
-        _lifecycleActionSettings.Switch(enable);
-
-        return this;
-    }
-
-    private IUnitOfWork SwitchLifecycleActions<TEntity>(LifecycleHookType? hookType, bool enable)
-        where TEntity : IEntity, IWithLifecycleActions
-    {
-        if (hookType.HasValue)
-        {
-            _lifecycleActionSettings.Switch(typeof(TEntity), hookType.Value, enable);
-        }
-        else
-        {
-            _lifecycleActionSettings.Switch(typeof(TEntity), enable);
-        }
-
-        return this;
-    }
-
-    private IUnitOfWork SwitchLifecycleActions<TEntity>(LifecycleHookType hookType, Enum flags, bool enable)
-        where TEntity : IEntity, IWithLifecycleActions
-    {
-        _lifecycleActionSettings.Switch(typeof(TEntity), hookType, flags, enable);
-
-        return this;
-    }
-
     private Task ProcessBeforeSaveChangesActionsAsync(CancellationToken cancellationToken) =>
         _beforeSaveChangesService is not null
             ? _beforeSaveChangesService.ProcessAsync(DbContext, cancellationToken)
             : Task.CompletedTask;
 
-    private async Task ProcessLifecycleActionsAsync(
-        IGrouping<Type, EntityEntry<IWithLifecycleActions>>[] entryGroups,
-        LifecycleHookType hookType,
-        CancellationToken cancellationToken)
+    /// <summary>
+    /// Обработчик события отслеживания новой сущности в ChangeTracker.
+    /// </summary>
+    /// <param name="sender">Источник события.</param>
+    /// <param name="e">Аргументы события.</param>
+    private void OnEntityTracked(object? sender, EntityTrackedEventArgs e)
     {
-        if (!_lifecycleActionSettings.AnyEnabled)
+        if (e.Entry.Entity is IEntity entity)
         {
-            return;
-        }
-
-        foreach (var entryGroup in entryGroups)
-        {
-            if (!_lifecycleActionSettings.AnyElementEnabled(entryGroup.Key, hookType))
-            {
-                continue;
-            }
-
-            await ProcessLifecycleActionsAsync(entryGroup, hookType, cancellationToken);
+            _lifecycleActionOrchestrator.AddEntities([entity]);
         }
     }
 
-    private async Task ProcessLifecycleActionsAsync(
-        IGrouping<Type, EntityEntry<IWithLifecycleActions>> typeEntryGroup,
-        LifecycleHookType hookType,
+    /// <summary>
+    /// Обработчик события изменения состояния сущности в ChangeTracker.
+    /// </summary>
+    /// <param name="sender">Источник события.</param>
+    /// <param name="e">Аргументы события.</param>
+    private void OnEntityStateChanged(
+        object? sender,
+        EntityStateChangedEventArgs e)
+    {
+        if (e.Entry is { State: EntityState.Detached, Entity: IEntity entity })
+        {
+            _lifecycleActionOrchestrator.RemoveEntities([entity]);
+        }
+    }
+
+    /// <summary>
+    /// Загружает необходимые навигационные свойства для всех отслеживаемых сущностей.
+    /// </summary>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
+    private async Task IncludeRequiredNavigationPropertiesAsync(
         CancellationToken cancellationToken)
     {
-        var entities = typeEntryGroup.Select(e => e.Entity).ToArray();
-
-        var keys = entities
-            .SelectMany(x => x.GetAllKeys(hookType))
-            .Distinct()
-            .Where(key => _lifecycleActionSettings.AnyElementEnabled(typeEntryGroup.Key, hookType, key))
-            .ToArray();
-
-        if (!keys.Any())
+        foreach (var entryGroup in DbContext.ChangeTracker.Entries<IEntity>().GroupBy(x => x.Entity.GetType()))
         {
-            return;
-        }
-
-        await IncludeRequiredNavigationPropertiesAsync(typeEntryGroup, entities, cancellationToken);
-
-        foreach (var key in keys)
-        {
-            await entities.ForeachAsync(
-                x => x.ProcessLifecycleActionAsync(
-                    hookType,
-                    key,
-                    _serviceProvider,
-                    entities,
-                    cancellationToken),
+            var requiredNavigationNames = _lifecycleActionOrchestrator.GetRequiredProperties(entryGroup.Key);
+            await IncludeRequiredNavigationPropertiesAsync(
+                entryGroup,
+                requiredNavigationNames,
                 cancellationToken);
         }
     }
 
+    /// <summary>
+    /// Загружает указанные навигационные свойства для группы сущностей одного типа.
+    /// </summary>
+    /// <param name="typeEntryGroup">Группа сущностей одного типа.</param>
+    /// <param name="requiredNavigationNames">Имена навигационных свойств для загрузки.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Результат выполнения асинхронной операции.</returns>
     private Task IncludeRequiredNavigationPropertiesAsync(
-        IGrouping<Type, EntityEntry<IWithLifecycleActions>> typeEntryGroup,
-        IWithLifecycleActions[] entities,
+        IGrouping<Type, EntityEntry<IEntity>> typeEntryGroup,
+        string[] requiredNavigationNames,
         CancellationToken cancellationToken)
     {
-        // Получаем обязательные для действий перехвата незагруженные навигационные свойства.
         var navigationGroups = typeEntryGroup
             .SelectMany(entry => entry.Navigations
                 .Where(nav =>
-                    entry.Entity.RequiredToSaveNavigationPropertiesNames.Contains(nav.Metadata.Name)
+                    requiredNavigationNames.Contains(nav.Metadata.Name)
                     && !nav.IsLoaded))
             .GroupBy(nav => nav.Metadata.Name)
             .ToArray();
@@ -378,6 +298,7 @@ public class EfUnitOfWork<TDbContext>
             {
                 var navigation = navigationGroup.First();
 
+                var entities = typeEntryGroup.Select(x => x.Entity).ToArray();
                 await IncludeNavigationPropertyCollectionByTypeAsync(
                     typeEntryGroup.Key,
                     navigation.Metadata.ClrType,
@@ -394,7 +315,7 @@ public class EfUnitOfWork<TDbContext>
         Type type,
         Type navType,
         string name,
-        IEnumerable<IWithLifecycleActions> entities,
+        IEnumerable<IEntity> entities,
         CancellationToken cancellationToken)
     {
         var method = GetType()
@@ -409,7 +330,7 @@ public class EfUnitOfWork<TDbContext>
     private Task IncludeNavigationPropertyCollectionAsync<TEntity, TNavigation>(
         Type type,
         string name,
-        IEnumerable<IWithLifecycleActions> entities,
+        IEnumerable<IEntity> entities,
         CancellationToken cancellationToken)
         where TEntity : class
     {

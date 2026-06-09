@@ -1,212 +1,282 @@
 # Lifecycle Actions
 
-**Namespace:** `Shared.Domain.Core.LifecycleAction`  
-**Assembly:** `Shared.Domain.Core`
+**Namespace:** `Shared.Application.Core.LifecycleAction`, `Shared.Application.Core.LifecycleAction.Interfaces`, `Shared.Domain.Core.Enums`  
+**Assemblies:** `Shared.Application.Core.dll`, `Shared.Domain.Core.dll`
 
 ---
 
 ## Обзор
 
-Lifecycle Actions — механизм trigger'ов side-эффектов на уровне Domain слоя. Сущности, реализующие `IWithLifecycleActions`, регистрируют действия, которые обрабатываются Unit of Work в процессе `SaveChanges` — до или после фактического сохранения в БД.
+Lifecycle Actions — механизм trigger'ов side-эффектов на уровне Application слоя. Действия регистрируются как отдельные `ILifecycleActionHandler<TEntity>`-классы, обнаруживаются через `AddLifecycleActions()` и исполняются `LifecycleActionOrchestrator` в процессе `SaveChangesAsync` — до или после фактического сохранения в БД.
+
+Архитектура построена вокруг **одного обработчика на одну комбинацию `(EntityType, LifecyclePhase, Key)`** и **оркестратора**, который собирает все зарегистрированные обработчики, фильтрует сущности и диспетчеризует вызовы.
 
 **Зачем это нужно:**
 - Декомпозиция бизнес-логики без нарушения SRP
 - Trigger'ование side-эффектов (отправка уведомлений, аудит, каскадные операции)
-- Изоляция Domain слоя от Infrastructure concerns
 - Контроль lifecycle: `BeforeSave` (валидация, обогащение данных) vs `AfterSave` (публикация, нотификация)
+- Гибкое управление активностью действий (глобально / по фазе / по ключу / по конкретной сущности)
 
 ---
 
-## Типы действий
+## Базовые интерфейсы
 
-### IEntityLifecycleAction
+### `ILifecycleActionHandler`
 
-Базовый интерфейс всех действий перехвата:
+Контракт обработчика действий перехвата. Реализуется напрямую или через generic-вариант `ILifecycleActionHandler<TEntity>`.
 
 ```csharp
-public interface IEntityLifecycleAction
+public interface ILifecycleActionHandler
 {
-    Enum Key { get; }
+    Type EntityType { get; }
+    LifecyclePhase Phase { get; }
+    string Key { get; }
+    int Order { get; }
+    string[] RequiredNavigationProperties => [];
 
     Task ExecuteAsync(
-        LifecycleHookType hookType,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
+        IEnumerable<IEntity> entities,
         CancellationToken cancellationToken);
+}
 
-    void Enable();
-    void Disable();
+public interface ILifecycleActionHandler<TEntity>
+    : ILifecycleActionHandler
+    where TEntity : class, IEntity
+{
+    Type ILifecycleActionHandler.EntityType => typeof(TEntity);
+
+    Task ExecuteAsync(
+        ICollection<TEntity> entities,
+        CancellationToken cancellationToken);
 }
 ```
 
 | Член | Описание |
 |------|----------|
-| `Key` | Уникальный идентификатор действия (enum) |
-| `ExecuteAsync` | Выполняет логику действия |
-| `Enable()` | Включает действие для повторного срабатывания |
-| `Disable()` | Отключает действие (автоматически после обработки) |
+| `EntityType` | Тип сущности, к которой применяется обработчик |
+| `Phase` | Фаза жизненного цикла (`BeforeSave` / `AfterSave`) |
+| `Key` | Уникальный строковый идентификатор действия в рамках `(EntityType, Phase)` |
+| `Order` | Порядок выполнения относительно других обработчиков той же фазы |
+| `RequiredNavigationProperties` | Имена navigation-свойств, которые `EfUnitOfWork` загрузит перед вызовом |
+| `ExecuteAsync` | Метод выполнения действия |
 
-### CustomLifecycleAction
+### `LifecycleActionHandlerBase<TEntity>`
 
-Lambda-based действие — вся логика передаётся через `Func`:
-
-```csharp
-public class CustomLifecycleAction(
-    Enum key,
-    Func<IServiceProvider, ICollection<IWithLifecycleActions>, CancellationToken, Task> action)
-    : EntityLifecycleActionBase(key)
-{
-    protected override Task ExecuteActionAsync(
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
-        CancellationToken cancellationToken) =>
-        action(serviceProvider, entities, cancellationToken);
-}
-```
-
-**Когда использовать:** одноразовые действия, inline-логика, динамическая регистрация.
-
-### TypeLifecycleAction
-
-Type-based действие — аналогично `CustomLifecycleAction`, но с явным полем `_action`:
+Абстрактная основа для большинства обработчиков — реализует `ILifecycleActionHandler<TEntity>` и ковариантно приводит `IEnumerable<IEntity>` к `ICollection<TEntity>`:
 
 ```csharp
-public class TypeLifecycleAction : EntityLifecycleActionBase
+public abstract class LifecycleActionHandlerBase<TEntity>
+    : ILifecycleActionHandler<TEntity>
+    where TEntity : class, IEntity
 {
-    private readonly Func<IServiceProvider, ICollection<IWithLifecycleActions>, CancellationToken, Task> _action;
+    public abstract LifecyclePhase Phase { get; }
+    public abstract string Key { get; }
+    public abstract int Order { get; }
+    public virtual string[] RequiredNavigationProperties => [];
 
-    public TypeLifecycleAction(
-        Enum key,
-        Func<IServiceProvider, ICollection<IWithLifecycleActions>, CancellationToken, Task> action)
-        : base(key)
-    {
-        _action = action;
-    }
-
-    protected override Task ExecuteActionAsync(
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
+    public Task ExecuteAsync(
+        IEnumerable<IEntity> entities,
         CancellationToken cancellationToken)
-        => _action(serviceProvider, entities, cancellationToken);
-}
-```
-
-**Когда использовать:** действия, привязанные к конкретному типу сущностей, где нужна передача коллекции entities.
-
-### EntityLifecycleAction
-
-Упрощённое действие — не работает с коллекцией entities, не вызывает `DisableEntitiesActions`:
-
-```csharp
-public class EntityLifecycleAction : EntityLifecycleActionBase
-{
-    private readonly Func<IServiceProvider, CancellationToken, Task> _action;
-
-    public EntityLifecycleAction(
-        Enum key,
-        Func<IServiceProvider, CancellationToken, Task> action)
-        : base(key)
     {
-        _action = action;
+        return ((ILifecycleActionHandler<TEntity>)this).ExecuteAsync(
+            entities.OfType<TEntity>().ToArray(),
+            cancellationToken);
     }
-
-    protected override Task ExecuteActionAsync(
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
-        CancellationToken cancellationToken)
-        => _action(serviceProvider, cancellationToken);
-
-    /// <summary>
-    /// Пустая реализация — действия других сущностей не отключаются.
-    /// </summary>
-    protected override void DisableEntitiesActions(
-        LifecycleHookType hookType,
-        ICollection<IWithLifecycleActions> entities)
-    {
-    }
-}
-```
-
-**Когда использовать:** глобальные действия, не требующие доступа к конкретным entities.
-
----
-
-## Создание кастомных действий
-
-### EntityLifecycleActionBase — абстрактная основа
-
-Все действия наследуются от `EntityLifecycleActionBase`:
-
-```csharp
-public abstract class EntityLifecycleActionBase(Enum key) : IEntityLifecycleAction
-{
-    private bool _enabled = true;
-
-    public Enum Key { get; } = key;
 
     public async Task ExecuteAsync(
-        LifecycleHookType hookType,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
+        ICollection<TEntity> entities,
         CancellationToken cancellationToken)
     {
-        if (_enabled)
-            await ExecuteActionAsync(serviceProvider, entities, cancellationToken);
-
-        Disable();
-        DisableEntitiesActions(hookType, entities);
+        if (entities.Count > 0)
+        {
+            await ExecuteActionAsync(entities, cancellationToken);
+        }
     }
 
-    public void Enable() => _enabled = true;
-    public void Disable() => _enabled = false;
-
     protected abstract Task ExecuteActionAsync(
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
+        ICollection<TEntity> entities,
         CancellationToken cancellationToken);
-
-    protected virtual void DisableEntitiesActions(
-        LifecycleHookType hookType,
-        ICollection<IWithLifecycleActions> entities) =>
-        entities.ForEach(x =>
-        {
-            if (x.TryGetAction(hookType, Key, out var lifecycleAction))
-                lifecycleAction.Disable();
-        });
 }
 ```
 
 **Ключевое поведение:**
-1. `ExecuteAsync` проверяет `_enabled`, вызывает `ExecuteActionAsync`, затем `Disable()` + `DisableEntitiesActions()`
-2. `DisableEntitiesActions` автоматически отключает одноимённые действия у всех переданных entities — предотвращает повторную обработку
-3. Override `DisableEntitiesActions` для изменения этого поведения (как в `EntityLifecycleAction`)
+1. Метод `ExecuteAsync` фильтрует входные сущности по типу `TEntity` (через `.OfType<TEntity>()`).
+2. Если подходящих сущностей нет — `ExecuteActionAsync` не вызывается.
+3. Override `RequiredNavigationProperties` для перечисления navigation-свойств, которые нужно загрузить перед выполнением (иначе `EfUnitOfWork` не сможет корректно их прочитать).
 
-### Пример: кастомное действие
+### `ILifecycleActionOrchestrator`
+
+Управляет действиями перехвата жизненного цикла. Является фасадом над `ILifecycleEntityRegistry` (карта отслеживаемых сущностей) и `ILifecycleActionGate` (настройки активности действий).
 
 ```csharp
-// Enum для ключей действий
-public enum OrderActions
+public interface ILifecycleActionOrchestrator
 {
-    OrderCreated,
-    OrderStatusChanged,
-    OrderShipped,
+    void AddEntities(IEnumerable<IEntity> entities);
+    void RemoveEntities(IEnumerable<IEntity> entities);
+
+    string[] GetRequiredProperties(Type entityType);
+    bool IsActionEnabled(IEntity entity, string key, LifecyclePhase phase);
+
+    void EnableActions();
+    void DisableActions();
+    void EnableActions(IReadOnlyList<string> keys);
+    void DisableActions(IReadOnlyList<string> keys);
+    void EnableActionForEntity(string key, IEntity entity);
+    void DisableActionForEntity(string key, IEntity entity);
+    void EnableActionsForEntities(IReadOnlyList<string> keys, IReadOnlyList<IEntity> entities);
+    void DisableActionsForEntities(IReadOnlyList<string> keys, IReadOnlyList<IEntity> entities);
+
+    void EnablePhase(LifecyclePhase phase);
+    void DisablePhase(LifecyclePhase phase);
+    void EnablePhaseForEntity(LifecyclePhase phase, IEntity entity);
+    void DisablePhaseForEntity(LifecyclePhase phase, IEntity entity);
+
+    Task DispatchAsync(LifecyclePhase phase, CancellationToken cancellationToken);
+
+    void ResetAllActions();
 }
+```
 
-// Кастомное действие
-public class OrderCreatedAction : EntityLifecycleActionBase
+| Метод | Назначение |
+|-------|-----------|
+| `AddEntities` / `RemoveEntities` | Учёт сущностей в карте отслеживаемых (вызывается из `EfUnitOfWork` по событиям `ChangeTracker`) |
+| `GetRequiredProperties` | Возвращает объединение `RequiredNavigationProperties` всех обработчиков указанного типа |
+| `IsActionEnabled` | Проверяет, разрешено ли выполнение действия для конкретной сущности |
+| `EnableActions` / `DisableActions` | Включение/отключение всех действий; либо только указанных ключей (глобально) |
+| `EnableActionForEntity` / `DisableActionForEntity` | Короткая форма per-entity управления одним ключом — самый частый сценарий |
+| `EnableActionsForEntities` / `DisableActionsForEntities` | Per-entity управление для нескольких ключей и сущностей |
+| `EnablePhase` / `DisablePhase` | Включение/отключение действий определённой фазы (глобально) |
+| `EnablePhaseForEntity` / `DisablePhaseForEntity` | Per-entity отключение целой фазы |
+| `DispatchAsync` | Диспетчеризация всех разрешённых обработчиков указанной фазы в порядке `Order` |
+| `ResetAllActions` | Сброс всех overrides (глобальный/по ключам/по фазам/по сущностям) в исходное состояние |
+
+**Приоритет проверок в `IsActionEnabled` (от высшего к низшему):**
+
+1. Отключённый ключ для конкретной сущности
+2. Отключённая фаза для конкретной сущности
+3. Глобально отключённый ключ
+4. Глобально отключённая фаза
+5. Глобальный флаг (`_globalEnabled`)
+
+> **Замечание о семантике per-entity:** `EnableActionForEntity` / `EnableActionsForEntities` снимают только ранее установленный per-entity disable (через `DisableActionForEntity` / `DisableActionsForEntities`). Они **не** отменяют глобальный disable для одной сущности. Если действие глобально отключено через `DisableActions(["k"])`, вернуть его только для одной сущности текущий API не позволяет — это намеренное упрощение модели хранения состояния. Метода `EnableForEntity` без префикса `Action` не существует — корректное имя: `EnableActionForEntity(key, entity)`.
+
+### `LifecyclePhase`
+
+```csharp
+public enum LifecyclePhase
 {
-    public OrderCreatedAction() : base(OrderActions.OrderCreated) { }
+    BeforeSave,  // До вызова SaveChangesAsync
+    AfterSave,   // После вызова SaveChangesAsync
+}
+```
 
-    protected override async Task ExecuteActionAsync(
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions> entities,
+---
+
+## Регистрация в DI
+
+Все компоненты подключаются одним вызовом `AddLifecycleActions()` в `DependencyInjector` (`Shared.Application.Core/DependencyInjection/DependencyInjector.cs:51`):
+
+```csharp
+public static IServiceCollection AddLifecycleActions(this IServiceCollection serviceCollection)
+{
+    return serviceCollection
+        .AddLifecycleHandlers()
+        .AddLifecycleOrchestrator();
+}
+```
+
+| Метод | Что делает |
+|-------|-----------|
+| `AddLifecycleHandlers` | Сканирует все загруженные сборки, регистрирует все `ILifecycleActionHandler` как Scoped-сервисы (через `RegisterDerivedTypeDependencies`) |
+| `AddLifecycleOrchestrator` | Регистрирует `ILifecycleActionOrchestrator` (Scoped) → `LifecycleActionOrchestrator` |
+
+Обработчики автоматически обнаруживаются и подхватываются DI при добавлении ссылки на сборку, где они определены. Никаких ручных регистраций не требуется.
+
+---
+
+## Создание обработчика
+
+### Шаг 1: унаследовать `LifecycleActionHandlerBase<TEntity>`
+
+```csharp
+using Shared.Application.Core.LifecycleAction;
+using Shared.Domain.Core.Enums;
+
+namespace MyService.Application.LifecycleActions;
+
+/// <summary>
+/// Пересчитывает хэш сущности "Person" перед сохранением.
+/// </summary>
+public class PersonHashLifecycleHandler
+    : LifecycleActionHandlerBase<Person>
+{
+    /// <inheritdoc />
+    public override LifecyclePhase Phase => LifecyclePhase.BeforeSave;
+
+    /// <inheritdoc />
+    public override string Key => "CalculatePersonHashBeforeSavingChanges";
+
+    /// <inheritdoc />
+    public override int Order => 0;
+
+    /// <inheritdoc />
+    protected override Task ExecuteActionAsync(
+        ICollection<Person> entities,
         CancellationToken cancellationToken)
     {
-        var emailService = serviceProvider.GetRequiredService<IEmailService>();
-
-        foreach (var order in entities.OfType<Order>())
+        foreach (var person in entities)
         {
-            await emailService.SendOrderConfirmationAsync(order, cancellationToken);
+            person.UpdateHash();
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+
+Обработчик регистрируется автоматически: после добавления проекта в solution и регистрации `AddLifecycleActions()` в `DependencyInjector` он будет найден через reflection.
+
+### Шаг 2 (опционально): объявить navigation properties
+
+Если для выполнения действия нужны navigation-свойства сущности, которые могут быть не загружены в `ChangeTracker`:
+
+```csharp
+public override string[] RequiredNavigationProperties =>
+[
+    nameof(Order.Items),
+    nameof(Order.Customer),
+];
+```
+
+`EfUnitOfWork.SaveChangesAsync` вызовет `orchestrator.GetRequiredProperties(entityType)`, объединит результаты по всем обработчикам и выполнит `Include` одним запросом на каждое navigation property для всего типа (см. `EfUnitOfWork.IncludeRequiredNavigationPropertiesAsync`).
+
+### Шаг 3 (опционально): DI-доступ к сервисам
+
+`ILifecycleActionOrchestrator` уже Scoped, а сам обработчик — Scoped-сервис, поэтому любые зависимости регистрируются стандартно через конструктор:
+
+```csharp
+public class SendOrderConfirmationHandler(
+    IEmailService emailService,
+    ILogger<SendOrderConfirmationHandler> logger)
+    : LifecycleActionHandlerBase<Order>
+{
+    public override LifecyclePhase Phase => LifecyclePhase.AfterSave;
+    public override string Key => "SendOrderConfirmation";
+    public override int Order => 0;
+
+    protected override async Task ExecuteActionAsync(
+        ICollection<Order> entities,
+        CancellationToken cancellationToken)
+    {
+        foreach (var order in entities)
+        {
+            try
+            {
+                await emailService.SendOrderConfirmationAsync(order, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to send confirmation for order {OrderId}", order.Id);
+            }
         }
     }
 }
@@ -214,252 +284,154 @@ public class OrderCreatedAction : EntityLifecycleActionBase
 
 ---
 
-## Action Settings — контроль срабатывания
+## Архитектура: разделение Registry и Gate
 
-Иерархия настроек позволяет тонко управлять тем, какие действия срабатывают:
+`ILifecycleActionOrchestrator` — это фасад. Реальная работа разделена между двумя внутренними сервисами, которые регистрируются в DI как **scoped** и могут быть инжектированы независимо для тестирования и расширения:
 
-```
-LifecycleActionSettings
-└── EntityTypeActionSettings (по типу сущности)
-    └── ActionKeySettings (по LifecycleHookType: BeforeSave/AfterSave)
-        └── Enum flags (конкретные action keys)
-```
+| Сервис | Ответственность | Состояние |
+|--------|----------------|-----------|
+| `ILifecycleEntityRegistry` | Карта отслеживаемых сущностей: кто попадает в диспетчеризацию | `Dictionary<EntityKey, IEntity>` |
+| `ILifecycleActionGate` | Настройки активности: разрешено или отключено | 4 словаря + `bool _globalEnabled` |
 
-### LifecycleActionSettings
-
-Корневая настройка — управляет действиями по типу сущности:
+**`EntityKey`** — `readonly record struct (Type, object Id)`. Используется как ключ обеих коллекций вместо ссылочной идентичности `IEntity`. Это гарантирует, что одна и та же доменная сущность остаётся идентифицируемой при подмене инстанса (Attach/Detach, разные сессии, прокси EF).
 
 ```csharp
-public record LifecycleActionSettings(bool Enabled = true)
-    : ActionSettingsWithInternalSettingsBase<
-        Type,
-        EntityTypeActionSettings,
-        LifecycleHookType,
-        Dictionary<LifecycleHookType, ActionKeySettings>>(Enabled)
+public readonly record struct EntityKey(Type Type, object Id)
 {
-    protected override EntityTypeActionSettings CreateExceptItem(bool enabled) => new(enabled);
-
-    public bool AnyElementEnabled(Type typeKey, LifecycleHookType hookTypeKey, Enum actionKey);
-    public void Switch(Type typeKey, LifecycleHookType hookTypeKey, Enum actionKey, bool enabled);
+    public static EntityKey Of(IEntity entity) => new(entity.GetType(), entity.Id);
 }
 ```
 
-### ActionSettingBase<TItems, TKey>
+### Почему разделение
 
-Базовый класс настроек с паттерном "enabled + exceptions":
+- **Single Responsibility**: registry и gate — это две разные причины для изменения (трекинг vs. конфигурация активности).
+- **Тестируемость**: каждый компонент покрывается собственными unit-тестами без необходимости поднимать orchestrator.
+- **Расширяемость**: можно реализовать кастомный gate (например, читающий настройки из БД) без изменения реестра, и наоборот.
 
-```csharp
-public abstract record ActionSettingBase<TItems, TKey>
-{
-    protected bool Enabled { get; private set; }
-    protected abstract bool HasExceptItems { get; }
-    protected TItems ExceptItems { get; set; }
-
-    public bool AnyEnabled => Enabled || HasExceptItems;
-    public bool AnyDisabled => !Enabled || HasExceptItems;
-
-    public void Switch(bool enabled);
-    public abstract void Switch(TKey itemKey, bool enabled);
-    public abstract bool AnyElementEnabled(TKey itemKey);
-}
-```
-
-**Логика:** если `Enabled = true`, все элементы включены кроме тех, что в `ExceptItems`. Если `Enabled = false`, все выключены кроме `ExceptItems`.
-
-### ActionKeySettings
-
-Настройка по `LifecycleHookType` с flag-based filtering:
+### Регистрация в DI
 
 ```csharp
-public record ActionKeySettings(bool Enabled = true)
-    : ActionSettingBase<Enum?, Enum>(Enabled)
-{
-    protected override Enum? GetDefaultItems => default;
-    protected sealed override bool HasExceptItems => ExceptItems != null;
-
-    public override bool AnyElementEnabled(Enum itemKey)
-    {
-        var hasFlag = ExceptItems?.HasFlag(itemKey) ?? false;
-        return Enabled ? !hasFlag : hasFlag;
-    }
-
-    public override void Switch(Enum itemKey, bool enabled)
-    {
-        ExceptItems = Enabled == enabled
-            ? ExceptItems?.Without(itemKey)
-            : (ExceptItems?.With(itemKey) ?? itemKey);
-    }
-}
+services.AddLifecycleActions();
+// внутри:
+//   .AddScoped<ILifecycleEntityRegistry, LifecycleEntityRegistry>()
+//   .AddScoped<ILifecycleActionGate, LifecycleActionGate>()
+//   .AddScoped<ILifecycleActionOrchestrator, LifecycleActionOrchestrator>()
 ```
 
-**Flag-based логика:** `ExceptItems` хранит enum flags. При `Enabled = true` элементы с флагом в `ExceptItems` отключены.
-
-### EntityTypeActionSettings
-
-Настройка по типу сущности:
-
-```csharp
-public record EntityTypeActionSettings(bool Enabled = true)
-    : ActionSettingsWithInternalSettingsBase<LifecycleHookType, ActionKeySettings, Enum, Enum?>(Enabled)
-{
-    protected override ActionKeySettings CreateExceptItem(bool enabled) => new(enabled);
-}
-```
-
-### Пример использования в Unit of Work
-
-```csharp
-// Отключить все действия
-unitOfWork.DisableLifecycleActions();
-
-// Отключить действия для конкретного типа
-unitOfWork.DisableLifecycleActions<Order>();
-
-// Отключить BeforeSave-действия для Order
-unitOfWork.DisableLifecycleActions<Order>(LifecycleHookType.BeforeSave);
-
-// Отключить конкретный action key
-unitOfWork.DisableLifecycleActions<Order>(LifecycleHookType.AfterSave, OrderActions.OrderCreated);
-
-// Включить обратно
-unitOfWork.EnableLifecycleActions();
-unitOfWork.EnableLifecycleActions<Order>(LifecycleHookType.AfterSave, OrderActions.OrderCreated);
-```
+В production обычно используется фасад `ILifecycleActionOrchestrator`. Прямая инжекция `ILifecycleEntityRegistry` / `ILifecycleActionGate` оправдана в инфраструктурных адаптерах и в тестах.
 
 ---
 
-## Интеграция с Unit of Work
+## Управление активностью действий
 
-### IWithLifecycleActions
+`ILifecycleActionOrchestrator` позволяет точечно отключать действия, не убирая обработчик из DI.
 
-Интерфейс, который сущность должна реализовать для поддержки lifecycle actions:
+### Через `IUnitOfWork` в рамках операции
 
-```csharp
-public interface IWithLifecycleActions
-{
-    string[] RequiredToSaveNavigationPropertiesNames { get; }
+Метод `SaveChangesAsync` принимает флаг `resetLifecycleActionSettingsAfterSave = true` — после сохранения `ResetAllActions()` вызывается автоматически (см. `EfUnitOfWork.cs:143-147`). Любые `Enable/Disable`, выставленные внутри скоупа UoW, сбрасываются после `SaveChangesAsync`.
 
-    bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction lifecycleAction);
-
-    void ResetActions();
-
-    ICollection<Enum> GetAllKeys(LifecycleHookType hookType);
-
-    Task ProcessLifecycleActionAsync(
-        LifecycleHookType hookType,
-        Enum key,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions>? entities = null,
-        CancellationToken cancellationToken = default);
-
-    Task ProcessLifecycleActionsAsync(
-        LifecycleHookType hookType,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions>? entities = null,
-        CancellationToken cancellationToken = default);
-}
-```
-
-| Член | Описание |
-|------|----------|
-| `RequiredToSaveNavigationPropertiesNames` | Имена navigation properties, которые нужно загрузить перед обработкой действий |
-| `TryGetAction` | Извлечение действия по типу и ключу |
-| `ResetActions` | Сброс очередей действий к обязательным |
-| `GetAllKeys` | Все ключи действий заданного типа |
-| `ProcessLifecycleActionAsync` | Обработка одного действия |
-| `ProcessLifecycleActionsAsync` | Обработка всех действий заданного типа |
-
-### LifecycleHookType
+### Через прямой вызов `ILifecycleActionOrchestrator`
 
 ```csharp
-public enum LifecycleHookType
+public class MyService
 {
-    BeforeSave,  // До вызова SaveChangesAsync
-    AfterSave,   // После вызова SaveChangesAsync
-}
-```
+    private readonly ILifecycleActionOrchestrator _orchestrator;
 
-### Lifecycle в EfUnitOfWork
-
-```csharp
-public async Task<int> SaveChangesAsync(
-    CancellationToken cancellationToken,
-    bool commitTransaction = true,
-    bool resetLifecycleActionSettingsAfterSave = true)
-{
-    var entryTypeGroups = EntriesWithLifecycleActions
-        .GroupBy(e => e.Entity.GetType())
-        .ToArray();
-
-    try
+    public async Task BulkImportAsync(IEnumerable<Person> people)
     {
-        // 1. BeforeSave действия
-        await ProcessLifecycleActionsAsync(entryTypeGroups, LifecycleHookType.BeforeSave, cancellationToken);
+        // Полностью отключить все действия перехвата
+        _orchestrator.DisableActions();
 
-        // 2. Pre-save хуки (IBeforeSaveChangesService)
-        await ProcessBeforeSaveChangesActionsAsync(cancellationToken);
-
-        // 3. Фактическое сохранение
-        var result = await DbContext.SaveChangesAsync(cancellationToken);
-
-        if (commitTransaction)
-            await CommitTransactionAsync(cancellationToken);
-
-        // 4. AfterSave действия
-        await ProcessLifecycleActionsAsync(entryTypeGroups, LifecycleHookType.AfterSave, cancellationToken);
-
-        return result;
-    }
-    catch
-    {
-        if (commitTransaction)
-            await RollbackTransactionAsync(cancellationToken);
-        throw;
-    }
-    finally
-    {
-        // 5. Сброс действий и настроек
-        if (_lifecycleActionSettings.AnyEnabled)
-            entryTypeGroups.SelectMany(x => x).ForEach(e => e.Entity.ResetActions());
-
-        if (resetLifecycleActionSettingsAfterSave)
-            ResetLifecycleActionSettings();
-
-        if (commitTransaction)
-            await ResetTransactionAsync(cancellationToken);
+        try
+        {
+            // ... добавить people в репозиторий ...
+            await _unitOfWork.SaveChangesAsync();
+        }
+        finally
+        {
+            _orchestrator.ResetAllActions();
+        }
     }
 }
 ```
 
-**Порядок выполнения:**
-
-```
-BeforeSave Actions → IBeforeSaveChangesService → SaveChangesAsync → Commit → AfterSave Actions → Reset
-```
-
-### Автозагрузка Navigation Properties
-
-EfUnitOfWork автоматически загружает navigation properties, указанные в `RequiredToSaveNavigationPropertiesNames`, если они ещё не загружены:
+### Отключение по ключу
 
 ```csharp
-private async Task IncludeRequiredNavigationPropertiesAsync(...)
-{
-    var navigationGroups = typeEntryGroup
-        .SelectMany(entry => entry.Navigations
-            .Where(nav =>
-                entry.Entity.RequiredToSaveNavigationPropertiesNames.Contains(nav.Metadata.Name)
-                && !nav.IsLoaded))
-        .GroupBy(nav => nav.Metadata.Name)
-        .ToArray();
+// Отключить только действие с указанным ключом (для всех отслеживаемых сущностей)
+_orchestrator.DisableActions(new[] { "CalculatePersonHashBeforeSavingChanges" });
 
-    // Один запрос на каждое navigation property для всего типа
-    await navigationGroups.ForeachAsync(async navigationGroup =>
-    {
-        var navigation = navigationGroup.First();
-        await IncludeNavigationPropertyCollectionByTypeAsync(...);
-        navigationGroup.ForEach(nav => nav.IsLoaded = true);
-    }, cancellationToken);
-}
+// Включить обратно
+_orchestrator.EnableActions(new[] { "CalculatePersonHashBeforeSavingChanges" });
+```
+
+### Отключение по фазе
+
+```csharp
+// Отключить все AfterSave-действия (перед массовым импортом)
+_orchestrator.DisablePhase(LifecyclePhase.AfterSave);
+
+_orchestrator.EnablePhase(LifecyclePhase.AfterSave);
+```
+
+### Отключение для конкретной сущности
+
+```csharp
+// Короткая форма — один ключ + одна сущность
+var person = await personRepo.GetAsync(personId);
+_orchestrator.DisableActionForEntity("SendOrderConfirmation", person);
+
+// Включить обратно
+_orchestrator.EnableActionForEntity("SendOrderConfirmation", person);
+
+// Множественная форма — несколько ключей и/или сущностей
+_orchestrator.DisableActionsForEntities(
+    new[] { "SendOrderConfirmation", "SendPushNotification" },
+    new[] { person });
+```
+
+### Отключение фазы для конкретной сущности
+
+```csharp
+_orchestrator.DisablePhaseForEntity(LifecyclePhase.AfterSave, person);
+_orchestrator.EnablePhaseForEntity(LifecyclePhase.AfterSave, person);
+```
+
+> **Важно:** все `Enable/Disable` по умолчанию **сбрасываются** после `SaveChangesAsync` (благодаря параметру `resetLifecycleActionSettingsAfterSave: true`). Чтобы overrides сохранялись между сохранениями, передавайте `resetLifecycleActionSettingsAfterSave: false` в `SaveChangesAsync`.
+
+---
+
+## Интеграция с `EfUnitOfWork`
+
+`EfUnitOfWork<TDbContext>` (см. `Shared.Infrastructure.Dal.EFCore/EfUnitOfWork.cs`) автоматически интегрирован с `ILifecycleActionOrchestrator`:
+
+1. **При трекинге** сущности (`OnEntityTracked`): `orchestrator.AddEntities([entity])` — сущность попадает в карту.
+2. **При детаче** (`OnEntityStateChanged` для `EntityState.Detached`): `orchestrator.RemoveEntities([entity])` — сущность удаляется из карты.
+3. **В `SaveChangesAsync`**:
+   - `IncludeRequiredNavigationPropertiesAsync` — загружает navigation properties, указанные в `RequiredNavigationProperties` обработчиков.
+   - `DispatchAsync(LifecyclePhase.BeforeSave, ...)` — все `BeforeSave`-обработчики.
+   - `ProcessBeforeSaveChangesActionsAsync` — pre-save хуки через `IBeforeSaveChangesService` (опционально).
+   - `DbContext.SaveChangesAsync` — фактическое сохранение.
+   - `CommitTransactionAsync` — коммит транзакции (если включена).
+   - `DispatchAsync(LifecyclePhase.AfterSave, ...)` — все `AfterSave`-обработчики.
+4. **В `finally`**: `orchestrator.ResetAllActions()` (если `resetLifecycleActionSettingsAfterSave = true`) и сброс транзакции.
+
+**Порядок выполнения в `SaveChangesAsync`:**
+
+```
+Include Navigation Properties
+  ↓
+BeforeSave Actions  (через ILifecycleActionOrchestrator.DispatchAsync)
+  ↓
+IBeforeSaveChangesService.ProcessAsync
+  ↓
+DbContext.SaveChangesAsync
+  ↓
+Commit Transaction (если включена)
+  ↓
+AfterSave Actions  (через ILifecycleActionOrchestrator.DispatchAsync)
+  ↓
+ResetAllActions (если resetLifecycleActionSettingsAfterSave = true)
 ```
 
 ---
@@ -476,15 +448,16 @@ private async Task IncludeRequiredNavigationPropertiesAsync(...)
 | Каскадное обновление связанных сущностей | ✅ `BeforeSave` action |
 | Публикация интеграционных событий | ✅ `AfterSave` action |
 | Простая CRUD-операция без side-эффектов | ❌ Не нужно |
-| Синхронный вызов сервиса из handler'а | ❌ Лучше через MediatR |
+| Синхронный вызов сервиса из handler'а | ❌ Лучше через MediatR pipeline |
 
 ### Правила
 
-1. **BeforeSave** — для изменений, которые должны попасть в ту же транзакцию (валидация, обогащение, аудит)
-2. **AfterSave** — для действий после коммита (нотификации, интеграционные события, кэш-инвалидация)
-3. **Enable/Disable** — действия автоматически отключаются после обработки; `Enable()` нужен для повторного срабатывания
-4. **Settings** — используйте `DisableLifecycleActions<T>()` для отключения действий в специфичных use cases (batch-операции, миграции)
-5. **RequiredToSaveNavigationPropertiesNames** — указывайте navigation properties, необходимые для обработки действий, чтобы избежать N+1
+1. **BeforeSave** — для изменений, которые должны попасть в ту же транзакцию (валидация, обогащение, аудит).
+2. **AfterSave** — для действий после коммита (нотификации, интеграционные события, кэш-инвалидация).
+3. **Key** — стабильная строка; одна комбинация `(EntityType, Phase, Key)` должна встречаться ровно один раз в DI-контейнере.
+4. **Order** — используется только для упорядочивания обработчиков одной фазы; меньшие значения выполняются раньше.
+5. **RequiredNavigationProperties** — указывайте явно, чтобы `EfUnitOfWork` загрузил их одним запросом и избежать N+1.
+6. **Error handling** — внутри `ExecuteActionAsync` обрабатывайте исключения самостоятельно; непойманное исключение прервёт `SaveChangesAsync` и откатит транзакцию.
 
 ### Анти-паттерны
 
@@ -493,9 +466,8 @@ private async Task IncludeRequiredNavigationPropertiesAsync(...)
 | Бизнес-логика в действиях, которая должна быть в Entity | Перенести логику в Entity method, действие — только для side-эффектов |
 | `AfterSave` действие, которое модифицирует данные | Использовать `BeforeSave` |
 | Действие с `.Result` / `.Wait()` | Всегда `async/await` с `CancellationToken` |
-| Игнорирование `RequiredToSaveNavigationPropertiesNames` | Указать явно — EfUnitOfWork загрузит efficiently |
-
----
+| Игнорирование `RequiredNavigationProperties` | Указать явно — `EfUnitOfWork` загрузит efficiently |
+| Использование `IWithLifecycleActions` на сущности | Интерфейс удалён — наследуйте `LifecycleActionHandlerBase<TEntity>` и регистрируйте отдельно |
 
 ---
 
@@ -504,5 +476,6 @@ private async Task IncludeRequiredNavigationPropertiesAsync(...)
 | Документ | Описание |
 |----------|----------|
 | [Domain Modeling](domain-modeling.md) | Проектирование Domain слоя |
-| [Unit of Work](unit-of-work.md) | Unit of Work и транзакции |
-| [Entity Interfaces](entity-interfaces.md) | Интерфейсы сущностей (IEntity, IWithCreated, IWithDeleted) |
+| [Unit of Work](unit-of-work.md) | `IUnitOfWork`, `EfUnitOfWork` и транзакции |
+| [Entity Interfaces](entity-interfaces.md) | `IEntity`, audit-интерфейсы, soft delete |
+| [EF Core Internals](efcore-internals.md) | Внутренние механизмы `EfRepository`, `EfUnitOfWork` |

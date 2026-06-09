@@ -6,6 +6,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Core.Dal.Settings.Models.Base;
+using Shared.Application.Core.LifecycleAction;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
@@ -401,83 +402,6 @@ public sealed class EfUnitOfWorkTests
 
     #endregion
 
-    #region DisableLifecycleActions / EnableLifecycleActions Tests
-
-    /// <summary>Проверяет что DisableLifecycleActions отключает все действия перехвата.</summary>
-    [Fact]
-    public void DisableLifecycleActions_DisablesAllLifecycleActions()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: false);
-        var uow = CreateUnitOfWork(context, settings);
-
-        // Act
-        uow.DisableLifecycleActions();
-
-        // Assert
-        uow.AreActionsEnabled.Should().BeFalse();
-    }
-
-    /// <summary>Проверяет что EnableLifecycleActions включает все действия перехвата.</summary>
-    [Fact]
-    public void EnableLifecycleActions_EnablesAllLifecycleActions()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: false);
-        var uow = CreateUnitOfWork(context, settings);
-
-        uow.DisableLifecycleActions();
-
-        // Act
-        uow.EnableLifecycleActions();
-
-        // Assert
-        uow.AreActionsEnabled.Should().BeTrue();
-    }
-
-    #endregion
-
-    #region ResetLifecycleActionSettings Tests
-
-    /// <summary>Проверяет что ResetLifecycleActionSettings включает все действия перехвата.</summary>
-    [Fact]
-    public void ResetLifecycleActionSettings_ReEnablesAllLifecycleActions()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: false);
-        var uow = CreateUnitOfWork(context, settings);
-
-        uow.DisableLifecycleActions();
-        uow.AreActionsEnabled.Should().BeFalse();
-
-        // Act
-        uow.ResetLifecycleActionSettings();
-
-        // Assert
-        uow.AreActionsEnabled.Should().BeTrue();
-    }
-
-    /// <summary>Проверяет что ResetLifecycleActionSettings возвращает IUnitOfWork.</summary>
-    [Fact]
-    public void ResetLifecycleActionSettings_ReturnsIUnitOfWork()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: false);
-        var uow = CreateUnitOfWork(context, settings);
-
-        // Act
-        var result = uow.ResetLifecycleActionSettings();
-
-        // Assert
-        result.Should().BeSameAs(uow);
-    }
-
-    #endregion
-
     #region CommitTransactionAsync Tests
 
     /// <summary>Проверяет что CommitTransactionAsync успешно коммитит транзакцию.</summary>
@@ -572,50 +496,6 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Should().ContainSingle(e => e.Name == "sync-save");
     }
 
-    /// <summary>Проверяет что SaveChanges с resetLifecycleActionSettingsAfterSave=false сохраняет настройки.</summary>
-    [Fact]
-    public void SaveChanges_WithResetLifecycleActionSettingsFalse_SettingsPreserved()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: false);
-        var uow = CreateUnitOfWork(context, settings);
-
-        uow.DisableLifecycleActions();
-        uow.AreActionsEnabled.Should().BeFalse();
-
-        var entity = new TestEntityWithCreatedDeleted { Id = Guid.NewGuid(), Name = "sync-no-reset" };
-        context.Entities.Add(entity);
-
-        // Act
-        uow.SaveChanges(commitTransaction: false, resetLifecycleActionSettingsAfterSave: false);
-
-        // Assert — настройки не должны быть сброшены
-        uow.AreActionsEnabled.Should().BeFalse();
-    }
-
-    /// <summary>Проверяет что SaveChanges с resetLifecycleActionSettingsAfterSave=true (по умолчанию) сбрасывает настройки.</summary>
-    [Fact]
-    public void SaveChanges_DefaultResetLifecycleActionSettingsAfterSave_SettingsReset()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: false);
-        var uow = CreateUnitOfWork(context, settings);
-
-        uow.DisableLifecycleActions();
-        uow.AreActionsEnabled.Should().BeFalse();
-
-        var entity = new TestEntityWithCreatedDeleted { Id = Guid.NewGuid(), Name = "sync-reset" };
-        context.Entities.Add(entity);
-
-        // Act
-        uow.SaveChanges(commitTransaction: false);
-
-        // Assert — настройки должны быть сброшены
-        uow.AreActionsEnabled.Should().BeTrue();
-    }
-
     #endregion
 
     #region Dispose Tests
@@ -654,13 +534,12 @@ public sealed class EfUnitOfWorkTests
             dbContext,
             serviceProvider,
             settings,
+            new LifecycleActionOrchestrator([], new LifecycleEntityRegistry(), new LifecycleActionGate()),
             beforeSaveChangesService)
     {
         public bool IsTransactionEnabled => UseTransaction;
 
         public object? CurrentTransaction => CurrentDbTransaction;
-
-        public bool AreActionsEnabled => AreAnyLifecycleActionsEnabled;
     }
 
     /// <summary>

@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
-using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Testing.Doubles.Repository;
@@ -18,9 +17,6 @@ public sealed class FakeUnitOfWork : IUnitOfWork
     public int ClearTrackingCallCount { get; private set; }
     public int EnableTransactionCallCount { get; private set; }
     public int DisableTransactionCallCount { get; private set; }
-    public int EnableLifecycleActionsCallCount { get; private set; }
-    public int DisableLifecycleActionsCallCount { get; private set; }
-    public int ResetLifecycleActionSettingsCallCount { get; private set; }
 
     public CancellationToken LastSaveChangesCancellationToken { get; private set; }
 
@@ -81,58 +77,6 @@ public sealed class FakeUnitOfWork : IUnitOfWork
     public IUnitOfWork DisableTransaction()
     {
         DisableTransactionCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork DisableLifecycleActions()
-    {
-        DisableLifecycleActionsCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork EnableLifecycleActions()
-    {
-        EnableLifecycleActionsCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork DisableLifecycleActions<TEntity>
-        (LifecycleHookType? hookType = null)
-        where TEntity : IEntity, IWithLifecycleActions
-    {
-        DisableLifecycleActionsCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork EnableLifecycleActions<TEntity>(
-        LifecycleHookType? hookType = null)
-        where TEntity : IEntity, IWithLifecycleActions
-    {
-        EnableLifecycleActionsCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork DisableLifecycleActions<TEntity>(
-        LifecycleHookType hookType,
-        Enum actionKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions
-    {
-        DisableLifecycleActionsCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork EnableLifecycleActions<TEntity>(
-        LifecycleHookType hookType,
-        Enum actionKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions
-    {
-        EnableLifecycleActionsCallCount++;
-        return this;
-    }
-
-    public IUnitOfWork ResetLifecycleActionSettings()
-    {
-        ResetLifecycleActionSettingsCallCount++;
         return this;
     }
 

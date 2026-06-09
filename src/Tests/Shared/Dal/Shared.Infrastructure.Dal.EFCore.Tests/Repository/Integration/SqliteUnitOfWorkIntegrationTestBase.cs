@@ -2,6 +2,7 @@ using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Shared.Application.Core.LifecycleAction;
 using Shared.Infrastructure.Dal.EFCore.Settings;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 
@@ -37,7 +38,8 @@ public abstract class SqliteUnitOfWorkIntegrationTestBase : IDisposable
         return new EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
             context,
             new FakeServiceProvider(),
-            settings);
+            settings,
+            new LifecycleActionOrchestrator([], new LifecycleEntityRegistry(), new LifecycleActionGate()));
     }
 
     public void Dispose()

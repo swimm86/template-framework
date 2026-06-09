@@ -310,99 +310,6 @@ var response = new OrderResponse
 
 ---
 
-## Lifecycle Actions
-
-### IWithLifecycleActions
-
-Интерфейс для поддержки Lifecycle Actions на уровне сущности. Позволяет сущности хранить, извлекать и обрабатывать действия перехвата.
-
-```csharp
-public interface IWithLifecycleActions
-{
-    string[] RequiredToSaveNavigationPropertiesNames { get; }
-
-    bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction lifecycleAction);
-    void ResetActions();
-    ICollection<Enum> GetAllKeys(LifecycleHookType hookType);
-
-    Task ProcessLifecycleActionAsync(
-        LifecycleHookType hookType,
-        Enum key,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions>? entities = default,
-        CancellationToken cancellationToken = default);
-
-    Task ProcessLifecycleActionsAsync(
-        LifecycleHookType hookType,
-        IServiceProvider serviceProvider,
-        ICollection<IWithLifecycleActions>? entities = default,
-        CancellationToken cancellationToken = default);
-}
-```
-
-**Пример использования:**
-```csharp
-public class Order : IEntity<Guid>, IWithLifecycleActions
-{
-    public Guid Id { get; set; }
-    public OrderStatus Status { get; private set; }
-
-    public string[] RequiredToSaveNavigationPropertiesNames =>
-        new[] { nameof(OrderItems), nameof(Customer) };
-
-    private readonly Dictionary<LifecycleHookType, Dictionary<Enum, IEntityLifecycleAction>> _actions = new();
-
-    public bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction lifecycleAction)
-    {
-        if (_actions.TryGetValue(hookType, out var actions) && actions.TryGetValue(key, out lifecycleAction))
-        {
-            return true;
-        }
-        lifecycleAction = null;
-        return false;
-    }
-
-    public void ResetActions()
-    {
-        // Оставить только обязательные действия
-    }
-
-    public ICollection<Enum> GetAllKeys(LifecycleHookType hookType)
-    {
-        return _actions.TryGetValue(hookType, out var actions)
-            ? actions.Keys.ToList()
-            : Array.Empty<Enum>();
-    }
-
-    public void MarkAsPaid()
-    {
-        Status = OrderStatus.Paid;
-        // Регистрация действия
-        // _actions.GetOrAdd(LifecycleHookType.AfterSave)[OrderActions.Paid] = new OrderPaidAction(Id);
-    }
-}
-```
-
-**Обработка действий в UnitOfWork:**
-```csharp
-// UnitOfWork.SaveChangesAsync():
-var entitiesWithActions = ChangeTracker
-    .Entries<IWithLifecycleActions>()
-    .Select(e => e.Entity)
-    .ToList();
-
-foreach (var entity in entitiesWithActions)
-{
-    await entity.ProcessLifecycleActionsAsync(
-        LifecycleHookType.AfterSave,
-        serviceProvider,
-        entitiesWithActions,
-        cancellationToken);
-}
-```
-
----
-
 ## Сводная таблица интерфейсов
 
 | Интерфейс | Назначение | Ключевые свойства |
@@ -417,7 +324,6 @@ foreach (var entity in entitiesWithActions)
 | `IWithDeleted` | Автор удаления + флаг | `Guid? DeletedByUserId`, `bool IsDeleted` |
 | `IWithDeleteAction<T>` | Действие удаления | `DeleteAsync()` |
 | `IWithAdditionalData` | Дополнительные данные | `IReadOnlyDictionary<string, object>? AdditionalData` |
-| `IWithLifecycleActions` | Действия перехвата | `TryGetAction()`, `ProcessLifecycleActionsAsync()` |
 | `IEntityWithMetadata` | Композит audit | Наследует `IEntity` + `IWithCreated` + `IWithUpdated` + `IWithDeleted` |
 | `IEntityWithUserData` | Имена пользователей | `CreatedByUserName`, `UpdatedByUserName` |
 

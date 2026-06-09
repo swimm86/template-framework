@@ -1,6 +1,13 @@
+// ----------------------------------------------------------------------------------------------
+// <copyright file="EfUnitOfWorkLifecycleActionsTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Core.Dal.Settings.Models.Base;
-using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Application.Core.LifecycleAction;
+using Shared.Application.Core.LifecycleAction.Interfaces;
 using Shared.Domain.Core.Enums;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
@@ -9,8 +16,9 @@ namespace Shared.Infrastructure.Dal.EFCore.Tests;
 
 /// <summary>
 /// Тесты обработки действий жизненного цикла в <see cref="EfUnitOfWork{TDbContext}"/>.
-/// Проверяет диспетчеризацию BeforeSave/AfterSave действий, управление настройками
-/// и сброс состояния сущностей.
+/// Проверяют диспетчеризацию BeforeSave/AfterSave действий через
+/// <see cref="ILifecycleActionOrchestrator"/>, автоматическую регистрацию
+/// сущностей в оркестраторе через ChangeTracker и сброс состояния после сохранения.
 /// </summary>
 public sealed class EfUnitOfWorkLifecycleActionsTests
 {
@@ -30,21 +38,31 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
     private static TestUnitOfWork CreateUnitOfWork(
         TestLifecycleActionDbContext context,
         DbSettingsBase? settings = null,
-        IBeforeSaveChangesService? beforeSaveService = null)
+        IBeforeSaveChangesService? beforeSaveService = null,
+        params ILifecycleActionHandler[] handlers)
     {
         settings ??= CreateSettings();
-        return new TestUnitOfWork(context, new FakeServices(), settings, beforeSaveService);
+        var orchestrator = new LifecycleActionOrchestrator(
+            handlers,
+            new LifecycleEntityRegistry(),
+            new LifecycleActionGate());
+        return new TestUnitOfWork(context, new FakeServices(), settings, orchestrator, beforeSaveService);
     }
 
     #region BeforeSave / AfterSave dispatching
 
-    /// <summary>Проверяет что BeforeSave действия вызываются до сохранения.</summary>
+    /// <summary>
+    /// Проверяет, что BeforeSave-обработчик вызывается до сохранения, ровно один раз
+    /// для добавленной сущности.
+    /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_WithLifecycleActions_BeforeSaveActionsAreDispatched()
+    public async Task SaveChangesAsync_WithBeforeSaveHandler_HandlerIsCalledOnce()
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
+        var before = new TestBeforeSaveHandler();
+        var after = new TestAfterSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before, after]);
         var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "test" };
         context.DomainEntities.Add(entity);
 
@@ -52,51 +70,21 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
 
         // Assert
-        entity.BeforeSaveActionProcessedCount.Should().Be(1);
+        before.ExecuteCallCount.Should().Be(1);
+        after.ExecuteCallCount.Should().Be(1);
     }
 
-    /// <summary>Проверяет что AfterSave действия вызываются после сохранения.</summary>
+    /// <summary>
+    /// Проверяет, что для нескольких сущностей одного типа обработчик вызывается
+    /// ровно один раз и получает все сущности в коллекции.
+    /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_WithLifecycleActions_AfterSaveActionsAreDispatched()
+    public async Task SaveChangesAsync_MultipleEntities_HandlerReceivesAll()
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "test" };
-        context.DomainEntities.Add(entity);
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.AfterSaveActionProcessedCount.Should().Be(1);
-    }
-
-    /// <summary>Проверяет что оба действия (BeforeSave и AfterSave) вызываются ровно по одному разу.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_WithLifecycleActions_EachActionCalledExactlyOnce()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "once" };
-        context.DomainEntities.Add(entity);
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.BeforeSaveActionProcessedCount.Should().Be(1);
-        entity.AfterSaveActionProcessedCount.Should().Be(1);
-    }
-
-    /// <summary>Проверяет что при нескольких сущностях действия вызываются для каждой.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_WithMultipleDomainEntities_ActionsDispatchedForEach()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
+        var before = new RecordingBeforeSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before]);
         var entity1 = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "first" };
         var entity2 = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "second" };
         context.DomainEntities.Add(entity1);
@@ -106,145 +94,84 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
 
         // Assert
-        entity1.BeforeSaveActionProcessedCount.Should().Be(1);
-        entity1.AfterSaveActionProcessedCount.Should().Be(1);
-        entity2.BeforeSaveActionProcessedCount.Should().Be(1);
-        entity2.AfterSaveActionProcessedCount.Should().Be(1);
+        before.ExecuteCallCount.Should().Be(1);
+        before.LastEntities.Should().HaveCount(2);
     }
 
     #endregion
 
-    #region DisableLifecycleActions — all actions
-
-    /// <summary>Проверяет что DisableLifecycleActions() предотвращает вызов BeforeSave действий.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_WithAllLifecycleActionsDisabled_BeforeSaveNotDispatched()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "no-actions" };
-        context.DomainEntities.Add(entity);
-        uow.DisableLifecycleActions();
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.BeforeSaveActionProcessedCount.Should().Be(0);
-    }
-
-    /// <summary>Проверяет что DisableLifecycleActions() предотвращает вызов AfterSave действий.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_WithAllLifecycleActionsDisabled_AfterSaveNotDispatched()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "no-actions" };
-        context.DomainEntities.Add(entity);
-        uow.DisableLifecycleActions();
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.AfterSaveActionProcessedCount.Should().Be(0);
-    }
-
-    #endregion
-
-    #region DisableLifecycleActions — by entity type
-
-    /// <summary>Проверяет что DisableLifecycleActions&lt;T&gt;() блокирует действия для конкретного типа сущности.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_WithEntityTypeLifecycleActionsDisabled_ActionsNotDispatchedForThatType()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "entity-disabled" };
-        context.DomainEntities.Add(entity);
-        uow.DisableLifecycleActions<TestLifecycleActionEntity>();
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.BeforeSaveActionProcessedCount.Should().Be(0);
-        entity.AfterSaveActionProcessedCount.Should().Be(0);
-    }
-
-    /// <summary>Проверяет что DisableLifecycleActions&lt;T&gt;(LifecycleHookType) блокирует только BeforeSave для типа.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_WithBeforeSaveLifecycleActionsDisabledForType_OnlyBeforeSaveNotDispatched()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "before-disabled" };
-        context.DomainEntities.Add(entity);
-        uow.DisableLifecycleActions<TestLifecycleActionEntity>(LifecycleHookType.BeforeSave);
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.BeforeSaveActionProcessedCount.Should().Be(0);
-        entity.AfterSaveActionProcessedCount.Should().Be(1);
-    }
-
-    #endregion
-
-    #region EnableLifecycleActions after DisableLifecycleActions
-
-    /// <summary>Проверяет что EnableLifecycleActions&lt;T&gt;() восстанавливает диспетчеризацию для конкретного типа.</summary>
-    [Fact]
-    public async Task SaveChangesAsync_AfterReEnablingLifecycleActions_ActionsDispatchedAgain()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "re-enabled" };
-        context.DomainEntities.Add(entity);
-
-        uow.DisableLifecycleActions<TestLifecycleActionEntity>();
-        uow.EnableLifecycleActions<TestLifecycleActionEntity>();
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert
-        entity.BeforeSaveActionProcessedCount.Should().Be(1);
-        entity.AfterSaveActionProcessedCount.Should().Be(1);
-    }
-
-    #endregion
-
-    #region ResetLifecycleActionSettings preserves per-type overrides
+    #region Global DisableActions
 
     /// <summary>
-    /// Проверяет что <see cref="IUnitOfWork.ResetLifecycleActionSettings"/> полностью сбрасывает
-    /// все настройки, включая per-type override от <c>DisableLifecycleActions&lt;T&gt;()</c>.
+    /// <c>orchestrator.DisableActions()</c> глобально
+    /// предотвращает вызов обработчиков в обеих фазах.
     /// </summary>
     [Fact]
-    public async Task ResetLifecycleActionSettings_ClearsPerTypeOverride()
+    public async Task SaveChangesAsync_GlobalActionsDisabled_NoHandlerCalled()
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "per-type-reset" };
+        var before = new TestBeforeSaveHandler();
+        var after = new TestAfterSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before, after]);
+        uow.Orchestrator.DisableActions();
+        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "no-actions" };
         context.DomainEntities.Add(entity);
-
-        uow.DisableLifecycleActions<TestLifecycleActionEntity>();
-        uow.ResetLifecycleActionSettings();
 
         // Act
         await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
 
-        // Assert — reset полностью очищает все per-type настройки
-        entity.BeforeSaveActionProcessedCount.Should().Be(1);
-        entity.AfterSaveActionProcessedCount.Should().Be(1);
+        // Assert
+        before.ExecuteCallCount.Should().Be(0);
+        after.ExecuteCallCount.Should().Be(0);
+    }
+
+    /// <summary>
+    /// <see cref="ILifecycleActionOrchestrator.DisableActions(IReadOnlyList{string})"/>
+    /// отключает только указанные ключи.
+    /// </summary>
+    [Fact]
+    public async Task SaveChangesAsync_KeyDisabled_OnlyThatKeyHandlerNotCalled()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var before = new TestBeforeSaveHandler();
+        var after = new TestAfterSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before, after]);
+        uow.Orchestrator.DisableActions([TestActionKeys.BeforeSaveEvent]);
+        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "before-only-disabled" };
+        context.DomainEntities.Add(entity);
+
+        // Act
+        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+
+        // Assert
+        before.ExecuteCallCount.Should().Be(0);
+        after.ExecuteCallCount.Should().Be(1);
+    }
+
+    /// <summary>
+    /// <see cref="ILifecycleActionOrchestrator.DisablePhase(LifecyclePhase)"/>
+    /// предотвращает вызов обработчиков только для указанной фазы.
+    /// </summary>
+    [Fact]
+    public async Task SaveChangesAsync_PhaseDisabled_OnlyThatPhaseHandlerNotCalled()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var before = new TestBeforeSaveHandler();
+        var after = new TestAfterSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before, after]);
+        uow.Orchestrator.DisablePhase(LifecyclePhase.BeforeSave);
+        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "before-disabled" };
+        context.DomainEntities.Add(entity);
+
+        // Act
+        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+
+        // Assert
+        before.ExecuteCallCount.Should().Be(0);
+        after.ExecuteCallCount.Should().Be(1);
     }
 
     #endregion
@@ -252,115 +179,78 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
     #region resetLifecycleActionSettingsAfterSave
 
     /// <summary>
-    /// Проверяет что resetLifecycleActionSettingsAfterSave=true (по умолчанию) сбрасывает настройки
-    /// действий после сохранения.
+    /// При <c>resetLifecycleActionSettingsAfterSave=true</c> (по умолчанию) —
+    /// глобальное отключение сбрасывается после сохранения.
     /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_DefaultResetLifecycleActionSettingsAfterSave_LifecycleActionsEnabledAfterSave()
+    public async Task SaveChangesAsync_DefaultReset_GloballyDisabledCleared()
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        uow.DisableLifecycleActions();
-        uow.AreLifecycleActionsEnabled.Should().BeFalse();
+        var before = new TestBeforeSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before]);
+        uow.Orchestrator.DisableActions();
 
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "reset" };
-        context.DomainEntities.Add(entity);
-
-        // Act — resetLifecycleActionSettingsAfterSave defaults to true
+        // Act
         await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false, resetLifecycleActionSettingsAfterSave: true);
 
-        // Assert — settings should be reset (enabled)
-        uow.AreLifecycleActionsEnabled.Should().BeTrue();
+        // Assert
+        uow.Orchestrator.IsActionEnabled(new TestLifecycleActionEntity(), "any", LifecyclePhase.BeforeSave).Should().BeTrue();
     }
 
     /// <summary>
-    /// Проверяет что resetLifecycleActionSettingsAfterSave=false сохраняет настройки после сохранения.
+    /// При <c>resetLifecycleActionSettingsAfterSave=false</c> — глобальное отключение
+    /// сохраняется после сохранения.
     /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_WithResetLifecycleActionSettingsAfterSaveFalse_LifecycleActionsStillDisabledAfterSave()
+    public async Task SaveChangesAsync_NoReset_GloballyDisabledPreserved()
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        uow.DisableLifecycleActions();
-        uow.AreLifecycleActionsEnabled.Should().BeFalse();
-
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "no-reset" };
-        context.DomainEntities.Add(entity);
+        var before = new TestBeforeSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before]);
+        uow.Orchestrator.DisableActions();
 
         // Act
         await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false, resetLifecycleActionSettingsAfterSave: false);
 
-        // Assert — settings must NOT be reset
-        uow.AreLifecycleActionsEnabled.Should().BeFalse();
+        // Assert
+        uow.Orchestrator.IsActionEnabled(new TestLifecycleActionEntity(), "any", LifecyclePhase.BeforeSave).Should().BeFalse();
     }
 
     #endregion
 
-    #region entryTypeGroups snapshot limitation
+    #region ResetAllActions
 
     /// <summary>
-    /// Подтверждает ограничение: entryTypeGroups снимается до SaveChanges,
-    /// поэтому сущность, добавленная в ChangeTracker внутри BeforeSave-действия,
-    /// не попадает в AfterSave-диспетчеризацию в том же вызове SaveChanges.
+    /// <see cref="ILifecycleActionOrchestrator.ResetAllActions"/> вызывается
+    /// в finally-блоке SaveChanges, очищая все настройки.
     /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_EntityAddedInBeforeSaveAction_AfterSaveNotDispatchedForNewEntity()
+    public async Task SaveChangesAsync_OnSuccess_ResetsAllActionSettings()
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var parent = new TestSpawningLifecycleActionEntity(context)
-        {
-            Id = Guid.NewGuid(),
-            Name = "parent",
-        };
-        context.SpawningEntities.Add(parent);
+        var before = new TestBeforeSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before]);
+        uow.Orchestrator.DisableActions(["k"]);
+        uow.Orchestrator.DisablePhase(LifecyclePhase.BeforeSave);
 
         // Act
         await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
 
-        // Assert — родитель обработан полностью
-        parent.BeforeSaveActionProcessedCount.Should().Be(1);
-        parent.AfterSaveActionProcessedCount.Should().Be(1);
-
-        parent.SpawnedEntity.Should().NotBeNull();
-        context.DomainEntities.Should().ContainSingle(e => e.Id == parent.SpawnedEntity!.Id);
-
-        // Ограничение snapshot: AfterSave не вызван для сущности, добавленной в BeforeSave
-        parent.SpawnedEntity!.AfterSaveActionProcessedCount.Should().Be(0);
-        parent.SpawnedEntity.BeforeSaveActionProcessedCount.Should().Be(0);
-    }
-
-    #endregion
-
-    #region ResetActions called on entities
-
-    /// <summary>
-    /// Проверяет что ResetActions() вызывается на сущностях в блоке finally после сохранения.
-    /// </summary>
-    [Fact]
-    public async Task SaveChangesAsync_AfterSuccessfulSave_ResetActionsCalledOnEntities()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var uow = CreateUnitOfWork(context);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "reset-entity" };
-        context.DomainEntities.Add(entity);
-
-        // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
-
-        // Assert — ResetActions() is called on the entity in the finally block
-        entity.ActionsWereReset.Should().BeTrue();
+        // Assert
+        var probe = new TestLifecycleActionEntity();
+        uow.Orchestrator.IsActionEnabled(probe, "k", LifecyclePhase.BeforeSave).Should().BeTrue();
+        uow.Orchestrator.IsActionEnabled(probe, "any", LifecyclePhase.BeforeSave).Should().BeTrue();
     }
 
     /// <summary>
-    /// Проверяет что ResetActions() вызывается на сущностях даже при ошибке сохранения.
+    /// <see cref="ILifecycleActionOrchestrator.ResetAllActions"/> вызывается и при
+    /// ошибке сохранения — настройки очищаются даже если <c>SaveChanges</c> бросил исключение.
     /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_OnFailure_ResetActionsStillCalledOnEntities()
+    public async Task SaveChangesAsync_OnFailure_StillResetsAllActionSettings()
     {
         // Arrange
         await using var context = CreateContext();
@@ -368,66 +258,95 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         {
             OnProcessAsync = () => throw new InvalidOperationException("fail"),
         };
-        var uow = CreateUnitOfWork(context, beforeSaveService: failingService);
-        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "reset-on-fail" };
+        var before = new TestBeforeSaveHandler();
+        var uow = CreateUnitOfWork(context, beforeSaveService: failingService, handlers: [before]);
+        uow.Orchestrator.DisableActions(["k"]);
+
+        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "fail" };
         context.DomainEntities.Add(entity);
 
-        // Act — will throw
+        // Act
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false));
 
-        // Assert — ResetActions() must still be called (it's in finally)
-        entity.ActionsWereReset.Should().BeTrue();
+        // Assert
+        var probe = new TestLifecycleActionEntity();
+        uow.Orchestrator.IsActionEnabled(probe, "k", LifecyclePhase.BeforeSave).Should().BeTrue();
     }
 
     #endregion
 
-    #region Lifecycle actions disabled — no actions on non-IWithLifecycleActions entities
+    #region Automatic entity tracking
 
     /// <summary>
-    /// Проверяет что сущности без IWithLifecycleActions не вызывают диспетчеризацию действий.
+    /// Сущности, добавленные в <see cref="DbContext"/>, автоматически попадают в карту
+    /// отслеживаемых оркестратора и попадают в обработчик.
     /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_WithNonLifecycleActionEntity_NoActionsDispatched()
+    public async Task SaveChangesAsync_EntityTrackedAutomatically_AvailableToHandlers()
     {
-        // Arrange — use context with non-domain entity (TestEntityWithCreatedDeleted)
-        var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
-
-        await using var context = new TestDbContext(options);
-        var uow = new EfUnitOfWork<TestDbContext>(
-            context,
-            new FakeServices(),
-            new TestEfDbSettings(transactionsEnabled: false));
-
-        var entity = new TestEntityWithCreatedDeleted { Id = Guid.NewGuid(), Name = "no-domain" };
-        context.Entities.Add(entity);
+        // Arrange
+        await using var context = CreateContext();
+        var before = new RecordingBeforeSaveHandler();
+        var uow = CreateUnitOfWork(context, handlers: [before]);
+        var entity = new TestLifecycleActionEntity { Id = Guid.NewGuid(), Name = "tracked" };
+        context.DomainEntities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
 
         // Assert
-        result.Should().Be(1);
+        before.LastEntities.Should().ContainSingle().Which.Should().BeSameAs(entity);
     }
 
     #endregion
 
     #region Helper classes
 
+    /// <summary>
+    /// Подкласс <see cref="EfUnitOfWork{TDbContext}"/>, экспортирующий orchestrator
+    /// для тонкой настройки в тестах.
+    /// </summary>
     private sealed class TestUnitOfWork(
         TestLifecycleActionDbContext dbContext,
         IServiceProvider serviceProvider,
         DbSettingsBase settings,
+        ILifecycleActionOrchestrator orchestrator,
         IBeforeSaveChangesService? beforeSaveChangesService = null)
         : EfUnitOfWork<TestLifecycleActionDbContext>(
             dbContext,
             serviceProvider,
             settings,
+            orchestrator,
             beforeSaveChangesService)
     {
-        public bool AreLifecycleActionsEnabled => AreAnyLifecycleActionsEnabled;
+        public ILifecycleActionOrchestrator Orchestrator => orchestrator;
+    }
+
+    /// <summary>
+    /// Handler, фиксирующий коллекцию сущностей, для которой он был вызван.
+    /// </summary>
+    private sealed class RecordingBeforeSaveHandler
+        : LifecycleActionHandlerBase<TestLifecycleActionEntity>
+    {
+        public ICollection<TestLifecycleActionEntity>? LastEntities { get; private set; }
+
+        public int ExecuteCallCount { get; private set; }
+
+        public override LifecyclePhase Phase => LifecyclePhase.BeforeSave;
+
+        public override string Key => "recording-before-save";
+
+        public override int Order => 0;
+
+        protected override Task ExecuteActionAsync(
+            IEnumerable<TestLifecycleActionEntity> entities,
+            CancellationToken cancellationToken)
+        {
+            LastEntities = entities.ToArray();
+            ExecuteCallCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class TestEfDbSettingsLifecycleAction

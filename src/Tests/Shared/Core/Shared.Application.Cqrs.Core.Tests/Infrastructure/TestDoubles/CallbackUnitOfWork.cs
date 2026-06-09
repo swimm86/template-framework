@@ -1,6 +1,5 @@
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
-using Shared.Domain.Core.Enums;
 using Shared.Domain.Core.Interfaces;
 using Shared.Testing.Doubles.Repository;
 
@@ -44,24 +43,6 @@ public sealed class CallbackUnitOfWork : IUnitOfWork
     public IUnitOfWork EnableTransaction() => this;
 
     public IUnitOfWork DisableTransaction() => this;
-
-    public IUnitOfWork DisableLifecycleActions() => this;
-
-    public IUnitOfWork EnableLifecycleActions() => this;
-
-    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType? hookType = default)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    public IUnitOfWork DisableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum hookKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    public IUnitOfWork EnableLifecycleActions<TEntity>(LifecycleHookType hookType, Enum hookKeyFlags)
-        where TEntity : IEntity, IWithLifecycleActions => this;
-
-    public IUnitOfWork ResetLifecycleActionSettings() => this;
 
     public void ClearTracking()
     {

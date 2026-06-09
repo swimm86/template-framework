@@ -145,19 +145,6 @@ Guid генерируется **на стороне приложения** (не
 | `IWithDateUpdated` | `updated_at` | ❌ | Время обновления |
 | `IWithDateDeleted` | `deleted_at` | ❌ | Время удаления |
 
-### Lifecycle Actions Ignoring
-
-```csharp
-private static void ConfigureLifecycleActions(EntityTypeBuilder builder)
-{
-    if (typeof(IWithLifecycleActions).IsAssignableFrom(typeof(TEntity)))
-    {
-        builder.Ignore(nameof(IWithLifecycleActions.RequiredToSaveNavigationPropertiesNames));
-    }
-}
-```
-
-Свойства `IWithLifecycleActions` игнорируются EF Core — они не маппятся на колонки.
 
 ### Extension Point: ConfigureProcess
 

@@ -1,169 +1,87 @@
-using Shared.Domain.Core.Enums;
+// ----------------------------------------------------------------------------------------------
+// <copyright file="BaseEntityTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Shared.Domain.Core.Base;
 using Shared.Domain.Core.Interfaces;
-using Shared.Domain.Core.LifecycleAction;
 using Shared.Domain.Core.Tests.Infrastructure.TestDoubles;
 
 namespace Shared.Domain.Core.Tests.Base;
 
 /// <summary>
-/// Тесты для базовой сущности, проверяющие инициализацию и жизненный цикл доменных событий.
+/// Тесты для базового класса сущности <see cref="EntityBase{TKey}"/>.
+/// Проверяют инициализацию идентификатора значением по умолчанию и присваиваемость извне.
 /// </summary>
-public class BaseEntityTests
+public sealed class BaseEntityTests
 {
     /// <summary>
-    /// Проверяет, что при создании сущности в конструкторе инициализируются действия BeforeSave и AfterSave.
+    /// Проверяет, что идентификатор по умолчанию равен <c>default(Guid)</c>
+    /// (то есть <see cref="Guid.Empty"/>) до явной инициализации.
     /// </summary>
     [Fact]
-    public void Actions_AreInitializedInConstructor()
+    public void Id_Default_IsDefaultGuid()
     {
         // Arrange
         var entity = new TestBaseEntity();
 
         // Act
-        var beforeKeys = entity.GetAllKeys(LifecycleHookType.BeforeSave);
-        var afterKeys = entity.GetAllKeys(LifecycleHookType.AfterSave);
+        var id = entity.Id;
 
         // Assert
-        beforeKeys.Should().ContainSingle().Which.Should().Be(TestEventKey.Before);
-        afterKeys.Should().ContainSingle().Which.Should().Be(TestEventKey.After);
+        id.Should().Be(Guid.Empty);
     }
 
     /// <summary>
-    /// Проверяет, что TryGetAction возвращает true и действие при существующем ключе.
+    /// Проверяет, что идентификатор можно установить через инициализатор.
     /// </summary>
     [Fact]
-    public void TryGetAction_ExistingKey_ReturnsTrueAndAction()
+    public void Id_SetInInitializer_IsPersisted()
+    {
+        // Arrange
+        var expectedId = Guid.NewGuid();
+
+        // Act
+        var entity = new TestBaseEntity { Id = expectedId };
+
+        // Assert
+        entity.Id.Should().Be(expectedId);
+    }
+
+    /// <summary>
+    /// Проверяет, что <see cref="IEntity.Id"/> (непараметризованный) возвращает значение,
+    /// совпадающее с типизированным <see cref="IEntity{T}.Id"/>.
+    /// </summary>
+    [Fact]
+    public void NonGenericId_MatchesTypedId()
+    {
+        // Arrange
+        var expectedId = Guid.NewGuid();
+        var entity = new TestBaseEntity { Id = expectedId };
+
+        // Act
+        object nonGenericId = ((IEntity)entity).Id;
+
+        // Assert
+        nonGenericId.Should().Be(expectedId);
+    }
+
+    /// <summary>
+    /// Проверяет, что <see cref="EntityBase{TKey}"/> может использоваться как реализация
+    /// <see cref="IEntity{T}"/> с указанным типом ключа.
+    /// </summary>
+    [Fact]
+    public void EntityBase_ImplementsIEntityOfTKey()
     {
         // Arrange
         var entity = new TestBaseEntity();
 
         // Act
-        var result = entity.TryGetAction(
-            LifecycleHookType.BeforeSave,
-            TestEventKey.Before,
-            out var lifecycleAction);
+        IEntity<Guid> typed = entity;
 
         // Assert
-        result.Should().BeTrue();
-        lifecycleAction.Should().NotBeNull();
-        lifecycleAction.Key.Should().Be(TestEventKey.Before);
-    }
-
-    /// <summary>
-    /// Проверяет, что TryGetAction возвращает false при несуществующем ключе.
-    /// </summary>
-    [Fact]
-    public void TryGetAction_NonExistingKey_ReturnsFalse()
-    {
-        // Arrange
-        var entity = new TestBaseEntity();
-
-        // Act
-        var result = entity.TryGetAction(
-            LifecycleHookType.BeforeSave,
-            TestEventKey.After,
-            out var lifecycleAction);
-
-        // Assert
-        result.Should().BeFalse();
-        lifecycleAction.Should().BeNull();
-    }
-
-    /// <summary>
-    /// Проверяет, что после вызова DisableLifecycleActions обработка действий не выполняется.
-    /// </summary>
-    [Fact]
-    public async Task DisableLifecycleActions_PreventsActionDispatch()
-    {
-        // Arrange
-        var entity = new TestBaseEntity();
-        entity.DisableLifecycleActions();
-
-        var serviceProvider = new StubServiceProvider();
-        var entities = new List<IWithLifecycleActions> { entity };
-
-        // Act
-        await ((IWithLifecycleActions)entity).ProcessLifecycleActionAsync(
-            LifecycleHookType.BeforeSave,
-            TestEventKey.Before,
-            serviceProvider,
-            entities,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        entity.BeforeActionCalled.Should().BeFalse();
-    }
-
-    /// <summary>
-    /// Проверяет, что после вызова EnableLifecycleActions обработка действий возобновляется.
-    /// </summary>
-    [Fact]
-    public async Task EnableLifecycleActions_AllowsDispatchAgain()
-    {
-        // Arrange
-        var entity = new TestBaseEntity();
-        entity.DisableLifecycleActions();
-        entity.EnableLifecycleActions();
-
-        var serviceProvider = new StubServiceProvider();
-        var entities = new List<IWithLifecycleActions> { entity };
-
-        // Act
-        await ((IWithLifecycleActions)entity).ProcessLifecycleActionAsync(
-            LifecycleHookType.BeforeSave,
-            TestEventKey.Before,
-            serviceProvider,
-            entities,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        entity.BeforeActionCalled.Should().BeTrue();
-    }
-
-    /// <summary>
-    /// Проверяет, что вызов ResetActions повторно включает обработку действий.
-    /// </summary>
-    [Fact]
-    public async Task ResetActions_EnablesActions()
-    {
-        // Arrange
-        var entity = new TestBaseEntity();
-        entity.DisableLifecycleActions();
-        entity.ResetActions();
-
-        var serviceProvider = new StubServiceProvider();
-        var entities = new List<IWithLifecycleActions> { entity };
-
-        // Act
-        await ((IWithLifecycleActions)entity).ProcessLifecycleActionAsync(
-            LifecycleHookType.BeforeSave,
-            TestEventKey.Before,
-            serviceProvider,
-            entities,
-            TestContext.Current.CancellationToken);
-
-        // Assert
-        entity.BeforeActionCalled.Should().BeTrue();
-    }
-
-    /// <summary>
-    /// Подтверждает, что дублирующиеся ключи действий в BeforeSaveActions
-    /// приводят к ArgumentException при инициализации сущности (ToDictionary).
-    /// </summary>
-    [Fact]
-    public void Constructor_WithDuplicateActionKeys_ThrowsArgumentException()
-    {
-        // Act
-        var act = () => new TestBaseEntityWithDuplicateActionKeys();
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*same key*");
-    }
-
-    private sealed class StubServiceProvider
-        : IServiceProvider
-    {
-        public object? GetService(Type serviceType) => null;
+        typed.Should().NotBeNull();
+        typed.Id.Should().Be(entity.Id);
     }
 }

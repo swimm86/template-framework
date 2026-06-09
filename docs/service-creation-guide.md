@@ -321,24 +321,38 @@ public class Product : IEntity<Guid>, IWithCreated, IWithUpdated, IWithDeleted
 }
 ```
 
-### Действия перехвата — `IWithLifecycleActions`
+### Действия перехвата — `ILifecycleActionHandler<TEntity>`
 
-Если сущности должна поддерживать lifecycle actions, реализуйте `IWithLifecycleActions`:
+Если для сущности нужны lifecycle-действия, создайте отдельный обработчик в Application слое. Сущность остаётся чистой Domain-моделью и не реализует никаких lifecycle-интерфейсов.
 
 ```csharp
-public class Product : IEntity<Guid>, IWithLifecycleActions
+// Shared.Application.Core/LifecycleAction
+public class ProductValidationHandler
+    : LifecycleActionHandlerBase<Product>
 {
-    // ... свойства ...
+    public override LifecyclePhase Phase => LifecyclePhase.BeforeSave;
+    public override string Key => "ProductValidation";
+    public override int Order => 0;
 
-    public string[] RequiredToSaveNavigationPropertiesNames => [];
-    public bool TryGetAction(LifecycleHookType hookType, Enum key, out IEntityLifecycleAction? lifecycleAction) { /* ... */ }
-    public void ResetActions() { /* ... */ }
-    public ICollection<Enum> GetAllKeys(LifecycleHookType hookType) { /* ... */ }
+    public override string[] RequiredNavigationProperties => [];
+
+    protected override Task ExecuteActionAsync(
+        ICollection<Product> entities,
+        CancellationToken cancellationToken)
+    {
+        foreach (var product in entities)
+        {
+            if (product.Price < 0)
+            {
+                throw new BusinessLogicException("Цена не может быть отрицательной.");
+            }
+        }
+        return Task.CompletedTask;
+    }
 }
 ```
 
-> **Важно:** `EntityConfigurationBase` автоматически вызывает `builder.Ignore(nameof(IWithLifecycleActions.RequiredToSaveNavigationPropertiesNames))` для сущностей, реализующих `IWithLifecycleActions`.
-
+> Обработчик автоматически обнаруживается и регистрируется через `services.AddLifecycleActions()` в `DependencyInjector`. Никаких дополнительных регистраций не требуется.
 ---
 
 ## Step 3: Application слой
@@ -607,8 +621,6 @@ public class EntityConfiguration : EntityConfigurationBase<Product>
 - `UseTptMappingStrategy()` — TPT-стратегию наследования
 - Первичный ключ `Id` с `ValueGeneratedNever()`
 - Поля аудита (`CreatedByUserId`, `DateCreated`, ...) если сущность реализует соответствующие интерфейсы
-- Свойство `RequiredToSaveNavigationPropertiesNames` игнорируется для `IWithLifecycleActions`
-
 ### Конвенция имён колонок — snake_case
 
 Каждый сервис определяет `ColumnsNamesConvention`, приводящий имена колонок к `snake_case`:

@@ -1,17 +1,20 @@
-﻿using Shared.Domain.Core.Base;
-using Shared.Domain.Core.LifecycleAction;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="TestBaseEntityWithDuplicateActionKeys.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Shared.Domain.Core.Base;
 
 namespace Shared.Domain.Core.Tests.Infrastructure.TestDoubles;
 
 /// <summary>
-/// Тестовая сущность с дублирующимися ключами действий перехвата.
+/// Тестовая сущность, наследующая <see cref="EntityBase{TKey}"/>, для smoke-тестов базового класса.
 /// </summary>
-public sealed class TestBaseEntityWithDuplicateActionKeys
-    : BaseEntity<Guid>
+public sealed class TestBaseEntityWithDuplicateActionKeys : EntityBase<Guid>
 {
-    protected override IEntityLifecycleAction[] BeforeSaveActions =>
-    [
-        new EntityLifecycleAction(TestEventKey.Before, (_, _) => Task.CompletedTask),
-        new EntityLifecycleAction(TestEventKey.Before, (_, _) => Task.CompletedTask),
-    ];
+    /// <summary>
+    /// Имя сущности.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
 }

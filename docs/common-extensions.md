@@ -160,6 +160,7 @@ var readOnly = flags.Without(OrderFlags.Write);
 | **DateParserHelper** | `Shared.Common.Helpers` | `TryParseDateOnlyIgnoringTime(string?)` — парсинг даты в `DateOnly`<br>`TryParseDateTime(string?)` — универсальный парсинг `DateTime` (поддержка 20+ форматов, включая OADate) | Парсинг дат из строк пользовательского ввода |
 | **ExpressionHelper** | `Shared.Common.Helpers` | `GetPropExpression<TObj>(string propertyName, char delimiter)` — строит `Expression<Func<TObj, object>>` по строковому пути свойства | Динамический доступ к свойствам |
 | **JsonHelper** | `Shared.Common.Helpers` | `TryDeserialize<T>(string, out T?, JsonSerializerOptions?)` — безопасная десериализация без исключений | Работа с JSON без try/catch |
+| **HashHelper** | `Shared.Common.Helpers` | `ComputeSha256(params string?[] parts)` — детерминированный SHA-256 хэш 32 байта для набора строк (нормализация через `Trim` + `ToLowerInvariant`, разделитель `\|`) | Дедупликация сущностей (например, хэш персоны по `(Name, Email)`); **не предназначен** для хранения паролей |
 
 ### PaginationHelper — пример
 
@@ -183,6 +184,25 @@ var date = DateParserHelper.TryParseDateOnlyIgnoringTime("15.03.2024");
 var dt = DateParserHelper.TryParseDateTime("2024-03-15 14:30:00.000");
 // DateTime(2024, 3, 15, 14, 30, 0)
 ```
+
+### HashHelper — пример
+
+```csharp
+// Дедупликация сущности: одинаковые (Name, Email) дают идентичный хэш
+var hash1 = HashHelper.ComputeSha256("Иванов", "ivanov@example.com");
+var hash2 = HashHelper.ComputeSha256("  иванов  ", "IVANOV@example.com");
+// hash1 и hash2 идентичны (Trim + ToLowerInvariant)
+
+// Добавление в Hash свойства индекса с уникальностью
+builder.HasIndex(x => x.Hash).IsUnique(unique: true);
+```
+
+**Гарантии:**
+
+- Возвращает `byte[32]` (256 бит) — фиксированная длина, удобная для индексов.
+- Детерминированность: одинаковый набор нормализованных компонентов → идентичный массив байт.
+- Разделитель `|` (вертикальная черта) предотвращает коллизии вида `"a|b"+""` vs `"a"+"|b"`.
+- **Не использовать для криптографической защиты** (паролей, токенов) — для этого применять медленные солёные алгоритмы (bcrypt, Argon2).
 
 ---
 

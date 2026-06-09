@@ -41,12 +41,15 @@
 
 ```csharp
 // Services/Common/Template.Domain/Entities/Person.cs
-public class Person : BaseEntity
+public class Person : EntityBase<Guid>
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string MiddleName { get; set; }
-    public DateTime BirthDate { get; set; }
+    public Guid Id { get; init; }
+    public string Name { get; private set; }
+    public string Email { get; private set; }
+    public byte[] Hash { get; private set; }
+
+    public static Person Create(string name, string email) { /* ... */ }
+    public void UpdateHash() => Hash = HashHelper.ComputeSha256(Name, Email);
 }
 ```
 
@@ -149,16 +152,22 @@ Getter/
 
 ```
 Setter/
-├── Template.Setter.Api/                 # Web API
-│   └── Controllers/PersonsController.cs # POST endpoints
-├── Template.Setter.Application/         # CQRS Commands
+├── Template.Setter.Api/                          # Web API
+│   └── Controllers/PersonsController.cs          # POST endpoints
+├── Template.Setter.Application/                  # CQRS Commands + handlers
+│   ├── Features/Person/Create/
+│   │   ├── PersonCreateCommand.cs                # ICommand + CreateCommand<...>
+│   │   └── PersonCreateCommandHandler.cs         # CreateCommandHandler<...>
+│   └── LifecycleAction/Person/
+│       └── PersonHashLifecycleHandler.cs         # ILifecycleActionHandler<Person>
+├── Template.Setter.Application.Abstractions/      # Общие типы DTO/Request/Response
 │   └── Features/Person/
-│       ├── Create/                      # PersonCreateCommand + Handler
-│       └── Validators/                  # PersonValidator
-├── Template.Setter.Application.Abstractions/
-│   └── Commands/                        # Shared command types
-└── Template.Setter.Infrastructure/      # Mapping, persistence
-    └── Mapping/MapperProfile.cs
+│       ├── Common/Dto/PersonDto.cs               # Базовый DTO
+│       ├── Create/Requests/PersonCreateRequest.cs# : PersonDto
+│       └── Create/Responses/PersonCreateResponse.cs# : CreateResponse<PersonDto>
+└── Template.Setter.Infrastructure/               # Mapping, persistence
+    ├── Mapping/MapperProfile.cs
+    └── Dal/Configuration/PersonConfigurations.cs
 ```
 
 ### Common (Shared between services) — 6 проектов

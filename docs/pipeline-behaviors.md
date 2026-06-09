@@ -20,7 +20,7 @@ services.AddMediatR();
 // 3. Handler                   → бизнес-логика
 
 // Пример: при отправке команды
-var command = new PersonCreateCommand(new PersonCreateRequest("John", "john@example.com"));
+var command = new PersonCreateCommand(new PersonCreateRequest { Id = Guid.NewGuid(), Name = "John", Email = "john@example.com" });
 var response = await mediator.Send(command, ct);
 
 // Console/Logs output:
@@ -388,6 +388,16 @@ public class PersonCreateCommandValidator : AbstractValidator<PersonCreateComman
     }
 }
 
+// Или валидатор для самого PersonCreateRequest (record-to-record от PersonDto):
+public class PersonCreateRequestValidator : AbstractValidator<PersonCreateRequest>
+{
+    public PersonCreateRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty();
+        RuleFor(x => x.Email).EmailAddress();
+    }
+}
+
 // 3. Handler
 public class PersonCreateCommandHandler(...)
     : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Person, ...>(...)
@@ -396,7 +406,7 @@ public class PersonCreateCommandHandler(...)
 }
 
 // 4. Execution
-var command = new PersonCreateCommand(new PersonCreateRequest("", "invalid"));
+var command = new PersonCreateCommand(new PersonCreateRequest { Name = "", Email = "invalid" });
 var response = await mediator.Send(command, ct);
 // → ValidationPipelineBehaviour бросит ValidationException
 // → Handler НЕ вызовется
