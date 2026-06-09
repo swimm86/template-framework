@@ -12,35 +12,37 @@ namespace Template.DatabaseUpgrade.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Person",
+                name: "person",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    name = table.Column<string>(type: "text", nullable: false),
-                    email = table.Column<string>(type: "text", nullable: false)
+                    id = table.Column<Guid>(type: "uuid", nullable: false, comment: "Идентификатор."),
+                    name = table.Column<string>(type: "text", nullable: false, comment: "Имя"),
+                    email = table.Column<string>(type: "text", nullable: false, comment: "Адрес электронной почты")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Person", x => x.id);
-                });
+                    table.PrimaryKey("PK_person", x => x.id);
+                },
+                comment: "Таблица с сущностями \"Персона\".");
 
             migrationBuilder.CreateTable(
                 name: "seed",
                 columns: table => new
                 {
-                    name = table.Column<string>(type: "text", nullable: false)
+                    id = table.Column<string>(type: "text", nullable: false, comment: "Уникальное наименование сида БД.")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_seed", x => x.name);
-                });
+                    table.PrimaryKey("PK_seed", x => x.id);
+                },
+                comment: "Таблица с сущностями \"Сид БД\".");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Person");
+                name: "person");
 
             migrationBuilder.DropTable(
                 name: "seed");

@@ -12,10 +12,12 @@ namespace Shared.Application.Core.Dal.DbSeeder.Entities;
 /// Сущность для отслеживания выполненных seed-процессов.
 /// </summary>
 public class Seed
-    : IEntity<Guid>
+    : IEntity<string>
 {
-    /// <inheritdoc />
-    public Guid Id { get; private init; }
+    /// <summary>
+    /// Наименование seed-процесса.
+    /// </summary>
+    public string Id { get; init; }
 
     /// <summary>
     /// Инициализирует новый экземпляр <see cref="Seed"/>.
@@ -23,11 +25,6 @@ public class Seed
     private Seed()
     {
     }
-
-    /// <summary>
-    /// Наименование seed-процесса.
-    /// </summary>
-    public string Name { get; private set; }
 
     /// <summary>
     /// Создает новый экземпляр <see cref="Seed"/>.
@@ -38,8 +35,7 @@ public class Seed
     {
         return new Seed
         {
-            Id = Guid.NewGuid(),
-            Name = name,
+            Id = name,
         };
     }
 }

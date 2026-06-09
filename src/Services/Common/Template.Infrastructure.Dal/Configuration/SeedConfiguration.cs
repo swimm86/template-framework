@@ -11,4 +11,5 @@ namespace Template.Infrastructure.Dal.Configuration;
 /// <summary>
 /// Конфигурация для сущности "Seed".
 /// </summary>
-public class SeedConfiguration : SeedConfigurationBase;
+public class SeedConfiguration
+    : SeedConfigurationBase;

@@ -32,7 +32,7 @@ public class DbSeeder(
         var seedNames = await repo.GetRangeAsync(cancellationToken: cancellationToken);
         var seeds = AssemblyHelper.GetDerivedTypesFromAssemblies<ISeed>([typeof(SeedAttribute)])
             .Select(type => new { type, attr = type.GetCustomAttribute<SeedAttribute>() })
-            .Where(x => x.attr != null && !seedNames.Any(seed => seed.Name.Equals(x.attr.Name)))
+            .Where(x => x.attr != null && !seedNames.Any(seed => seed.Id.Equals(x.attr.Name)))
             .OrderBy(x => x.attr!.Order)
             .ToList();
         await seeds.ForeachAsync(
