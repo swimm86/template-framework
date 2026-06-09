@@ -15,8 +15,8 @@ Hangfire Adapter — альтернативная реализация `IJobSche
 
 | Класс | Назначение |
 |-------|-----------|
-| `HangfireJobScheduler` | `IJobScheduler` — маппит `JobDefinition` в Hangfire RecurringJob / BackgroundJob. |
-| `HangfireScheduledJobAdapter` | Единственный сериализуемый мост: `public Task RunScheduledJobAsync(string jobTypeName, string? serviceKey, CancellationToken ct)`. Резолвит `IScheduledJob` из DI по `Type.AssemblyQualifiedName` и прогоняет через pipeline. |
+| `HangfireJobScheduler` | `IJobScheduler` — маппит `JobDefinition` в Hangfire RecurringJob / BackgroundJob. Пробрасывает `RetryOptions` через `JobDefinition.RetryOptions` в `CreateHangfireJob`. |
+| `HangfireScheduledJobAdapter` | Единственный сериализуемый мост: `public Task RunScheduledJobAsync(string jobTypeName, string? serviceKey, RetryOptions? retryOptions, CancellationToken ct)`. Резолвит `IScheduledJob` из DI по `Type.AssemblyQualifiedName` и прогоняет через pipeline. |
 | `HangfireJobSchedulerBootstrapper` | `IHostedService` — на старте регистрирует все `JobDefinition` в Hangfire. |
 | `HangfireDependencyInjector` | `DependencyInjectorBase` — регистрирует Hangfire (in-memory storage, AspNetCoreJobActivator), `IJobScheduler`, bridge, bootstrapper. |
 
@@ -47,16 +47,27 @@ Hangfire требует, чтобы тело лямбды в `BackgroundJob.Sche
 Expression body should be of type MethodCallExpression
 ```
 
-**Решение:** всегда вызывать `bridge => bridge.RunScheduledJobAsync(typeName, serviceKey, ct)` — это MethodCall на единственный публичный метод `HangfireScheduledJobAdapter`. Внутри bridge:
+**Решение:** всегда вызывать `bridge => bridge.RunScheduledJobAsync(typeName, serviceKey, retryOptions, ct)` — это MethodCall на единственный публичный метод `HangfireScheduledJobAdapter`. Внутри bridge:
 
 1. Резолвит `Type` по `AssemblyQualifiedName` из аргумента.
 2. Резолвит `IScheduledJob` из DI (или `GetRequiredKeyedService`).
-3. Строит `ScheduledJobContext` и вызывает `executor.ExecuteAsync(ctx)`.
+3. Строит `ScheduledJobContext` (включая `RetryOptions` из аргумента) и вызывает `executor.ExecuteAsync(ctx)`.
 
 ```csharp
 public sealed class HangfireScheduledJobAdapter : ... // transient
 {
-    public async Task RunScheduledJobAsync(string jobTypeName, string? serviceKey, CancellationToken ct)
+    public static HangfireJob CreateHangfireJob(string typeName, string? serviceKey, RetryOptions? retryOptions)
+    {
+        Expression<Func<HangfireScheduledJobAdapter, Task>> expression =
+            bridge => bridge.RunScheduledJobAsync(typeName, serviceKey, retryOptions, CancellationToken.None);
+        return HangfireJob.FromExpression(expression);
+    }
+
+    public async Task RunScheduledJobAsync(
+        string jobTypeName,
+        string? serviceKey,
+        RetryOptions? retryOptions,
+        CancellationToken ct)
     {
         var jobType = Type.GetType(jobTypeName, throwOnError: false)
             ?? throw new InvalidOperationException($"Failed to resolve type '{jobTypeName}'.");
@@ -73,12 +84,15 @@ public sealed class HangfireScheduledJobAdapter : ... // transient
         {
             JobType = jobType,
             ServiceKey = serviceKey,
+            RetryOptions = retryOptions,
         };
 
         await executor.ExecuteAsync(ctx);
     }
 }
 ```
+
+> **Per-job `RetryOptions` в Hangfire:** `RetryOptions` — POCO-класс, Hangfire сериализует его как обычный аргумент метода (в отличие от Quartz, где `JobDataMap` сериализуется как `string`/`long`/...). При `RecurringJob.AddOrUpdate` Hangfire хранит JSON-представление `RetryOptions` рядом с задачей и при каждом тике передаёт его в bridge. Если `JobDefinition.RetryOptions == null`, мост получает `null` и `RetryMiddleware` пропускает повторы.
 
 ## Маппинг `JobSchedule` → Hangfire
 

@@ -36,17 +36,22 @@ public sealed class QuartzJobScheduler(
                 definition.JobType.AssemblyQualifiedName
                 ?? throw new InvalidOperationException(
                     $"Type {definition.JobType.FullName} has no {nameof(Type.AssemblyQualifiedName)}.");
-            jobData[QuartzScheduledJobAdapter.JobTypeKey] = jobTypeName;
+            jobData[Constants.JobTypeKey] = jobTypeName;
         }
 
         if (definition.ServiceKey is not null)
         {
-            jobData[QuartzScheduledJobAdapter.ServiceKeyKey] = definition.ServiceKey;
+            jobData[Constants.ServiceKeyKey] = definition.ServiceKey;
         }
 
         if (definition.JobType is null)
         {
-            jobData[JobDefinition.ActionDataKey] = definition.Action;
+            jobData[Constants.ActionDataKey] = definition.Action;
+        }
+
+        if (definition.RetryOptions is not null)
+        {
+            jobData[Constants.RetryOptionsKey] = definition.RetryOptions;
         }
 
         var job = JobBuilder.Create<QuartzScheduledJobAdapter>()

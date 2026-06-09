@@ -7,6 +7,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.DependencyInjection.Base;
+using Shared.Application.Core.Job.Extensions;
 
 namespace Template.Setter.Application.DependencyInjection;
 
@@ -23,6 +24,7 @@ public class DependencyInjector(
     protected override IServiceCollection Process(
         IServiceCollection serviceCollection)
     {
-        return serviceCollection;
+        return serviceCollection
+            .RegisterDbSeederJob();
     }
 }

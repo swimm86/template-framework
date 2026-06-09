@@ -6,16 +6,18 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Middlewares;
+using Shared.Application.Core.Tests.Support;
 using Shared.Testing.Doubles.Logging;
 
 namespace Shared.Application.Core.Tests.Job;
 
 /// <summary>
-/// Тесты <see cref="RetryMiddleware"/>: успех с первой попытки, retry до MaxAttempts,
-/// rethrow после исчерпания попыток.
+/// Тесты <see cref="RetryMiddleware"/>: успех с первой попытки, retry до <c>MaxAttempts</c>,
+/// rethrow после исчерпания попыток, чтение <see cref="RetryOptions"/> из
+/// <see cref="ScheduledJobContext"/> (а не из <c>IOptions</c>) и поведение
+/// при <c>RetryOptions = null</c>.
 /// </summary>
 public sealed class RetryMiddlewareTests
 {
@@ -27,10 +29,12 @@ public sealed class RetryMiddlewareTests
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMilliseconds(1) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
 
         var attempts = 0;
 
@@ -49,17 +53,19 @@ public sealed class RetryMiddlewareTests
     }
 
     /// <summary>
-    /// При неуспехе на каждой попытке retry повторяет до MaxAttempts.
+    /// При неуспехе на каждой попытке retry повторяет до <c>MaxAttempts</c>.
     /// </summary>
     [Fact]
     public async Task InvokeAsync_AlwaysFails_RetriesUpToMaxAttempts()
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMilliseconds(1) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
 
         var attempts = 0;
         ScheduledJobDelegate next = _ =>
@@ -84,10 +90,12 @@ public sealed class RetryMiddlewareTests
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMilliseconds(1) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
 
         var attempts = 0;
 
@@ -114,10 +122,12 @@ public sealed class RetryMiddlewareTests
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 1, Delay = TimeSpan.FromMilliseconds(1) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        {
+            RetryOptions = RetryTestSupport.WithMaxAttempts(1),
+        };
 
         var attempts = 0;
         ScheduledJobDelegate next = _ =>
@@ -143,10 +153,12 @@ public sealed class RetryMiddlewareTests
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMilliseconds(1) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("billing-job", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("billing-job", sp, CancellationToken.None)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
 
         ScheduledJobDelegate next = _ => throw new InvalidOperationException("boom");
 
@@ -174,10 +186,16 @@ public sealed class RetryMiddlewareTests
         // Arrange
         var logger = new FakeLogger();
         var delay = TimeSpan.FromMilliseconds(200);
-        var options = Options.Create(new RetryOptions { MaxAttempts = 2, Delay = delay });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("slow", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("slow", sp, CancellationToken.None)
+        {
+            RetryOptions = new RetryOptions
+            {
+                MaxAttempts = 2,
+                Delay = delay,
+            },
+        };
 
         var attempts = 0;
         ScheduledJobDelegate next = _ =>
@@ -208,12 +226,14 @@ public sealed class RetryMiddlewareTests
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 5, Delay = TimeSpan.FromSeconds(30) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
 
         using var cts = new CancellationTokenSource();
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, cts.Token);
+        var ctx = new ScheduledJobContext("k", sp, cts.Token)
+        {
+            RetryOptions = RetryTestSupport.WithDelay(TimeSpan.FromSeconds(30)),
+        };
 
         var attempts = 0;
         ScheduledJobDelegate next = _ =>
@@ -238,55 +258,21 @@ public sealed class RetryMiddlewareTests
     }
 
     /// <summary>
-    /// Пред-заполненный <c>CancellationToken</c> при успешной первой попытке
-    /// не влияет на поведение — middleware возвращает управление штатно.
-    /// (CancelToken проверяется только в <c>Task.Delay</c> между попытками.)
+    /// Если <see cref="ScheduledJobContext.RetryOptions"/> равен <c>null</c>,
+    /// retry НЕ выполняется: первая же неудача пробрасывается вызывающему коду
+    /// (контракт middleware: «без явной политики — без retry»).
     /// </summary>
     [Fact]
-    public async Task InvokeAsync_PrecancelledTokenAndFirstAttemptSucceeds_DoesNotThrow()
+    public async Task InvokeAsync_RetryOptionsNull_DoesNotRetry_PropagatesException()
     {
         // Arrange
         var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromMilliseconds(1) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
-
-        using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, cts.Token);
-
-        var attempts = 0;
-
-        // Act
-        await middleware.InvokeAsync(ctx, Next);
-
-        // Assert
-        attempts.Should().Be(1, "предзаполненный токен не проверяется на первом вызове next");
-        return;
-
-        Task Next(ScheduledJobContext _)
+        var ctx = new ScheduledJobContext("no-retry", sp, CancellationToken.None)
         {
-            attempts++;
-            return Task.CompletedTask;
-        }
-    }
-
-    /// <summary>
-    /// Пред-заполненный <c>CancellationToken</c> + бросающий next:
-    /// <c>Task.Delay</c> между попытками сразу бросает <see cref="OperationCanceledException"/>.
-    /// </summary>
-    [Fact]
-    public async Task InvokeAsync_PrecancelledTokenAndFailingNext_ThrowsOperationCanceledOnDelay()
-    {
-        // Arrange
-        var logger = new FakeLogger();
-        var options = Options.Create(new RetryOptions { MaxAttempts = 3, Delay = TimeSpan.FromSeconds(30) });
-        var middleware = new RetryMiddleware(options, new FakeLogger<RetryMiddleware>(logger));
-
-        using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
-        var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, cts.Token);
+            RetryOptions = null,
+        };
 
         var attempts = 0;
         ScheduledJobDelegate next = _ =>
@@ -299,8 +285,10 @@ public sealed class RetryMiddlewareTests
         var act = () => middleware.InvokeAsync(ctx, next);
 
         // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
-        attempts.Should().Be(1, "первая попытка выполняется до Delay; затем Task.Delay бросает OCE");
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        attempts.Should().Be(1, "без RetryOptions retry не выполняется");
+        logger.Entries.Should().NotContain(e => e.Level == LogLevel.Warning,
+            "без RetryOptions middleware не должен логировать предупреждения о повторах");
     }
 
     /// <summary>

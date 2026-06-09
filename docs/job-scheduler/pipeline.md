@@ -29,13 +29,14 @@ public sealed class ScheduledJobContext(
     public Type? JobType { get; init; }
     public string? ServiceKey { get; init; }
     public Func<IServiceProvider, CancellationToken, Task>? Action { get; init; }
+    public RetryOptions? RetryOptions { get; init; }
     public IServiceProvider ServiceProvider { get; } = serviceProvider;
     public CancellationToken CancellationToken { get; } = cancellationToken;
     public IDictionary<string, object?> Properties { get; } = new Dictionary<string, object?>();
 }
 ```
 
-`ScheduledJobContext` создаётся **один раз** на итерацию в адаптере (`QuartzScheduledJobAdapter` / `HangfireScheduledJobAdapter`) и пробрасывается через все посредники до терминального вызова.
+`ScheduledJobContext` создаётся **один раз** на итерацию в адаптере (`QuartzScheduledJobAdapter` / `HangfireScheduledJobAdapter`) и пробрасывается через все посредники до терминального вызова. В Quartz-адаптере `RetryOptions` достаётся из `JobDataMap[Constants.RetryOptionsKey]`, в Hangfire — пробрасывается как аргумент `RunScheduledJobAsync` (см. соответствующие адаптеры).
 
 ## Встроенные middleware
 
@@ -101,7 +102,7 @@ public sealed class CorrelationIdMiddleware(ILogger<CorrelationIdMiddleware> log
 ### `RetryMiddleware`
 
 ```csharp
-public sealed class RetryMiddleware(IOptions<RetryOptions> options, ILogger<RetryMiddleware> logger) : IScheduledJobMiddleware
+public sealed class RetryMiddleware(ILogger<RetryMiddleware> logger) : IScheduledJobMiddleware
 {
     public async Task InvokeAsync(ScheduledJobContext context, ScheduledJobDelegate next)
     {
@@ -109,11 +110,11 @@ public sealed class RetryMiddleware(IOptions<RetryOptions> options, ILogger<Retr
         while (true)
         {
             try { await next(context); return; }
-            catch (Exception ex) when (++attempt < options.Value.MaxAttempts)
+            catch (Exception ex) when (context.RetryOptions is not null && ++attempt < context.RetryOptions.MaxAttempts)
             {
                 logger.LogWarning(ex, "Job {JobKey} failed (attempt {Attempt}/{MaxAttempts}), retrying in {Delay}.",
-                    context.JobKey, attempt, options.Value.MaxAttempts, options.Value.Delay);
-                await Task.Delay(options.Value.Delay, context.CancellationToken);
+                    context.JobKey, attempt, context.RetryOptions.MaxAttempts, context.RetryOptions.Delay);
+                await Task.Delay(context.RetryOptions.Delay, context.CancellationToken);
             }
         }
     }
@@ -135,16 +136,18 @@ public sealed class RetryOptions
 | **Семантика** | Повторная попытка в процессе выполнения внутри одной итерации (НЕ новый cron-тик) |
 | **Отличие от QuartzJobWrapper** | Старый `QuartzJobWrapper` повторял попытку через 5 минут отдельным Quartz-триггером; новый — без задержки в планировщике |
 | **CancellationToken** | Уважает — если планировщик отменил выполнение, `Task.Delay` бросит `OperationCanceledException` |
-| **Настройка** | Зарегистрируйте свой `RetryOptions` в DI (`services.Configure<RetryOptions>(o => ...)`) |
+| **Конфигурация (per-job)** | Настраивается **на уровне отдельной джобы** через `opts.AddJob<TJob>(schedule, new RetryOptions { ... })`. Прокидывается через `JobDefinition.RetryOptions` → `ScheduledJobContext.RetryOptions`. |
+| **Поведение без `RetryOptions`** | Если `context.RetryOptions == null` (по умолчанию), middleware **не выполняет повторов** — первое же исключение пробрасывается дальше. Это позволяет включать retry выборочно, не затрагивая остальные джобы. |
+| **Источник в адаптерах** | Quartz: `JobDataMap[Constants.RetryOptionsKey]`. Hangfire: аргумент `RunScheduledJobAsync(typeName, serviceKey, retryOptions, ct)`. |
 
 ## Порядок регистрации = порядок выполнения
 
 `AddJobs` регистрирует посредников в DI так:
 
 ```
-1. LoggingMiddleware        (1-й → самый внешний)
-2. CorrelationIdMiddleware
-3. RetryMiddleware           (3-й → самый внутренний)
+1. CorrelationIdMiddleware  (1-й → самый внешний)
+2. LoggingMiddleware        (2-й)
+3. RetryMiddleware          (3-й → самый внутренний)
 ```
 
 `ScheduledJobExecutor` собирает цепочку:
@@ -155,7 +158,9 @@ var pipeline = _middlewares.Reverse()
                (next, mw) => ctx => mw.InvokeAsync(ctx, next));
 ```
 
-Reverse + Aggregate: первый в DI = самый внешний. **Это означает:** `Logging` оборачивает всё (включая retry-attempts), `Correlation` — внутри logging, `Retry` — внутри correlation. Наружу (в лог) попадают только финальные результаты.
+Reverse + Aggregate: первый в DI = самый внешний. **Это означает:** `CorrelationId` оборачивает всё (включая retry-attempts) — correlation-id устанавливается один раз на всю итерацию, `Logging` пишет одну сводную запись, `Retry` — внутри. Наружу (в лог) попадают только финальные результаты.
+
+> **Почему `CorrelationId` первый, а не `Logging`:** `LoggingMiddleware` берёт `context.JobKey` из `ScheduledJobContext` напрямую (а не из `JobCorrelationContext`), поэтому формально **порядок не влияет на видимость `JobKey` в логах** — `JobKey` доступен в `ScheduledJobContext` с момента создания контекста в адаптере. Реальная причина — **семантическая группировка**: `CorrelationId` устанавливает correlation-контекст **до** логирования start-сообщения и **снимает** его **после** end-сообщения. Если поменять порядок, логирование старта/конца итерации окажется «вне» correlation-обёртки, и трейс-инструменты не свяжут эти записи с конкретной итерацией джобы. Тесты `LoggingMiddlewareTests` проверяют формат сообщения, но не сам grouping-инвариант.
 
 ## Как добавить свой middleware
 
@@ -213,9 +218,9 @@ if (context.Properties.TryGetValue("UserId", out var userId)) { ... }
 
 | Посредник | Вход (что получает) | Выход (что делает при успехе) | При исключении |
 |------------|---------------------|--------------------------------|-----------------|
-| `LoggingMiddleware` | `ScheduledJobContext` | Логирует start → `next()` → complete + duration через `LogTaskAsync` | `LogTaskAsync` логирует Error, пробрасывает |
 | `CorrelationIdMiddleware` | `ScheduledJobContext` | `TrySetCorrelationId()` → `next()` → `ClearCorrelationId()` | Clear в `finally`, пробрасывает |
-| `RetryMiddleware` | `ScheduledJobContext` | `next()` один раз, return | Цикл: `delay` → повтор до `MaxAttempts` |
+| `LoggingMiddleware` | `ScheduledJobContext` | Логирует start → `next()` → complete + duration через `LogTaskAsync` | `LogTaskAsync` логирует Error, пробрасывает |
+| `RetryMiddleware` | `ScheduledJobContext` | `next()` один раз, return (если `RetryOptions` не задан) | Если `context.RetryOptions != null`: цикл `delay` → повтор до `MaxAttempts`; иначе — пробрасывает |
 
 ## Что НЕ делать в посредниках
 

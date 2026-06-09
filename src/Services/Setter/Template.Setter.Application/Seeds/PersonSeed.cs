@@ -9,7 +9,7 @@ using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
 using Template.Domain.Entities;
 
-namespace Template.DatabaseUpgrade.Seeds;
+namespace Template.Setter.Application.Seeds;
 
 /// <summary>
 /// Seed, который добавляет сущности "Персона".

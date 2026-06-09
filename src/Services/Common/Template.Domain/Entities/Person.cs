@@ -11,7 +11,8 @@ namespace Template.Domain.Entities;
 /// <summary>
 /// Сущность "Персона".
 /// </summary>
-public class Person : IEntity<Guid>
+public class Person
+    : IEntity<Guid>
 {
     /// <inheritdoc cref="IEntity.Id"/>
     public Guid Id { get; init; }

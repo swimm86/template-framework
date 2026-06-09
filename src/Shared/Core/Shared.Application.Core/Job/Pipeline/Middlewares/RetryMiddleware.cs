@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
 
 namespace Shared.Application.Core.Job.Pipeline.Middlewares;
@@ -15,10 +14,8 @@ namespace Shared.Application.Core.Job.Pipeline.Middlewares;
 /// <see cref="RetryOptions.MaxAttempts"/> попыток, между ними ожидая
 /// <see cref="RetryOptions.Delay"/>.
 /// </summary>
-/// <param name="options">Настройки retry.</param>
 /// <param name="logger">Логгер.</param>
 public sealed class RetryMiddleware(
-    IOptions<RetryOptions> options,
     ILogger<RetryMiddleware> logger)
     : IScheduledJobMiddleware
 {
@@ -36,17 +33,17 @@ public sealed class RetryMiddleware(
                 await next(context);
                 return;
             }
-            catch (Exception ex) when (++attempt < options.Value.MaxAttempts)
+            catch (Exception ex) when (context.RetryOptions is not null && ++attempt < context.RetryOptions.MaxAttempts)
             {
                 logger.LogWarning(
                     ex,
                     "Job {JobKey} failed (attempt {Attempt}/{MaxAttempts}), retrying in {Delay}.",
                     context.JobKey,
                     attempt,
-                    options.Value.MaxAttempts,
-                    options.Value.Delay);
+                    context.RetryOptions.MaxAttempts,
+                    context.RetryOptions.Delay);
 
-                await Task.Delay(options.Value.Delay, context.CancellationToken);
+                await Task.Delay(context.RetryOptions.Delay, context.CancellationToken);
             }
         }
     }

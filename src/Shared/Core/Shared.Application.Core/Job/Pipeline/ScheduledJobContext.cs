@@ -35,6 +35,11 @@ public sealed class ScheduledJobContext(
     public string? ServiceKey { get; init; }
 
     /// <summary>
+    /// <inheritdoc cref="Shared.Application.Core.Job.Pipeline.RetryOptions" path="/summary"/>
+    /// </summary>
+    public RetryOptions? RetryOptions { get; init; }
+
+    /// <summary>
     /// Действие задачи, заданное делегатом. Получает <see cref="IServiceProvider"/> и
     /// <see cref="CancellationToken"/>, что позволяет получать зависимости из DI
     /// в момент выполнения. Для задач с указанным типом исполнитель получает задачу по

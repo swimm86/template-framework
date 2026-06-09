@@ -6,13 +6,16 @@
 
 using Shared.Application.Core.Job.Enums;
 using Shared.Application.Core.Job.Interfaces;
+using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Scheduler;
+using Shared.Application.Core.Tests.Support;
 
 namespace Shared.Application.Core.Tests.Job;
 
 /// <summary>
 /// Тесты для <see cref="JobSchedulerBuilder"/>: добавление разных типов джоб, валидация
-/// пустого ключа, конвертация <see cref="JobTriggerFlags"/> в <see cref="JobSchedule.Flags"/>.
+/// пустого ключа, конвертация <see cref="JobTriggerFlags"/> в <see cref="JobSchedule.Flags"/>,
+/// проброс <see cref="RetryOptions"/> во все перегрузки регистрации.
 /// </summary>
 public sealed class JobSchedulerBuilderTests
 {
@@ -111,6 +114,197 @@ public sealed class JobSchedulerBuilderTests
         // Assert
         act.Should().Throw<ArgumentException>()
             .WithParameterName("jobType");
+    }
+
+    /// <summary>
+    /// Non-generic-перегрузка <c>AddJob(Type, string serviceKey, JobSchedule, RetryOptions)</c>
+    /// с <c>null</c> <c>serviceKey</c> выбрасывает <see cref="ArgumentNullException"/>
+    /// по параметру <c>serviceKey</c>.
+    /// <para>
+    /// Контракт: пустая строка допустима (как и в keyed-резолве DI), а <c>null</c> — нет.
+    /// Покрывает как generic-, так и non-generic-перегрузки единым правилом.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void AddJob_NonGenericWithNullServiceKey_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+
+        // Act
+        var act = () => builder.AddJob(
+            jobType: typeof(FakeClassJob),
+            serviceKey: null!,
+            schedule: new JobSchedule.OnStartup());
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("serviceKey");
+    }
+
+    /// <summary>
+    /// Generic-перегрузка <c>AddJob&lt;TJob&gt;(JobSchedule, RetryOptions)</c>
+    /// сохраняет <see cref="RetryOptions"/> в <see cref="JobDefinition"/>.
+    /// </summary>
+    [Fact]
+    public void AddJob_GenericWithRetryOptions_StoresRetryOptionsInDefinition()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+        var retryOptions = RetryTestSupport.DefaultOptions();
+
+        // Act
+        builder.AddJob<FakeClassJob>(new JobSchedule.Cron("0 0 * * * ?"), retryOptions);
+
+        // Assert
+        var definition = builder.Definitions.Should().ContainSingle().Subject;
+        definition.RetryOptions.Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// Generic-перегрузка без <see cref="RetryOptions"/> оставляет в определении <c>null</c>.
+    /// </summary>
+    [Fact]
+    public void AddJob_GenericWithoutRetryOptions_LeavesRetryOptionsNull()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+
+        // Act
+        builder.AddJob<FakeClassJob>(new JobSchedule.Cron("0 0 * * * ?"));
+
+        // Assert
+        builder.Definitions.Should().ContainSingle()
+            .Which.RetryOptions.Should().BeNull();
+    }
+
+    /// <summary>
+    /// Generic-перегрузка <c>AddJob&lt;TJob&gt;(string serviceKey, JobSchedule, RetryOptions)</c>
+    /// формирует ключ вида <c>{FullName}#{serviceKey}</c> и сохраняет
+    /// <see cref="JobDefinition.ServiceKey"/>.
+    /// </summary>
+    [Fact]
+    public void AddJob_GenericWithServiceKey_BuildsCompositeJobKey()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+        var retryOptions = RetryTestSupport.DefaultOptions();
+
+        // Act
+        builder.AddJob<FakeClassJob>("primary", new JobSchedule.OnStartup(), retryOptions);
+
+        // Assert
+        var definition = builder.Definitions.Should().ContainSingle().Subject;
+        definition.JobKey.Should().Be($"{typeof(FakeClassJob).FullName}#primary");
+        definition.ServiceKey.Should().Be("primary");
+        definition.JobType.Should().Be<FakeClassJob>();
+        definition.RetryOptions.Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// Generic-перегрузка с <c>null</c> <c>serviceKey</c> выбрасывает <see cref="ArgumentNullException"/>.
+    /// <para>
+    /// Контракт: <see cref="string.Empty"/> допустим (как и в keyed-резолве DI),
+    /// а вот <c>null</c> — нет.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void AddJob_GenericWithNullServiceKey_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+
+        // Act
+        var act = () => builder.AddJob<FakeClassJob>(
+            serviceKey: null!,
+            schedule: new JobSchedule.OnStartup());
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("serviceKey");
+    }
+
+    /// <summary>
+    /// <c>AddJob(Type, JobSchedule, RetryOptions)</c> сохраняет
+    /// <see cref="RetryOptions"/> и оставляет <c>ServiceKey = null</c>.
+    /// </summary>
+    [Fact]
+    public void AddJob_TypeWithRetryOptions_StoresRetryOptionsInDefinition()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+        var retryOptions = RetryTestSupport.DefaultOptions();
+
+        // Act
+        builder.AddJob(typeof(FakeClassJob), new JobSchedule.OnStartup(), retryOptions);
+
+        // Assert
+        var definition = builder.Definitions.Should().ContainSingle().Subject;
+        definition.RetryOptions.Should().BeSameAs(retryOptions);
+        definition.ServiceKey.Should().BeNull();
+        definition.JobType.Should().Be<FakeClassJob>();
+    }
+
+    /// <summary>
+    /// Лямбда-перегрузка <c>AddJob(string, JobSchedule, Func, RetryOptions)</c>
+    /// сохраняет <see cref="RetryOptions"/> в <see cref="JobDefinition"/>.
+    /// </summary>
+    [Fact]
+    public void AddJob_LambdaWithRetryOptions_StoresRetryOptionsInDefinition()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+        var retryOptions = RetryTestSupport.DefaultOptions();
+
+        // Act
+        builder.AddJob("lambda", new JobSchedule.Cron("0 0 * * * ?"), (_, _) => Task.CompletedTask, retryOptions);
+
+        // Assert
+        var definition = builder.Definitions.Should().ContainSingle().Subject;
+        definition.RetryOptions.Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// <c>AddCron(..., RetryOptions)</c> пробрасывает <see cref="RetryOptions"/> дальше
+    /// в базовую <c>AddJob</c> и сохраняет в определении.
+    /// </summary>
+    [Fact]
+    public void AddCron_WithRetryOptions_StoresRetryOptionsInDefinition()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+        var retryOptions = RetryTestSupport.DefaultOptions();
+
+        // Act
+        builder.AddCron("cron-job", "0 0 * * * ?", (_, _) => Task.CompletedTask, retryOptions);
+
+        // Assert
+        var definition = builder.Definitions.Should().ContainSingle().Subject;
+        definition.RetryOptions.Should().BeSameAs(retryOptions);
+    }
+
+    /// <summary>
+    /// <c>AddFlags(..., RetryOptions)</c> пробрасывает <see cref="RetryOptions"/> дальше
+    /// в базовую <c>AddJob</c> и сохраняет в определении.
+    /// </summary>
+    [Fact]
+    public void AddFlags_WithRetryOptions_StoresRetryOptionsInDefinition()
+    {
+        // Arrange
+        var builder = new JobSchedulerBuilder();
+        var retryOptions = RetryTestSupport.DefaultOptions();
+
+        // Act
+        builder.AddFlags(
+            "flags-job",
+            JobTriggerFlags.Daily,
+            TimeSpan.FromHours(2),
+            (_, _) => Task.CompletedTask,
+            retryOptions);
+
+        // Assert
+        var definition = builder.Definitions.Should().ContainSingle().Subject;
+        definition.RetryOptions.Should().BeSameAs(retryOptions);
     }
 
     /// <summary>

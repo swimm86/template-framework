@@ -84,15 +84,17 @@ public interface IScheduledJobExecutor
 
 Middleware-ы регистрируются в DI как `IEnumerable<IScheduledJobMiddleware>`. Executor строит pipeline так, что **первый зарегистрированный — самый внешний**. Типичный порядок:
 
-1. `LoggingMiddleware` (внешний — логирует всё, включая исключения внутренних)
-2. `CorrelationIdMiddleware`
-3. `RetryMiddleware` (внутренний — retry только бизнес-логики)
+1. `CorrelationIdMiddleware` (внешний — `AsyncLocal` correlation-id оборачивает всю итерацию, включая retry-attempts)
+2. `LoggingMiddleware` (логирует start/complete, видит финальный результат после retry)
+3. `RetryMiddleware` (внутренний — retry только бизнес-логики; активируется только при наличии `RetryOptions` в `ScheduledJobContext`)
 4. Terminal: `ctx => ctx.Action(ctx.ServiceProvider, ctx.CancellationToken)`
 
-### Retry-семантика (in-process)
+> Исторически порядок был `Logging → Correlation → Retry`, но в реализации первым ставится `CorrelationId` — `LoggingMiddleware` использует `JobKey` из контекста (через `LogTaskAsync(methodName: context.JobKey)`) и должен видеть его. См. [Pipeline](pipeline.md).
+
+### Retry-семантика (in-process, per-job)
 
 ```csharp
-public sealed class RetryMiddleware(IOptions<RetryOptions> options, ILogger<RetryMiddleware> logger) 
+public sealed class RetryMiddleware(ILogger<RetryMiddleware> logger)
     : IScheduledJobMiddleware
 {
     public async Task InvokeAsync(ScheduledJobContext ctx, ScheduledJobDelegate next)
@@ -101,16 +103,18 @@ public sealed class RetryMiddleware(IOptions<RetryOptions> options, ILogger<Retr
         while (true)
         {
             try { await next(ctx); return; }
-            catch (Exception ex) when (++attempt < options.Value.MaxAttempts)
+            catch (Exception ex) when (ctx.RetryOptions is not null && ++attempt < ctx.RetryOptions.MaxAttempts)
             {
                 logger.LogWarning(ex, "Job {JobKey} failed (attempt {Attempt}/{MaxAttempts}), retrying in {Delay}.",
-                    ctx.JobKey, attempt, options.Value.MaxAttempts, options.Value.Delay);
-                await Task.Delay(options.Value.Delay, ctx.CancellationToken);
+                    ctx.JobKey, attempt, ctx.RetryOptions.MaxAttempts, ctx.RetryOptions.Delay);
+                await Task.Delay(ctx.RetryOptions.Delay, ctx.CancellationToken);
             }
         }
     }
 }
 ```
+
+`RetryOptions` живут **на уровне отдельной джобы** (в `JobDefinition.RetryOptions` и далее в `ScheduledJobContext.RetryOptions`), а не глобально через `IOptions<RetryOptions>` в DI. Если `ctx.RetryOptions == null`, middleware пропускает повторы — это позволяет включать retry выборочно, не затрагивая остальные джобы. Конкретные значения (`Delay`, `MaxAttempts`) настраиваются в `JobSchedulerBuilder.AddJob<T>(schedule, retryOptions)`.
 
 **Семантическое отличие от текущего QuartzJobWrapper**: текущий перепланирует через 5 минут (новый триггер в планировщике). In-process retry — внутри одной задачи. Для cron-джоб разница минимальна (следующий запуск всё равно по расписанию). Для OnStartup — поведение иное, но это редкий кейс.
 

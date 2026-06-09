@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Job\Shared.Infrastructure.Job.Quartz\Shared.Infrastructure.Job.Quartz.csproj" />
     <ProjectReference Include="..\..\Common\Template.Application\Template.Application.csproj" />
     <ProjectReference Include="..\..\Getter\Abstractions\Template.Getter.Application.Abstractions\Template.Getter.Application.Abstractions.csproj" />
     <ProjectReference Include="..\Abstractions\Template.Setter.Application.Abstractions\Template.Setter.Application.Abstractions.csproj" />

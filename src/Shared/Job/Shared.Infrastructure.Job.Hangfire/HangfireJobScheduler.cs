@@ -9,6 +9,7 @@ using Hangfire;
 using Hangfire.States;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.Job.Enums;
+using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Application.Core.Job.Scheduler.Interfaces;
 
@@ -59,13 +60,13 @@ public sealed class HangfireJobScheduler(
         switch (definition.Schedule)
         {
             case JobSchedule.Cron cron:
-                ScheduleCron(jobKey, typeName, serviceKey, cron);
+                ScheduleCron(jobKey, typeName, serviceKey, cron, definition.RetryOptions);
                 break;
             case JobSchedule.OnStartup:
-                ScheduleOnStartup(jobKey, typeName, serviceKey);
+                ScheduleOnStartup(jobKey, typeName, serviceKey, definition.RetryOptions);
                 break;
             case JobSchedule.Flags flags:
-                ScheduleFlags(jobKey, typeName, serviceKey, flags);
+                ScheduleFlags(jobKey, typeName, serviceKey, flags, definition.RetryOptions);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(
@@ -97,7 +98,8 @@ public sealed class HangfireJobScheduler(
         string? jobKey,
         string typeName,
         string? serviceKey,
-        JobSchedule.Cron schedule)
+        JobSchedule.Cron schedule,
+        RetryOptions? retryOptions)
     {
         logger.LogInformation(
             "Job {JobKey} is being registered as {RecurringJobName} (cron: {Cron}).",
@@ -105,18 +107,22 @@ public sealed class HangfireJobScheduler(
             nameof(RecurringJob),
             schedule.Expression);
 
-        var job = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey);
+        var job = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey, retryOptions);
         recurringJobManager.AddOrUpdate(jobKey, job, schedule.Expression, new RecurringJobOptions());
     }
 
-    private void ScheduleOnStartup(string? jobKey, string typeName, string? serviceKey)
+    private void ScheduleOnStartup(
+        string? jobKey,
+        string typeName,
+        string? serviceKey,
+        RetryOptions? retryOptions)
     {
         logger.LogInformation(
             "Job {JobKey} is being registered as {BackgroundJobName} (OnStartup).",
             jobKey,
             nameof(BackgroundJob));
 
-        var job = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey);
+        var job = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey, retryOptions);
         backgroundJobClient.Create(job, new ScheduledState(TimeSpan.Zero));
     }
 
@@ -124,7 +130,12 @@ public sealed class HangfireJobScheduler(
         "Performance",
         "CA1822:Mark members as static",
         Justification = "Uses the instance field _logger.")]
-    private void ScheduleFlags(string? jobKey, string typeName, string? serviceKey, JobSchedule.Flags schedule)
+    private void ScheduleFlags(
+        string? jobKey,
+        string typeName,
+        string? serviceKey,
+        JobSchedule.Flags schedule,
+        RetryOptions? retryOptions)
     {
         // OnStartup обрабатывается отдельно: он создаёт fire-and-forget background job,
         // а не recurring. Мы проверяем его ДО цикла cron-флагов, чтобы он также срабатывал
@@ -136,7 +147,7 @@ public sealed class HangfireJobScheduler(
                 jobKey,
                 nameof(BackgroundJob));
 
-            var startupJob = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey);
+            var startupJob = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey, retryOptions);
             backgroundJobClient.Create(startupJob, new ScheduledState(TimeSpan.Zero));
         }
 
@@ -165,7 +176,7 @@ public sealed class HangfireJobScheduler(
                 cron,
                 flag);
 
-            var flagJob = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey);
+            var flagJob = HangfireScheduledJobAdapter.CreateHangfireJob(typeName, serviceKey, retryOptions);
             recurringJobManager.AddOrUpdate($"{jobKey}#{flag}", flagJob, cron, new RecurringJobOptions());
         }
     }

@@ -19,8 +19,7 @@ public abstract class SeedConfigurationBase
     public void Configure(EntityTypeBuilder<Seed> builder)
     {
         builder.ToTable("seed", t => t.HasComment("Таблица с сущностями \"Сид БД\"."));
-        builder.HasKey(x => x.Name);
-        builder.Property(x => x.Name)
+        builder.Property(x => x.Id)
             .HasComment("Уникальное наименование сида БД.");
     }
 }
