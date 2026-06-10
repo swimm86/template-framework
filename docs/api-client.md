@@ -2,6 +2,7 @@
 
 > **Assembly:** `Shared.Application.Core.dll`, `Shared.Infrastructure.Core.dll`
 > **Namespace:** `Shared.Application.Core.ApiClient`, `Shared.Infrastructure.Core.ApiClient`
+> **Исходники:** `src/Shared/Core/Shared.Application.Core/ApiClient/ApiClient.cs`, `ApiClient.Typed.cs`
 
 ---
 
@@ -49,19 +50,25 @@ public sealed class GetterApiClientSettings
 
 Конфигурация в `appsettings.json`:
 
-```json
-{
-  "GetterApiClientSettings": {
-    "BaseUrl": "https://localhost:7001/",
-    "Timeout": "00:01:40"
-  }
-}
+Конфигурация в `appsettings.json` (или `.env`). Реальный пример из `.\src\.env`:
+
+```env
+Template__GetterApiClientSettings__BaseUrl="http://localhost:5081/api/template/getter/v1/"
+Template__SetterApiClientSettings__BaseUrl="http://localhost:5082/api/template/setter/v1/"
 ```
+
+> `BaseUrl` уже включает базовый маршрут сервиса (`api/template/getter/v1/`), а не только origin. Это согласуется с тем, что `GetterClient` обращается к ресурсам через относительные пути (`persons/cqrs/list`).
 
 ### Шаг 2: Создать интерфейс и реализацию
 
+Реальные типы из `.\src\Services\Bff\Template.Bff.Application\`:
+
 ```csharp
-// Интерфейс
+// Интерфейс: .\src\Services\Bff\Template.Bff.Application\Interfaces\HttpClients\IGetterClient.cs
+using Template.Bff.Application.HttpClients.Enums;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
+
 namespace Template.Bff.Application.Interfaces.HttpClients;
 
 public interface IGetterClient
@@ -74,11 +81,18 @@ public interface IGetterClient
 ```
 
 ```csharp
-// Реализация
+// Реализация: .\src\Services\Bff\Template.Bff.Application\HttpClients\GetterClient.cs
 using Shared.Application.Core.ApiClient;
 using Shared.Application.Core.ApiClient.Attributes;
+using Shared.Application.Core.ApiClient.Validators.Interfaces;
+using Shared.Domain.Core.Utils.Interfaces;
+using Template.Bff.Application.HttpClients.Enums;
 using Template.Bff.Application.HttpClients.Settings;
 using Template.Bff.Application.Interfaces.HttpClients;
+using Template.Getter.Application.Abstractions.Features.Person.List.Request;
+using Template.Getter.Application.Abstractions.Features.Person.List.Response;
+
+namespace Template.Bff.Application.HttpClients;
 
 [ApiClientRegistration(typeof(GetterApiClientSettings), typeof(IGetterClient))]
 public sealed class GetterClient(
@@ -86,8 +100,11 @@ public sealed class GetterClient(
     IUriValidator uriValidator,
     IResponseValidator responseValidator,
     IPropertyGetter propertyGetter)
-    : ApiClient(httpClientFactory, uriValidator, responseValidator, propertyGetter),
-      IGetterClient
+    : ApiClient(
+        httpClientFactory,
+        uriValidator,
+        responseValidator,
+        propertyGetter), IGetterClient
 {
     public Task<PersonListResponse> GetPersonsAsync(
         PersonListRequest request,
@@ -98,7 +115,7 @@ public sealed class GetterClient(
         {
             GetPersonsPattern.Cqrs => "cqrs",
             GetPersonsPattern.Services => "services",
-            _ => throw new ArgumentException("Неизвестное значение GetPersonsPattern.", nameof(pattern))
+            _ => throw new ArgumentException($"Unknown '{nameof(pattern)}' value.", nameof(pattern))
         };
 
         return PostAsync<PersonListResponse>(
@@ -109,10 +126,12 @@ public sealed class GetterClient(
 }
 ```
 
-### Шаг 3: Использовать в Command Handler
+### Шаг 3: Использование в handler/query
+
+В проекте `Template` нет типа `Result<T>` — handlers возвращают `PersonListResponse` (или наследник `Response`/`PageableResponse<>`) напрямую. HTTP-статус заполняется фреймворком из `Response.StatusCode`:
 
 ```csharp
-public class GetPersonsHandler : IRequestHandler<GetPersonsQuery, Result<PersonListResponse>>
+public class GetPersonsHandler
 {
     private readonly IGetterClient _getterClient;
 
@@ -121,37 +140,33 @@ public class GetPersonsHandler : IRequestHandler<GetPersonsQuery, Result<PersonL
         _getterClient = getterClient;
     }
 
-    public async Task<Result<PersonListResponse>> Handle(
-        GetPersonsQuery request,
+    public async Task<PersonListResponse> Handle(
         CancellationToken cancellationToken)
     {
-        var dto = new PersonListRequest { Page = 1, PageSize = 20 };
+        var dto = new PersonListRequest(new DalPattern.Default());
         var response = await _getterClient.GetPersonsAsync(
             dto,
             GetPersonsPattern.Cqrs,
             cancellationToken);
 
-        return Result.Success(response);
+        return response;
     }
 }
 ```
 
 ### Шаг 4: Регистрация в DI
 
-Автоматическая регистрация (рекомендуется):
+`ApiClient` помечается атрибутом `[ApiClientRegistration]`, после чего автоматически обнаруживается и регистрируется в `Shared.Infrastructure.Core.DependencyInjection.DependencyInjector.Process` (`.\src\Shared\Core\Shared.Infrastructure.Core\DependencyInjection\DependencyInjector.cs`). Этот регистратор вызывается через `AddReferencedDependencyInjectors()` из `ImplementDependencies()` — отдельных вызовов в `Program.cs` не требуется.
 
-```csharp
-// В Shared.Infrastructure.Core — вызывается при старте
-serviceCollection.AddHttpClients(configuration);   // авто-регистрация клиентов
-serviceCollection.AddDelegatingHandlers();         // авто-регистрация handlers
-serviceCollection.AddPrimaryHttpMessageHandlers(); // авто-регистрация primary handlers
-```
+Под капотом `Shared.Infrastructure.Core.ApiClient.Extensions.DependencyInjectionExtensions` (`.\src\Shared\Core\Shared.Infrastructure.Core\ApiClient\Extensions\DependencyInjectionExtensions.cs`) предоставляет три `internal static` метода:
 
-Ручная регистрация:
+| Метод | Назначение |
+|-------|-----------|
+| `AddHttpClients(IConfiguration)` | Поиск всех наследников `ApiClient` с `[ApiClientRegistration]`, для каждого — `AddClient<TOptions, TIClient, TClient>` через reflection |
+| `AddDelegatingHandlers()` | Регистрация всех `DelegatingHandler` с `[ApiClientDelegatingHandleMetadata]` |
+| `AddPrimaryHttpMessageHandlers()` | Регистрация всех `HttpClientHandler` с атрибутом primary-handler |
 
-```csharp
-serviceCollection.AddClient<GetterApiClientSettings, IGetterClient, GetterClient>(configuration);
-```
+Все три метода — `internal static` и не предназначены для прямого вызова из сервисов. Для ручной регистрации единичного клиента существует публичный `AddClient<TOptions, TIClient, TClient>` в `Shared.Application.Core.ApiClient.Extensions.DependencyInjectionExtensions`.
 
 ---
 
@@ -175,7 +190,7 @@ serviceCollection.AddClient<GetterApiClientSettings, IGetterClient, GetterClient
 
 | Метод | Сигнатура | Описание |
 |-------|-----------|----------|
-| `GetAsync<TResult>` | `GetAsync<TResult>(string uri, Dictionary<string, string> queryParams, CancellationToken)` | GET → `TResult` |
+| `GetAsync<TResult>` | `GetAsync<TResult>(string uri, Dictionary<string, string> queryParams, CancellationToken)` | GET → `TResult` (с query-параметрами) |
 | `PostAsync<TResult>` | `PostAsync<TResult>(string uri, object? content, CancellationToken)` | POST → `TResult` |
 | `PostAsync<TResult>` | `PostAsync<TResult>(string uri, CancellationToken)` | POST без тела → `TResult` |
 | `PostFileAsync<TContent, TResult>` | `PostFileAsync<TContent, TResult>(string uri, TContent content, CancellationToken)` | POST файл → `TResult` |
@@ -538,22 +553,24 @@ public class ProxiedException : AppException
 }
 ```
 
-### 8.2. Обработка в Command Handler
+### 8.2. Обработка в handler/query
+
+`ProxiedException` — это подтип `AppException`. В проекте `Template` нет типа `Result<T>` — ошибки пробрасываются как исключения и обрабатываются единым `ExceptionHandler` из `Shared.Presentation.Core`. Если требуется извлечь `AdditionalData` для побочной логики (например, логирования), `ProxiedException` ловится в handler:
 
 ```csharp
-public async Task<Result<PersonResponse>> Handle(
+public async Task<PersonResponse> Handle(
     GetPersonQuery request,
     CancellationToken cancellationToken)
 {
     try
     {
-        var response = await _getterClient.GetPersonAsync(request.Id, cancellationToken);
-        return Result.Success(response);
+        return await _getterClient.GetPersonAsync(request.Id, cancellationToken);
     }
     catch (ProxiedException ex)
     {
         // Доступ к деталям ошибки от upstream-сервиса
-        _logger.LogError("Getter service error: {Status} - {Detail}",
+        _logger.LogError(
+            "Getter service error: {Status} - {Detail}",
             ex.StatusCode, ex.ProblemDetails.Detail);
 
         // Извлечение дополнительных данных
@@ -562,7 +579,7 @@ public async Task<Result<PersonResponse>> Handle(
             // Обработка специфичных данных
         }
 
-        return Result.Failure<PersonResponse>(ex.ProblemDetails.Title);
+        throw;
     }
 }
 ```
@@ -671,10 +688,12 @@ Delegating handlers пересоздаются каждые 2 минуты (не
 
 ## 10. Интеграция с CQRS/Services
 
-### 10.1. Command Handler с ApiClient
+### 10.1. Command/Query Handler с ApiClient
+
+В проекте `Template` нет типа `Result`. Handlers возвращают `Response`/`PageableResponse<>` напрямую; ошибки пробрасываются как `ProxiedException` (см. 8.2):
 
 ```csharp
-public class SyncPersonsHandler : IRequestHandler<SyncPersonsCommand, Result>
+public class SyncPersonsHandler : IRequestHandler<SyncPersonsCommand, Response>
 {
     private readonly IGetterClient _getterClient;
     private readonly ISetterClient _setterClient;
@@ -685,25 +704,23 @@ public class SyncPersonsHandler : IRequestHandler<SyncPersonsCommand, Result>
         _setterClient = setterClient;
     }
 
-    public async Task<Result> Handle(
+    public async Task<Response> Handle(
         SyncPersonsCommand command,
         CancellationToken cancellationToken)
     {
-        // 1. Получаем список из Getter
         var persons = await _getterClient.GetPersonsAsync(
-            new PersonListRequest { Page = 1, PageSize = 100 },
+            new PersonListRequest(new DalPattern.Default()),
             GetPersonsPattern.Cqrs,
             cancellationToken);
 
-        // 2. Отправляем в Setter
-        foreach (var person in persons.Items)
+        foreach (var person in persons.Payload)
         {
-            await _setterClient.UpdatePersonAsync(
-                new UpdatePersonRequest { Id = person.Id, Name = person.Name },
+            await _setterClient.CreatePersonAsync(
+                new PersonCreateRequest { Name = person.Name, Email = person.Email },
                 cancellationToken);
         }
 
-        return Result.Success();
+        return new Response { StatusCode = StatusCodes.Status200OK };
     }
 }
 ```

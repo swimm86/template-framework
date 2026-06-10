@@ -19,7 +19,7 @@ Quartz Adapter — основная реализация `IJobScheduler` на б
 | `QuartzJobScheduler` | `IJobScheduler` — маппит `JobDefinition` в Quartz Job + Trigger и регистрирует в `IScheduler`. Кладёт `RetryOptions` в `JobDataMap[Constants.RetryOptionsKey]`. |
 | `QuartzScheduledJobAdapter` | `internal sealed` — Quartz-обёртка, реализующая `IJob`. Достаёт из `JobDataMap` `JobType` / `ServiceKey` / `Action` / `RetryOptions` и строит `ScheduledJobContext`. |
 | `QuartzJobSchedulerBootstrapper` | `IHostedService` — на старте поднимает `IScheduler`, регистрирует все `JobDefinition` из `JobSchedulerOptions`, запускает scheduler. На shutdown — `Shutdown(true)`. |
-| `QuartzDependencyInjector` | `DependencyInjectorBase` — регистрирует `ISchedulerFactory`, `IJobScheduler`, bootstrapper. |
+| `QuartzDependencyInjector` | `DependencyInjectorBase` — регистрирует Quartz-стек, `IJobScheduler`, bootstrapper. |
 
 ## DI-регистрация
 
@@ -29,11 +29,16 @@ Quartz Adapter — основная реализация `IJobScheduler` на б
 protected override IServiceCollection Process(IServiceCollection serviceCollection)
 {
     return serviceCollection
-        .AddSingleton<ISchedulerFactory, StdSchedulerFactory>()
+        .AddQuartz(configure => configure
+            .UseMicrosoftDependencyInjectionJobFactory()
+            .UseInMemoryStore())
+        .AddQuartzHostedService(options => options.WaitForJobsToComplete = true)
         .AddSingleton<IJobScheduler, QuartzJobScheduler>()
         .AddHostedService<QuartzJobSchedulerBootstrapper>();
 }
 ```
+
+> `AddQuartz()` / `AddQuartzHostedService()` — extension-методы из пакета `Quartz.Extensions.DependencyInjection` / `Quartz.Extensions.Hosting`. Они регистрируют `ISchedulerFactory`, `IScheduler` (lazy) и hosted-сервис для запуска/остановки планировщика. `Bootstrapper` ниже использует этот `ISchedulerFactory` для `GetScheduler()` и финального `Start()` / `Shutdown()`.
 
 ## Маппинг `JobSchedule` → Quartz Trigger
 
@@ -157,7 +162,7 @@ internal sealed class QuartzScheduledJobAdapter(
 2. Вынести `RetryOptions` в отдельный `IOptionsMonitor`-канал, не сериализуемый в JobStore;
 3. Или использовать внешний storage для retry-конфигурации (БД / Redis).
 
-См. также: [Hangfire storage caveats](hangfire-adapter.md#-ограничения-для-multi-instance) — Hangfire имеет аналогичные, но более мягкие ограничения.
+См. также: [Hangfire adapter — ограничения](hangfire-adapter.md#ограничение-задачи-заданные-делегатом-не-поддерживаются) — Hangfire имеет аналогичные, но более мягкие ограничения.
 
 ## Bootstrapper
 
@@ -195,23 +200,12 @@ public sealed class QuartzJobSchedulerBootstrapper : IHostedService
 В `Shared.Application.Core.Job` и в сервисах (`Bff.Application`, `Setter.Infrastructure` и т.д.) — **нет** ни одного `using Quartz;`. Это легко проверить:
 
 ```powershell
-PS> Get-ChildItem -Path F:\template\src\Services -Recurse -Include *.cs |
+PS> Get-ChildItem -Path src\Services -Recurse -Include *.cs |
       Where-Object { (Get-Content $_.FullName) -match 'using Quartz' } |
       Measure-Object
 Count : 0
 ```
 
-## Миграция со старого API
-
-| Старое | Новое |
-|--------|-------|
-| `: QuartzJobWrapper` | `: IScheduledJob` |
-| `ProcessAsync(IJobExecutionContext, CancellationToken)` | `ExecuteAsync(CancellationToken)` |
-| `RegisterJob<T>(cron)` | `AddJobs(opts => opts.AddJob<T>(new JobSchedule.Cron(cron)))` |
-| `RegisterCacheJob(...)` | `AddCronCacheJob(...)` / `AddFlagsCacheJob(...)` |
-| `RegisterDbSeederJob()` | `RegisterDbSeederJob()` (без изменений) |
-
-Подробности — в [Migration Guide](migration-guide.md).
 
 ## Связанные документы
 
@@ -221,4 +215,3 @@ Count : 0
 | [Hangfire Adapter](hangfire-adapter.md) | Альтернативная реализация |
 | [Architecture](architecture.md) | Слои и обоснование |
 | [Pipeline](pipeline.md) | Middleware-цепочка |
-| [Migration Guide](migration-guide.md) | Переезд с `QuartzJobWrapper` |

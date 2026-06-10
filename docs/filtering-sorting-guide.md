@@ -205,19 +205,37 @@ SortOptions = new List<string>
 
 ## Реализация в контроллерах
 
-### Пример: Getter, два входа для одного ресурса Person
+### Пример: BFF и Getter — выбор ветки Services vs Cqrs
 
-Базовый шаблон маршрута см. в `Shared.Presentation.Core` (`api/[appName]/[controllerType]/v1/[controller]`).
-Для `PersonsController` в Getter заданы два POST с **одинаковым телом** `PersonListRequest`:
+В **BFF** задан **один** POST-handler `PersonController.GetPersonsListAsync` (`src/Services/Bff/Template.Bff.Api/Controllers/PersonController.cs:31`), который принимает `PersonListRequest` с двумя полями: `DalPattern` и `UseCqrs`. Выбор реализации (Services vs Cqrs) делается **внутри BFF-handler'а** на основе `UseCqrs`:
+
+```csharp
+// BFF: PersonController
+[HttpPost("person/list")]
+public Task<IActionResult> GetPersonsListAsync(
+    PersonListRequest request,
+    CancellationToken cancellationToken = default)
+{
+    return Process(
+        () => sender.Send(new PersonListQuery(request), cancellationToken));
+}
+
+// BFF: PersonListQueryHandler
+return getterClient.GetPersonsAsync(
+    request.Request,
+    request.Request.UseCqrs ? GetPersonsPattern.Cqrs : GetPersonsPattern.Services,
+    cancellationToken);
+```
+
+В **Getter** заведены **два** endpoint-а с одинаковым телом `PersonListRequest` — BFF выбирает нужный по path-suffix'у `services/list` или `cqrs/list`:
 
 | Относительный путь | Обработка |
 |--------------------|-----------|
 | `persons/services/list` | Слой приложения (`IPersonsService.GetPersonsAsync`) |
 | `persons/cqrs/list` | CQRS через MediatR (`PersonReadListQuery`) |
 
-BFF выбирает ветку через перечисление `GetPersonsPattern` при вызове `IGetterClient.GetPersonsAsync`.
-
 ```csharp
+// Getter: PersonsController
 [HttpPost("services/list")]
 public Task<IActionResult> GetPersonsByServicesAsync(
     [FromBody] PersonListRequest request,
@@ -230,6 +248,8 @@ public Task<IActionResult> GetPersonsByCqrsAsync(
     CancellationToken cancellationToken = default) =>
     Process(() => sender.Send(new PersonReadListQuery(request), cancellationToken));
 ```
+
+> **Итого:** BFF скрывает наличие двух веток от фронтенда — клиент BFF шлёт `POST /person/list { dalPattern, useCqrs }`, а BFF сам решает, какой из двух Getter-эндпоинтов дёрнуть, и проксирует ответ.
 
 ## Примеры JSON запросов
 

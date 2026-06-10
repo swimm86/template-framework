@@ -17,8 +17,8 @@
 
 | Свойство | Тип | Описание | Значение по умолчанию |
 |----------|-----|----------|----------------------|
-| `Path` | `string` (required) | Путь к файлу `nlog.config` | — |
-| `LogLevel` | `LogLevel` (required) | Минимальный уровень логирования | `LogLevel.Information` |
+| `Path` | `string` (required) | Путь к файлу `nlog.config` | обязателен к заполнению |
+| `LogLevel` | `LogLevel` (required) | Минимальный уровень логирования | `LogLevel.Information` (default применяется только при отсутствии значения) |
 
 ### Пример регистрации
 
@@ -102,7 +102,7 @@ public class JobCorrelationIdLayoutRenderer : LayoutRenderer
 
 1. **Регистрирует** оба layout renderer'а через `LogManager.Setup().SetupExtensions()` (однократно, thread-safe через `lock` + `volatile`)
 2. **Инъектирует** correlation ID block в layout каждого target'а (кроме консольных `coloredSystemEventConsole` и `coloredBusinessEventConsole`)
-3. **Вставляет** блок `corId=` перед `${message}` в существующий layout
+3. **Вставляет** блок `corId=` **после** `${message}` и **перед** `${logger}` в существующий layout
 
 ### Correlation ID Block
 

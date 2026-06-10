@@ -61,12 +61,12 @@ public class Person : IEntity<Guid>
 
 | Интерфейс | Свойство | Методы | Авто-заполняется при |
 |-----------|----------|--------|---------------------|
-| `IWithDateCreated` | `DateTime DateCreated` | `SetDateCreated()` | `AddAsync` |
-| `IWithCreated` | `Guid? CreatedByUserId`<br>`string? CreatedByUserName` | `SetCreatedByUserId()`<br>`SetCreatedByUserName()`<br>`OnCreate()` | `AddAsync` |
-| `IWithDateUpdated` | `DateTime? DateUpdated` | `SetDateUpdated()` | `UpdateAsync` |
-| `IWithUpdated` | `Guid? UpdatedByUserId` | `SetUpdatedByUserId()`<br>`OnUpdate()` | `UpdateAsync` |
-| `IWithDateDeleted` | `DateTime? DateDeleted` | `SetDateDeleted()` | `RemoveAsync` (soft) |
-| `IWithDeleted` | `Guid? DeletedByUserId`<br>`bool IsDeleted` | `SetDeletedByUserId()`<br>`OnDelete()`<br>`SetIsDeleted()` | `RemoveAsync` (soft) |
+| `IWithDateCreated` | `DateTime DateCreated` | `SetDateCreated(DateTime)` | `AddAsync` |
+| `IWithCreated` | `Guid? CreatedByUserId`<br>`string? CreatedByUserName` | `SetCreatedByUserId(Guid?)`<br>`SetCreatedByUserName(string?)`<br>`OnCreate()` | `AddAsync` |
+| `IWithDateUpdated` | `DateTime? DateUpdated` | `SetDateUpdated(DateTime?)` | `UpdateAsync` |
+| `IWithUpdated` | `Guid? UpdatedByUserId` | `SetUpdatedByUserId(Guid?)`<br>`OnUpdate()` | `UpdateAsync` |
+| `IWithDateDeleted` | `DateTime? DateDeleted` | `SetDateDeleted(DateTime?)` | `RemoveAsync` (soft) |
+| `IWithDeleted` | `Guid? DeletedByUserId`<br>`bool IsDeleted` | `SetDeletedByUserId(Guid?)`<br>`OnDelete()`<br>`SetIsDeleted()` | `RemoveAsync` (soft) |
 
 ### Иерархия наследования
 
@@ -146,22 +146,19 @@ EfRepository автоматически вызывает методы `OnCreate`
 // Внутри EfRepository.AddAsync():
 if (entity is IWithCreated withCreated)
 {
-    var (userId, userName) = _userProvider.GetCurrentUser();
-    withCreated.OnCreate(userId, userName);
+    withCreated.OnCreate(_userProvider.UserId, _userProvider.UserFullName);
 }
 
 // Внутри EfRepository.UpdateAsync():
 if (entity is IWithUpdated withUpdated)
 {
-    var (userId, _) = _userProvider.GetCurrentUser();
-    withUpdated.OnUpdate(userId);
+    withUpdated.OnUpdate(_userProvider.UserId);
 }
 
 // Внутри EfRepository.RemoveAsync() (soft delete):
 if (entity is IWithDeleted withDeleted && !hard)
 {
-    var (userId, _) = _userProvider.GetCurrentUser();
-    withDeleted.OnDelete(userId);
+    withDeleted.OnDelete(_userProvider.UserId);
 }
 ```
 
@@ -174,14 +171,10 @@ if (entity is IWithDeleted withDeleted && !hard)
 Композитный интерфейс, объединяющий все audit-интерфейсы.
 
 ```csharp
-public interface IEntityWithMetadata : IEntity, IWithCreated, IWithUpdated, IWithDeleted
-{
-}
+public interface IEntityWithMetadata : IEntity, IWithCreated, IWithUpdated, IWithDeleted;
 
 public interface IEntityWithMetadata<out T> : IEntity<T>, IEntityWithMetadata
-    where T : struct
-{
-}
+    where T : struct;
 ```
 
 **Пример:**
@@ -286,13 +279,15 @@ public interface IWithAdditionalData
 
 **Пример использования:**
 ```csharp
+// Интерфейс IWithAdditionalData предоставляет только get; set добавляется в DTO явно.
 public class OrderResponse : IWithAdditionalData
 {
     public Guid Id { get; set; }
     public string Status { get; set; }
 
     // Дополнительные данные для внутренних потребителей API
-    public IReadOnlyDictionary<string, object>? AdditionalData { get; set; }
+    // Реализация интерфейса — get; собственный setter нужен для инициализации через object initializer.
+    public IReadOnlyDictionary<string, object>? AdditionalData { get; set; } = null!;
 }
 
 // В handler:

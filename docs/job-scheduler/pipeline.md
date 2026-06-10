@@ -55,7 +55,10 @@ public sealed class LoggingMiddleware(ILogger<LoggingMiddleware> logger) : ISche
 {
     public Task InvokeAsync(ScheduledJobContext context, ScheduledJobDelegate next)
     {
-        return logger.LogTaskAsync(action: () => next(context), CancellationToken.None);
+        return logger.LogTaskAsync(
+            action: () => next(context),
+            methodName: context.JobKey,
+            cancellationToken: context.CancellationToken);
     }
 }
 ```

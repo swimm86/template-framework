@@ -8,9 +8,9 @@
 - **coverlet.collector** с `src/Tests/test.runsettings` — сбор покрытия.
 
 ### Mocking & Test Data:
-- **NSubstitute** — для сложных зависимостей с поведением (external services, message brokers).
-- **Ручные Fakes** — для простых интерфейсов (репозитории, unit of work). Предпочтительнее моков когда возможно.
+- **Ручные Fakes** — для простых интерфейсов (репозитории, unit of work). **Предпочтительный подход** — простые in-memory реализации, expose state для ассертов.
 - **Test Data Builders** — explicit static factory-методы для создания тестовых данных. **Не использовать AutoFixture** — он создаёт "liar tests" с нерелевантными данными.
+- **NSubstitute** — *доступен, но в текущих `.csproj` не подключён*; может быть добавлен локально для тестов со сложной семантикой (HTTP-clients, message brokers), если Fakes становится слишком громоздким. В общем случае предпочитайте Fakes.
 
 ### Integration Testing:
 - **Testcontainers** — disposable Docker-контейнеры (Postgres, Redis, RabbitMQ).
@@ -105,8 +105,8 @@ internal sealed class FakeOrderRepository : IOrderRepository
 |----------|--------|--------|
 | Репозиторий, CRUD | **Fake** | Простая in-memory коллекция |
 | Unit of Work | **Fake** | Просто track'ит вызовы SaveChanges |
-| External HTTP API | **NSubstitute** | Нужно симулировать ошибки, таймауты |
-| Message Bus | **NSubstitute** | Нужно проверить publish с определёнными данными |
+| External HTTP API | **Fake / NSubstitute** | Fake — для базовых сценариев; NSubstitute (если подключён) — для симуляции ошибок, таймаутов, последовательных ответов |
+| Message Bus | **Fake / NSubstitute** | Fake — для проверки «было опубликовано»; NSubstitute — для тонкого контроля аргументов |
 | File System | **Fake** | In-memory dictionary |
 | Cache | **Fake** | In-memory dictionary |
 

@@ -67,8 +67,14 @@ Request → Model Binding → RequestLoggingFilter → Action → Response
 
 ```csharp
 private sealed record TypeSerializationInfo(
-    PropertyInfo[] Properties,          // Свойства для прямой сериализации
-    Dictionary<PropertyInfo, string> RedactedProperties);  // Свойства-заглушки
+    PropertyInfo[] Properties,                      // Свойства для прямой сериализации
+    Dictionary<PropertyInfo, string> RedactedProperties)  // Свойства-заглушки
+{
+    // Признак необходимости кастомной сериализации:
+    // true — есть хотя бы одна заглушка или IFormFile,
+    // false — сериализуем штатным System.Text.Json без перестроения словаря
+    internal bool CustomSerialization => Properties.Any() || RedactedProperties.Any();
+}
 ```
 
 Кэш заполняется лениво при первом encountering типа и переиспользуется для всех последующих запросов.
@@ -188,26 +194,32 @@ public record RequestLoggingSettings
 
 ### 4.2. Настройка через конфигурацию
 
-Настройки загружаются из environment variables через `ConfigurationBuilder`:
+Настройки загружаются из environment variables и `.env` через `ConfigurationExtensions.GetOptions<RequestLoggingSettings>()`. Поиск секции идёт по частям имени модуля приложения (`AssemblyHelper.GetModuleName()`, например `App.Getter.Api`): сначала ищется `App:Getter:Api:RequestLoggingSettings`, затем `App:Getter:RequestLoggingSettings`, и так далее по убыванию специфичности. Соответственно, в переменных окружения и `.env` обязателен префикс модуля.
 
 **appsettings.json:**
 
 ```json
 {
-  "RequestLoggingSettings": {
-    "MaxDepth": 32,
-    "MaxJsonPayloadLength": 5242880,
-    "IsEnabled": true
+  "App": {
+    "Getter": {
+      "Api": {
+        "RequestLoggingSettings": {
+          "MaxDepth": 32,
+          "MaxJsonPayloadLength": 5242880,
+          "IsEnabled": true
+        }
+      }
+    }
   }
 }
 ```
 
-**Environment variables:**
+**Environment variables (для модуля `App.Getter.Api`):**
 
 ```bash
-REQUESTLOGGINGSETTINGS__MAXDEPTH=32
-REQUESTLOGGINGSETTINGS__MAXJSONPAYLOADLENGTH=5242880
-REQUESTLOGGINGSETTINGS__ISENABLED=true
+APP__GETTER__API__REQUESTLOGGINGSETTINGS__MAXDEPTH=32
+APP__GETTER__API__REQUESTLOGGINGSETTINGS__MAXJSONPAYLOADLENGTH=5242880
+APP__GETTER__API__REQUESTLOGGINGSETTINGS__ISENABLED=true
 ```
 
 ### 4.3. Отключение логирования
@@ -222,10 +234,10 @@ REQUESTLOGGINGSETTINGS__ISENABLED=true
 }
 ```
 
-Или через environment variable:
+Или через environment variable (для модуля `App.Getter.Api`):
 
 ```bash
-REQUESTLOGGINGSETTINGS__ISENABLED=false
+APP__GETTER__API__REQUESTLOGGINGSETTINGS__ISENABLED=false
 ```
 
 ---

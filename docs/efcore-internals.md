@@ -102,16 +102,23 @@ public abstract class EntityConfigurationBase<TEntity>
 {
     public void Configure(EntityTypeBuilder<TEntity> builder)
     {
+        const string idName = nameof(IEntity.Id);
         builder.UseTptMappingStrategy();
         builder.HasKey(idName);
-        builder.Property(idName).ValueGeneratedNever().HasComment("Идентификатор.");
+        builder
+            .Property(idName)
+            .ValueGeneratedNever()
+            .HasComment("Идентификатор.");
 
-        ConfigureLifecycleActions(builder);
         ConfigureMeta(builder);
         ConfigureProcess(builder);
     }
 
-    protected virtual void ConfigureProcess(EntityTypeBuilder<TEntity> builder) { }
+    private static void ConfigureMeta(EntityTypeBuilder builder) { /* IWithCreated / IWithUpdated / IWithDeleted meta */ }
+
+    protected virtual void ConfigureProcess(EntityTypeBuilder<TEntity> builder)
+    {
+    }
 }
 ```
 
@@ -486,12 +493,14 @@ public static IServiceCollection AddDbContexts(this IServiceCollection serviceCo
 }
 ```
 
-**Что регистрируется:**
+> **Где это регистрируется:** `AddDbContexts()` вызывается из `EfCoreDependencyInjectorBase.Process()` (`src/Shared/Dal/Shared.Infrastructure.Dal.EFCore/DependencyInjection/Base/EfCoreDependencyInjectorBase.cs:31`), **не** из `Shared.Application.Core.DependencyInjector`. `IRepository<>`-регистрация выполняется **внутри** `AddDbContext<TSettings, TContext>` (строка 56 `ServiceCollectionExtensions.cs`), а не отдельным вызовом.
+
+**Что регистрируется на каждый `DbContextBase`:**
 - `IDbContextFactory<TContext>` — factory для безопасного извлечения DbContext
 - `TContext` (scoped) — через factory
 - `DbContext` (scoped) — alias для базового типа
-- `IRepository<>` → `EfRepository<>`
-- `IUnitOfWork` → `EfUnitOfWork<TContext>`
+- `IRepository<>` → `EfRepository<>` (scoped)
+- `IUnitOfWork` → `EfUnitOfWork<TContext>` (scoped)
 
 ---
 
@@ -613,11 +622,25 @@ query.OrderBy(x => x.Name.WrapWithCollate("und-x-icu"));
 
 ### Базовый класс для DI-регистрации: EfCoreDependencyInjectorBase
 
-`EfCoreDependencyInjectorBase` — абстрактный базовый класс для DI-регистрации EF Core. Автоматически:
-- Обнаруживает `DbContextBase` в сборке
-- Обнаруживает `DbSettingsBase` для конфигурации подключения
-- Регистрирует репозитории через `AddRepositories()`
-- Регистрирует `IDbUpdater` для миграций
+`EfCoreDependencyInjectorBase` — абстрактный базовый класс для DI-регистрации EF Core (`src/Shared/Dal/Shared.Infrastructure.Dal.EFCore/DependencyInjection/Base/EfCoreDependencyInjectorBase.cs`). Реальная реализация:
+
+```csharp
+protected override IServiceCollection Process(IServiceCollection serviceCollection)
+{
+    return serviceCollection
+        .AddSingleton<IQueryEvaluator, EfQueryEvaluator>()
+        .AddDbContexts();
+}
+```
+
+Автоматически:
+- Регистрирует `IQueryEvaluator` → `EfQueryEvaluator` (singleton)
+- Вызывает `AddDbContexts()`, который через reflection:
+  - Обнаруживает `DbContextBase` в сборке
+  - Обнаруживает `EfDbSettingsBase<>` для конфигурации подключения
+  - Регистрирует `IDbContextFactory<TContext>`, `TContext`, `IRepository<>` → `EfRepository<>`, `IUnitOfWork`
+
+> **Важно:** `IDbUpdater` здесь **не регистрируется** — он регистрируется в `Shared.Application.Core.DependencyInjector` через `AddDatabaseUpdater()`.
 
 ### Специфичная конфигурация PostgreSQL
 

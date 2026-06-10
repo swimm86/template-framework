@@ -20,8 +20,12 @@ services.AddMediatR();
 // 3. Handler                   → бизнес-логика
 
 // Пример: при отправке команды
-var command = new PersonCreateCommand(new PersonCreateRequest { Id = Guid.NewGuid(), Name = "John", Email = "john@example.com" });
-var response = await mediator.Send(command, ct);
+var command = new PersonCreateCommand(new PersonCreateRequest
+{
+    Name = "John",
+    Email = "john@example.com",
+});
+var response = await sender.Send(command, ct);
 
 // Console/Logs output:
 // [INFO] Starting 'PersonCreateCommand' handler...
@@ -42,7 +46,8 @@ var response = await mediator.Send(command, ct);
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              LoggingPipelineBehaviour                        │
-│  • logger.LogTaskAsync()                                     │
+│  • Проверка CancellationToken → Task.FromCanceled<TResponse>│
+│  • logger.LogTaskAsync()                                      │
 │  • Логирует начало и завершение выполнения                   │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -90,8 +95,13 @@ internal sealed class LoggingPipelineBehaviour<TRequest, TResponse>(
 public Task<TResponse> Handle(
     TRequest request,
     RequestHandlerDelegate<TResponse> next,
-    CancellationToken _)
+    CancellationToken cancellationToken)
 {
+    if (cancellationToken.IsCancellationRequested)
+    {
+        return Task.FromCanceled<TResponse>(cancellationToken);
+    }
+
     return logger.LogTaskAsync(
         () => next(),
         processDescription: $"'{request.GetType().Name}' handler");
@@ -105,8 +115,10 @@ public Task<TResponse> Handle(
 | **Метод** | `logger.LogTaskAsync()` из `Shared.Common.Logging.Extensions` |
 | **Что логирует** | Начало и завершение выполнения handler |
 | **Description** | `'{RequestTypeName}' handler` (например: `'PersonCreateCommand' handler`) |
-| **CancellationToken** | Игнорируется (`_`) — логирование не должно прерываться |
+| **CancellationToken** | **Не игнорируется.** Если `IsCancellationRequested == true` — возвращается `Task.FromCanceled<TResponse>(cancellationToken)` (без вызова `next()`) |
 | **Exception handling** | `LogTaskAsync` логирует исключения автоматически |
+
+> **Важно:** `cancellationToken` **не** передаётся в `next()` (стрелка `_` в лямбде) — но входная отмена **проверяется явно** через `Task.FromCanceled`. Это короткое замыкание до запуска `LogTaskAsync`, чтобы не логировать старт отменённой задачи.
 
 ### Пример логов
 
@@ -146,14 +158,14 @@ public async Task<TResponse> Handle(
 
     logger.LogDebug("Start processing validation for {RequestName}.", requestName);
 
-    // SHORT-CIRCUIT: если нет валидаторов — сразу к handler
+    // SHORT-CIRCUIT: нет валидаторов → сразу к handler
     if (!validators.Any())
     {
         logger.LogDebug("There is no any validator for {RequestName}.", requestName);
         return await next();
     }
 
-    // PARALLEL: запуск всех валидаторов одновременно
+    // PARALLEL: все валидаторы запускаются одновременно
     var validationContext = new ValidationContext<TRequest>(request);
     var validationResults = await Task.WhenAll(
         validators.Select(v => v.ValidateAsync(validationContext, cancellationToken)));
@@ -183,41 +195,45 @@ public async Task<TResponse> Handle(
 
 | Фича | Описание |
 |------|----------|
-| **Parallel Validation** | `Task.WhenAll()` — все валидаторы запускаются параллельно |
+| **Parallel Validation** | `Task.WhenAll()` — все валидаторы для `TRequest` запускаются параллельно |
 | **Deduplication** | `GroupBy(f => new { f.PropertyName, f.ErrorMessage })` — убирает дубликаты ошибок |
-| **Short-Circuit** | Если нет валидаторов — сразу вызывает `next()` без overhead |
+| **Short-Circuit** | Если нет валидаторов для `TRequest` — сразу вызывает `next()` без overhead |
 | **ValidationException** | Бросается при наличии failures (FluentValidation) |
-| **Logging** | Debug для start/success/no validators, Warning для failure |
+| **Logging** | `LogDebug` для start/success/no validators, `LogWarning` для failure |
 
 ### Порядок валидации
 
 ```
-1. Request приходит в PipelineBehaviour
+1. Request приходит в ValidationPipelineBehaviour
 2. DI injects все IValidator<TRequest> из контейнера
 3. Если валидаторов нет → next() (handler)
-4. Если есть → Task.WhenAll(validators)
+4. Если есть → Task.WhenAll(validators) — параллельно
 5. GroupBy + deduplication ошибок
 6. Если failures → ValidationException
 7. Если OK → next() (handler)
 ```
 
-### Пример Validator
+### Пример Validator для команды
 
 ```csharp
-public class PersonCreateRequestValidator : AbstractValidator<PersonCreateRequest>
+public class PersonCreateCommandValidator : AbstractValidator<PersonCreateCommand>
 {
-    public PersonCreateRequestValidator()
+    public PersonCreateCommandValidator()
     {
-        RuleFor(x => x.Name)
+        // Pipeline валидирует TRequest = PersonCreateCommand
+        // (можно валидировать вложенный Request через x.Request)
+        RuleFor(x => x.Request.Name)
             .NotEmpty().WithMessage("Имя обязательно.")
             .MaximumLength(100).WithMessage("Имя не более 100 символов.");
 
-        RuleFor(x => x.Email)
+        RuleFor(x => x.Request.Email)
             .NotEmpty().WithMessage("Email обязателен.")
             .EmailAddress().WithMessage("Некорректный формат email.");
     }
 }
 ```
+
+> Если валидатор зарегистрирован только для `PersonCreateRequest` (не для `PersonCreateCommand`), `ValidationPipelineBehaviour` его **не** вызовет автоматически. Используйте `SetValidator` внутри Command-валидатора (см. [FluentValidation Integration](fluent-validation-integration.md)).
 
 ### Пример ошибки валидации
 
@@ -237,7 +253,7 @@ ValidationException:
 ### Регистрация
 
 ```csharp
-// DependencyInjectionExtensions.cs
+// Shared.Application.Cqrs.Core/Extensions/DependencyInjectionExtensions.cs
 private static IServiceCollection AddPipelineBehaviours(this IServiceCollection services)
 {
     return services
@@ -256,6 +272,7 @@ private static IServiceCollection AddPipelineBehaviours(this IServiceCollection 
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  1. LoggingPipelineBehaviour                                     │
+│     → Проверка CancellationToken                                 │
 │     → logger.LogTaskAsync("PersonCreateCommand handler")         │
 │     → Записывает: "Starting 'PersonCreateCommand' handler..."    │
 └────────────────────────────┬────────────────────────────────────┘
@@ -274,6 +291,9 @@ private static IServiceCollection AddPipelineBehaviours(this IServiceCollection 
 │  3. PersonCreateCommandHandler                                   │
 │     → GuardAsync()                                               │
 │     → CreateAsync()                                              │
+│        → mapper.Map<TRequest, TEntity>(...)                      │
+│        → ValidateAsync(entity, validators) ← TEntity-валидация   │
+│        → Repository.AddAsync(...)                                │
 │     → Return PersonCreateResponse                                │
 └────────────────────────────┬────────────────────────────────────┘
                              │
@@ -288,17 +308,18 @@ private static IServiceCollection AddPipelineBehaviours(this IServiceCollection 
 ### Важные правила
 
 1. **Порядок регистрации = порядок выполнения**
-   - 1-й зарегистрированный = 1-й выполняется
-   - Logging всегда первый → логирует весь pipeline
-   - Validation всегда второй → валидирует до handler
+   - 1-й зарегистрированный = 1-й выполняется.
+   - `LoggingPipelineBehaviour` всегда первый → логирует весь pipeline.
+   - `ValidationPipelineBehaviour` всегда второй → валидирует до handler.
 
 2. **Short-circuit**
-   - ValidationPipelineBehaviour может не вызвать `next()` при errors
-   - Handler не выполнится если валидация не прошла
+   - `ValidationPipelineBehaviour` может не вызвать `next()` при errors.
+   - `LoggingPipelineBehaviour` не вызовет `next()` при отменённом `CancellationToken` (`Task.FromCanceled`).
+   - Handler не выполнится, если валидация не прошла или токен отменён.
 
 3. **Exception propagation**
-   - ValidationException пробрасывается через LoggingPipelineBehaviour
-   - LoggingPipelineBehaviour логирует исключения через `LogTaskAsync()`
+   - `ValidationException` пробрасывается через `LoggingPipelineBehaviour`.
+   - `LoggingPipelineBehaviour` логирует исключения через `LogTaskAsync()`.
 
 ---
 
@@ -373,12 +394,13 @@ IQuery<TResponse>       → Logging → Validation → Handler
 
 ```csharp
 // 1. Command
-public record PersonCreateCommand(PersonCreateRequest Request)
+public sealed record PersonCreateCommand(PersonCreateRequest Request)
     : CreateCommand<PersonCreateRequest, PersonCreateResponse>(Request);
 
 // 2. Validator (для Request внутри Command)
 // ВАЖНО: ValidationPipelineBehaviour валидирует TRequest (PersonCreateCommand),
-// а не PersonCreateRequest. Для валидации вложенного Request:
+// а не PersonCreateRequest. Для валидации вложенного Request — используйте
+// x.Request.* в Command-валидаторе или SetValidator.
 public class PersonCreateCommandValidator : AbstractValidator<PersonCreateCommand>
 {
     public PersonCreateCommandValidator()
@@ -388,26 +410,16 @@ public class PersonCreateCommandValidator : AbstractValidator<PersonCreateComman
     }
 }
 
-// Или валидатор для самого PersonCreateRequest (record-to-record от PersonDto):
-public class PersonCreateRequestValidator : AbstractValidator<PersonCreateRequest>
-{
-    public PersonCreateRequestValidator()
-    {
-        RuleFor(x => x.Name).NotEmpty();
-        RuleFor(x => x.Email).EmailAddress();
-    }
-}
-
 // 3. Handler
-public class PersonCreateCommandHandler(...)
-    : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Person, ...>(...)
+public sealed class PersonCreateCommandHandler(...)
+    : CreateCommandHandler<PersonCreateCommand, PersonCreateRequest, Domain.Entities.Person, PersonDto, PersonCreateResponse>(...)
 {
     // Handler вызовется ТОЛЬКО если ValidationPipelineBehaviour не бросил ValidationException
 }
 
 // 4. Execution
 var command = new PersonCreateCommand(new PersonCreateRequest { Name = "", Email = "invalid" });
-var response = await mediator.Send(command, ct);
+var response = await sender.Send(command, ct);
 // → ValidationPipelineBehaviour бросит ValidationException
 // → Handler НЕ вызовется
 // → LoggingPipelineBehaviour залоггирует ошибку
@@ -425,13 +437,19 @@ public abstract class RequestHandler<TRequest, TResponse>(ILoggerFactory loggerF
         IEnumerable<IValidator<TEntity>> validators,
         CancellationToken cancellationToken = default)
     {
-        // Последовательная валидация entity (не Request!)
-        var failures = new List<ValidationFailure>();
-        foreach (var validator in validators)
+        var validatorsArray = validators as IValidator<TEntity>[] ?? validators.ToArray();
+        if (validatorsArray.Length == 0)
         {
-            var result = await validator.ValidateAsync(
-                new ValidationContext<TEntity>(entity), cancellationToken);
-            failures.AddRange(result.Errors.Where(e => e is not null));
+            return;
+        }
+
+        var validationContext = new ValidationContext<TEntity>(entity);
+        var failures = new List<ValidationFailure>();
+
+        foreach (var validator in validatorsArray)
+        {
+            var result = await validator.ValidateAsync(validationContext, cancellationToken);
+            failures.AddRange(result.Errors.Where(error => error is not null));
         }
 
         if (failures.Count != 0)
@@ -445,10 +463,11 @@ public abstract class RequestHandler<TRequest, TResponse>(ILoggerFactory loggerF
 | | ValidationPipelineBehaviour | RequestHandler.ValidateAsync() |
 |--|---------------------------|-------------------------------|
 | **Что валидирует** | `TRequest` (Command/Query) | `TEntity` (Domain Entity) |
-| **Когда** | До Handler | Внутри Handler |
-| **Как** | Параллельно (Task.WhenAll) | Последовательно (foreach) |
+| **Когда** | До Handler | Внутри Handler, после маппинга |
+| **Как** | Параллельно (`Task.WhenAll`) | Последовательно (`foreach`) |
 | **Deduplication** | ✅ Да | ❌ Нет |
-| **Использование** | Автоматически | Вызывается вручную в Handler |
+| **Источник валидаторов** | DI-контейнер (`IEnumerable<IValidator<TRequest>>`) | Параметр primary ctor handler'а |
+| **Использование** | Автоматически | Вызывается в `CreateCommandHandler.CreateAsync` / `UpdateCommandHandler.UpdateAsync` |
 
 ---
 
@@ -456,18 +475,21 @@ public abstract class RequestHandler<TRequest, TResponse>(ILoggerFactory loggerF
 
 ### Валидация не срабатывает
 
-**Проблема:** ValidationPipelineBehaviour не валидирует Request.
+**Проблема:** `ValidationPipelineBehaviour` не валидирует Request.
 
-**Причина:** Нет зарегистрированного `IValidator<TRequest>` для конкретного типа.
+**Причина:** Нет зарегистрированного `IValidator<TRequest>` для конкретного типа команды/запроса.
 
 **Решение:**
+
 ```csharp
-// Убедитесь что Validator зарегистрирован
+// Убедитесь, что Validator зарегистрирован для правильного типа
 public class PersonCreateCommandValidator : AbstractValidator<PersonCreateCommand> { }
 
-// Или для вложенного Request
-public class PersonCreateRequestValidator : AbstractValidator<PersonCreateRequest> { }
+// Или используйте SetValidator для вложенного Request
+RuleFor(x => x.Request).SetValidator(new PersonCreateRequestValidator());
 ```
+
+Подробнее — в [FluentValidation Integration](fluent-validation-integration.md).
 
 ### Дубликаты ошибок валидации
 
@@ -475,23 +497,23 @@ public class PersonCreateRequestValidator : AbstractValidator<PersonCreateReques
 
 **Причина:** Несколько валидаторов для одного типа возвращают одинаковые ошибки.
 
-**Решение:** ValidationPipelineBehaviour уже делает deduplication через `GroupBy`. Если дубликаты есть — проверьте что у вас нет дублирующихся Validators.
+**Решение:** `ValidationPipelineBehaviour` уже делает deduplication через `GroupBy`. Если дубликаты есть — проверьте, что у вас нет дублирующихся Validators.
 
 ### Performance при множестве валидаторов
 
 **Проблема:** Медленная валидация при большом количестве validators.
 
-**Решение:** ValidationPipelineBehaviour уже использует `Task.WhenAll()` для параллельного выполнения. Убедитесь что сами валидаторы не содержат блокирующих операций.
+**Решение:** `ValidationPipelineBehaviour` уже использует `Task.WhenAll()` для параллельного выполнения. Убедитесь, что сами валидаторы не содержат блокирующих операций.
 
 ---
 
 ## 📝 Best Practices
 
-1. **Один Validator на Request** — избегайте множественных валидаторов для одного типа
-2. **Валидируйте Request, не Entity** — Pipeline Behaviour для Request, ValidateAsync() для Entity
-3. **Не логируйте в Validators** — логирование уже есть в Pipeline Behaviours
-4. **Используйте CancellationToken** — передавайте в `ValidateAsync()` для отмены
-5. **Кастомные Behaviours — в начало** — Authorization перед Logging и Validation
+1. **Один Validator на тип** — избегайте множественных валидаторов для одного типа.
+2. **Валидируйте Command/Query** в Pipeline, **Entity** — в `RequestHandler.ValidateAsync()`.
+3. **Не логируйте в Validators** — логирование уже есть в Pipeline Behaviours.
+4. **Используйте CancellationToken** — передавайте в `ValidateAsync()` для отмены.
+5. **Кастомные Behaviours — в начало** — Authorization перед Logging и Validation.
 
 ---
 
@@ -500,6 +522,8 @@ public class PersonCreateRequestValidator : AbstractValidator<PersonCreateReques
 | Документ | Описание |
 |----------|----------|
 | [CQRS](cqrs.md) | Commands, Queries, Handlers |
-| [Logging](logging.md) | LogTask и [LogMethod] — структурированное логирование |
-| [Auto-Registration](auto-registration.md) | AssemblyHelper — авто-регистрация DI |
-| [Exception Mapping](exception-mapping.md) | Exception → HTTP Response mapping
+| [FluentValidation Integration](fluent-validation-integration.md) | Двухуровневая валидация (Pipeline + Handler) |
+| [Response Types](response-types.md) | `ErrorResponse` для ошибок валидации |
+| [Auto-Registration](auto-registration.md) | `AssemblyHelper` — авто-регистрация DI |
+| [Logging](logging.md) | `LogTask` и `[LogMethod]` — структурированное логирование |
+| [Exception Mapping](exception-mapping.md) | Exception → HTTP Response mapping |

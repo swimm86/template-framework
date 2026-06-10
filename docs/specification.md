@@ -6,7 +6,9 @@ Specification Pattern в фреймворке Shared предоставляет 
 
 Спецификация наследуется от `SpecificationBase<TEntity>` и через защищённые методы `AddFilter()`, `AddOrderBy()`, `AddInclude()` формирует `QueryOptions<TEntity>`, которые затем используются репозиторием.
 
-##Assembly / Namespace
+> **Важно:** Спецификации наследуются от `SpecificationBase<TEntity>` и используют защищённые методы `AddFilter()`, `AddOrderBy()`, `AddInclude()` **в конструкторе**. Виртуального метода `OnInit()` в `SpecificationBase<TEntity>` нет — критерии добавляются только из конструктора (или из переопределённого `BuildOptions()`).
+
+## Assembly / Namespace
 
 | Компонент | Namespace |
 |-----------|-----------|
@@ -14,7 +16,7 @@ Specification Pattern в фреймворке Shared предоставляет 
 | `ISpecification<TEntity>` | `Shared.Domain.Core.Dal.Specification.Interfaces` |
 | `QueryOptions<TEntity>` | `Shared.Domain.Core.Dal.Repository.Models` |
 | `SortOption` | `Shared.Domain.Core.Dal.Models` |
-| `OrderDirectionType` | `Shared.Domain.Core.Dal` |
+| `OrderDirectionType` | `Shared.Domain.Core.Dal` (см. `Dal/Enums.cs`) |
 
 ## Интерфейс ISpecification<TEntity>
 
@@ -39,10 +41,12 @@ public interface ISpecification<TEntity>
 
 ```csharp
 public abstract record SpecificationBase<TEntity>(
-    ICollection<SortOption>? SortOptions = default)
+    ICollection<SortOption>? SortOptions = null)
     : ISpecification<TEntity>
     where TEntity : class, IEntity
 ```
+
+> **Особенность `Options`:** поле `Options` — `protected readonly QueryOptions<TEntity>`, создаётся один раз при инициализации record. Метод `BuildOptions()` возвращает **тот же** накопленный объект при повторных вызовах. Не вызывайте `BuildOptions()` несколько раз с расчётом на «чистую» сборку.
 
 ### Защищённые члены
 
@@ -96,14 +100,12 @@ using Shared.Domain.Core.Dal;
 // Простая спецификация — активные пользователи
 public class ActiveUsersSpecification : SpecificationBase<User>
 {
-    protected override void OnInit()
+    public ActiveUsersSpecification()
     {
         AddFilter(u => u.IsActive && !u.IsDeleted);
     }
 }
 ```
-
-> **Важно:** Спецификации наследуются от `SpecificationBase<TEntity>` и используют защищённые методы `AddFilter()`, `AddOrderBy()`, `AddInclude()` в конструкторе или переопределённом `OnInit()`. Не присваивайте свойства `QueryOptions` напрямую.
 
 ## Создание спецификаций
 
@@ -118,8 +120,6 @@ public class ActiveUsersSpecification : SpecificationBase<User>
     }
 }
 ```
-
-> **Примечание:** В текущей версии `SpecificationBase<TEntity>` не имеет виртуального метода `OnInit()`. Критерии следует добавлять в конструкторе спецификации.
 
 ### Спецификация с сортировкой
 
@@ -214,6 +214,8 @@ var spec = new SortedUsersSpecification(sortOptions);
 `SortOptions` автоматически применяются в `BuildOptions()` через `Options.AddOrderBy(SortOption)`.
 
 ### Спецификация с ThenInclude
+
+`ThenInclude` определён в `Shared.Domain.Core.Dal.Repository.Extensions.IncludableExtension`:
 
 ```csharp
 using Shared.Domain.Core.Dal.Repository.Extensions;
@@ -337,7 +339,7 @@ public QueryOptions<TEntity>(
 | `WithTracking` | `bool` | Отслеживание изменений сущностей (default: `false`) |
 | `AsSplitQuery` | `bool` | Разделение запроса на несколько SQL-запросов (default: `false`) |
 | `Distinct` | `bool` | Исключение дубликатов (default: `false`) |
-| `DistinctBy` | `Expression<Func<TEntity, bool>>?` | Условие для исключения дубликатов |
+| `DistinctBy` | `Expression<Func<TEntity, object>>?` | Условие для исключения дубликатов |
 | `CustomQueryBeforeProcesses` | `List<Func<IQueryable<TEntity>, IQueryable<TEntity>>>` | Кастомные пре-преобразования IQueryable |
 | `CustomQueryPostProcesses` | `List<Func<IQueryable<TEntity>, IQueryable<TEntity>>>` | Кастомные пост-преобразования IQueryable |
 
@@ -348,7 +350,7 @@ public QueryOptions<TEntity>(
 | `AddFilter(Expression)` | `QueryOptions<TEntity>` | Добавляет фильтр |
 | `AddFilterIf(bool, Expression)` | `QueryOptions<TEntity>` | Добавляет фильтр при условии |
 | `AddOrderBy(Expression, OrderDirectionType, int?)` | `QueryOptions<TEntity>` | Добавляет сортировку |
-| `AddOrderBy(SortOption)` | `void` | Добавляет сортировку из SortOption |
+| `AddOrderBy(SortOption)` | `void` | Добавляет сортировку из SortOption (по строковому ключу через reflection) |
 | `AddOrderByIf(bool, Expression, OrderDirectionType, int?)` | `QueryOptions<TEntity>` | Добавляет сортировку при условии |
 | `AddInclude<TProperty>(Expression)` | `Includable<TEntity, TProperty>` | Добавляет Include одиночного свойства |
 | `AddInclude<TProperty>(Expression<IEnumerable<TProperty>>)` | `Includable<TEntity, TProperty>` | Добавляет Include коллекции |
@@ -378,6 +380,8 @@ public class SortOption(string key, OrderDirectionType directionType)
 `Key` — имя свойства (регистронезависимое). `SortOption` автоматически маппится на выражение сортировки через reflection внутри `QueryOptions.AddOrderBy(SortOption)`.
 
 ## OrderDirectionType
+
+Определён в `Shared.Domain.Core.Dal.Enums`:
 
 ```csharp
 public enum OrderDirectionType
@@ -414,6 +418,8 @@ public class Includable<TSrcEntity, TDstEntity>(LambdaExpression expression)
 ```
 
 ### ThenInclude
+
+Расширения `ThenInclude` живут в `Shared.Domain.Core.Dal.Repository.Extensions.IncludableExtension`. Существует **четыре** перегрузки под разные сценарии: предыдущее свойство — плоское, коллекция, фильтрованная коллекция, сортированная коллекция.
 
 ```csharp
 using Shared.Domain.Core.Dal.Repository.Extensions;
@@ -626,7 +632,7 @@ public void ActiveUsersSpecification_BuildOptions_ReturnsFilter()
 | **Переиспользование** | Высокое (отдельный класс) | Низкое (inline создание) |
 | **Тестируемость** | Легко тестировать отдельно | Сложнее тестировать |
 | **Параметризация** | Через конструктор | Через fluent-методы |
-| **DI-friendly** | Да, регистрируется как сервис | Нет, создаётся inline |
+| **DI-friendly** | **Нет** — спецификации не регистрируются как сервисы, создаются через `new` в месте использования | Нет, создаётся inline |
 
 ## См. также
 

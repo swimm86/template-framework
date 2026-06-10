@@ -46,7 +46,7 @@ public interface ILifecycleActionHandler<TEntity>
     Type ILifecycleActionHandler.EntityType => typeof(TEntity);
 
     Task ExecuteAsync(
-        ICollection<TEntity> entities,
+        IEnumerable<TEntity> entities,
         CancellationToken cancellationToken);
 }
 ```
@@ -62,7 +62,7 @@ public interface ILifecycleActionHandler<TEntity>
 
 ### `LifecycleActionHandlerBase<TEntity>`
 
-Абстрактная основа для большинства обработчиков — реализует `ILifecycleActionHandler<TEntity>` и ковариантно приводит `IEnumerable<IEntity>` к `ICollection<TEntity>`:
+Абстрактная основа для большинства обработчиков — реализует `ILifecycleActionHandler<TEntity>` и фильтрует `IEnumerable<IEntity>` через `OfType<TEntity>()`:
 
 ```csharp
 public abstract class LifecycleActionHandlerBase<TEntity>
@@ -79,22 +79,22 @@ public abstract class LifecycleActionHandlerBase<TEntity>
         CancellationToken cancellationToken)
     {
         return ((ILifecycleActionHandler<TEntity>)this).ExecuteAsync(
-            entities.OfType<TEntity>().ToArray(),
+            entities.OfType<TEntity>(),
             cancellationToken);
     }
 
     public async Task ExecuteAsync(
-        ICollection<TEntity> entities,
+        IEnumerable<TEntity> entities,
         CancellationToken cancellationToken)
     {
-        if (entities.Count > 0)
+        if (entities.Any())
         {
             await ExecuteActionAsync(entities, cancellationToken);
         }
     }
 
     protected abstract Task ExecuteActionAsync(
-        ICollection<TEntity> entities,
+        IEnumerable<TEntity> entities,
         CancellationToken cancellationToken);
 }
 ```
@@ -221,7 +221,7 @@ public class PersonHashLifecycleHandler
 
     /// <inheritdoc />
     protected override Task ExecuteActionAsync(
-        ICollection<Person> entities,
+        IEnumerable<Person> entities,
         CancellationToken cancellationToken)
     {
         foreach (var person in entities)
@@ -264,7 +264,7 @@ public class SendOrderConfirmationHandler(
     public override int Order => 0;
 
     protected override async Task ExecuteActionAsync(
-        ICollection<Order> entities,
+        IEnumerable<Order> entities,
         CancellationToken cancellationToken)
     {
         foreach (var order in entities)
@@ -467,7 +467,6 @@ ResetAllActions (если resetLifecycleActionSettingsAfterSave = true)
 | `AfterSave` действие, которое модифицирует данные | Использовать `BeforeSave` |
 | Действие с `.Result` / `.Wait()` | Всегда `async/await` с `CancellationToken` |
 | Игнорирование `RequiredNavigationProperties` | Указать явно — `EfUnitOfWork` загрузит efficiently |
-| Использование `IWithLifecycleActions` на сущности | Интерфейс удалён — наследуйте `LifecycleActionHandlerBase<TEntity>` и регистрируйте отдельно |
 
 ---
 

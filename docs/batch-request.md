@@ -38,15 +38,60 @@
 
 ## Обязательно прочитать: ограничения и контракт
 
-1. **Один объект `request` на один обход.** Во время итерации меняются `PageNumber` и `PageSize`. После завершения **исходные значения не восстанавливаются**.
+1. **Один объект `request` на один обход.** Во время итерации меняются `PageNumber` и `PageSize`. После завершения **исходные значения не восстанавливаются** (см. [исходник `HttpRequestExtensions.cs:32`](../src/Shared/Core/Shared.Application.Core/Batch/Http/Extensions/HttpRequestExtensions.cs)).
 2. **Не используйте один и тот же `request` параллельно** из нескольких задач.
-3. **`PageNumber` в начале должен быть ≥ 1.** Нумерация страниц при обходе продолжается с переданного номера (раньше API всегда начинал с 1 независимо от поля — это изменилось).
-4. **Размер «батча» в параметре `request.PageSize`** — это **размер страницы** (`PageSize`), который уходит в API на каждый запрос.
+3. **`PageNumber` в начале должен быть ≥ 1.** Нумерация страниц при обходе продолжается с переданного номера (`request.PageNumber - 1`); значение < 1 вызовет `ArgumentOutOfRangeException` (см. `HttpRequestExtensions.cs:158-164`).
+4. **Размер «батча» в параметре `request.PageSize`** — это **размер страницы**, который уходит в API на каждый запрос. По умолчанию = `Constants.DefaultBatchSize` = **100** (см. `Shared.Common.Batch.Constants.cs:17` и `PageableRequest.cs:38`).
 5. **`processFunc` при ошибке** не оборачивается retry: повторяется только вызов **HTTP-страницы** при переданной `IHttpBatchRetryPolicy`.
 
 ---
 
+## `PageableRequest` и `SortOptions`
+
+`PageableRequest` (см. `Shared.Application.Core.Dto.Requests.PageableRequest.cs`):
+
+```csharp
+public abstract record PageableRequest
+{
+    public const char ValueDelimiter = '.';
+
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = Constants.DefaultBatchSize; // 100
+    public List<string>? SortOptions { get; init; }
+}
+```
+
+**Формат `SortOptions`:** список строк формата `"<FieldPath>.<direction>"`, где:
+
+- `<FieldPath>` — путь к свойству (вложенные через `.`, например `"Person.Name"` или просто `"Name"`);
+- `<direction>` — `asc` или `desc` (значения атрибута `Description` у `OrderDirectionType`).
+
+Пример:
+
+```csharp
+new PersonListRequest(DalPattern.Default)
+{
+    PageNumber = 1,
+    PageSize = 50,
+    SortOptions = new List<string>
+    {
+        "Name.asc",
+        "Email.desc",
+    },
+};
+```
+
+Метод `PageableRequest.ConvertSortOptions()` парсит строки в `ICollection<SortOption>` (см. `PageableRequest.cs:49-67`): разделяет по `ValueDelimiter = '.'`, последний сегмент интерпретирует как `OrderDirectionType` через `GetEnumValueByDescription`, остальные склеивает обратно через `.` в `SortOption.Key`.
+
+---
+
 ## Практические примеры
+
+В примерах ниже используются **реальные** типы из `Template.Getter.Application.Abstractions.Features.Person.List`:
+
+- `PersonListRequest : PageableRequest<PersonListFilter>` (см. `PersonListRequest.cs`)
+- `PersonListResponse : PageableResponse<ICollection<PersonListPayload>>` (см. `PersonListResponse.cs`)
+- `PersonListFilter { Name, NameContains, Email, EmailContains }` (см. `PersonListFilter.cs`)
 
 ### Загрузка всех страниц с обработкой каждой
 
@@ -55,15 +100,18 @@
 ```csharp
 using Shared.Application.Core.Batch.Http.Extensions;
 
-var request = new PpsObjectListRequest
+var request = new PersonListRequest(DalPattern.Default)
 {
     PageNumber = 1,
     PageSize = 100,
-    Filter = new PpsObjectListFilter { PpsVersionId = versionId },
+    Filter = new PersonListFilter
+    {
+        NameContains = "Иванов",
+    },
 };
 
 // Пример: метод клиента принимает CancellationToken
-await client.GetPpsObjectsAsync.BatchProcessAsync(
+await client.GetPersonsAsync.BatchProcessAsync(
     request: request,
     processFunc: async response =>
     {
@@ -76,7 +124,7 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 
         foreach (var item in items)
         {
-            await ProcessPpsObjectAsync(item, cancellationToken);
+            await ProcessPersonAsync(item, cancellationToken);
         }
     },
     pageRetryPolicy: null,
@@ -86,7 +134,7 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 Если сигнатура клиента **без** `CancellationToken` в методе запроса:
 
 ```csharp
-await client.GetPpsObjectsAsync.BatchProcessAsync(
+await client.GetPersonsAsync.BatchProcessAsync(
     request,
     processFunc: async response => { /* ... */ },
     cancellationToken: cancellationToken);
@@ -95,7 +143,7 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 ### Обойти страницы без `processFunc`
 
 ```csharp
-await client.GetPpsObjectsAsync.BatchProcessAsync(
+await client.GetPersonsAsync.BatchProcessAsync(
     request: request,
     cancellationToken: cancellationToken);
 ```
@@ -105,14 +153,14 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 Используйте **`BatchSelectPagesAsync`**, а не `BatchProcessAsync` (он возвращает `Task`, а не поток страниц).
 
 ```csharp
-await foreach (var response in client.GetPpsObjectsAsync.BatchSelectPagesAsync(
+await foreach (var response in client.GetPersonsAsync.BatchSelectPagesAsync(
     request: request,
     pageRetryPolicy: null,
     cancellationToken: cancellationToken))
 {
-    foreach (var obj in response.Payload ?? Enumerable.Empty<PpsObject>())
+    foreach (var person in response.Payload ?? Enumerable.Empty<PersonListPayload>())
     {
-        await writer.WriteLineAsync($"{obj.Id},{obj.Name}");
+        await writer.WriteLineAsync($"{person.Id},{person.Name}");
     }
 }
 ```
@@ -157,7 +205,7 @@ var retryOptions = new RetryConfiguration
 
 var pageRetryPolicy = new DefaultHttpBatchRetryPolicy(retryOptions);
 
-await client.GetPpsObjectsAsync.BatchProcessAsync(
+await client.GetPersonsAsync.BatchProcessAsync(
     request,
     processFunc: async r => { /* ... */ },
     pageRetryPolicy: pageRetryPolicy,
@@ -174,14 +222,14 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 
 ## Настройка размера страницы (`request.PageSize`)
 
-По умолчанию используется **`Shared.Common.Batch.Constants.DefaultBatchSize`** (100).
+По умолчанию используется **`Shared.Common.Batch.Constants.DefaultBatchSize`** = **100** (см. `Shared.Common.Batch.Constants.cs:17`).
 
 Ориентиры:
 
 | Сценарий | Размер страницы |
 |----------|------------------|
 | Крупные DTO / чувствительная память | 50–100 |
-| Универсально | 1000 (дефолт) |
+| Универсально (дефолт) | **100** |
 | «Толстые» API и сеть выдерживают | 500–1000 |
 | Лимиты стороннего API | 50–200 |
 
@@ -200,7 +248,7 @@ await client.GetPpsObjectsAsync.BatchProcessAsync(
 | Документ | Описание |
 |----------|----------|
 | [Batch Helper](batch-helper.md) | Универсальная нарезка данных по skip/take |
-| [Filtering & Sorting Guide](filtering-sorting-guide.md) | Модели PageableRequest, фильтры и сортировка |
+| [Filtering & Sorting Guide](filtering-sorting-guide.md) | Модели `PageableRequest`, фильтры и сортировка |
 
 ---
 

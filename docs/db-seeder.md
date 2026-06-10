@@ -24,20 +24,20 @@
 
 ### 2.1. Атрибут `[Seed]`
 
-Каждый seed-класс должен быть помечен атрибутом `[Seed]`, который задаёт имя и порядок выполнения.
+Каждый seed-класс должен быть помечен атрибутом `[Seed]`, который задаёт имя и порядок выполнения. Оба параметра передаются **позиционно** (не именованно):
 
 ```csharp
-[Seed("CreateDefaultRoles", Order = 1)]
+[Seed("CreateDefaultRoles", 1)]
 public class CreateDefaultRolesSeed : ISeed
 {
     // ...
 }
 ```
 
-| Параметр | Тип | Описание |
+| Параметр (позиция) | Тип | Описание |
 |----------|-----|----------|
-| `Name` | `string` | Уникальное имя сида. Используется для отслеживания выполнения |
-| `Order` | `int` | Порядок выполнения. Меньшие значения выполняются раньше |
+| 1 — `Name` | `string` | Уникальное имя сида. Используется для отслеживания выполнения |
+| 2 — `Order` | `int` | Порядок выполнения. Меньшие значения выполняются раньше |
 
 ### 2.2. Интерфейс `ISeed`
 
@@ -61,7 +61,7 @@ using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 
 namespace MyService.Infrastructure.Seeds;
 
-[Seed("CreateDefaultUser", Order = 10)]
+[Seed("CreateDefaultUser", 10)]
 public class CreateDefaultUserSeed : ISeed
 {
     private readonly IMyDbContext _dbContext;
@@ -142,33 +142,38 @@ public class DbUpdater : IDbUpdater
 
 ### 4.1. Класс `Seed`
 
-Сущность для отслеживания выполненных сидов в базе данных:
+Сущность для отслеживания выполненных сидов в базе данных. Имя сида хранится **в `Id`**, поскольку `Seed : IEntity<string>`:
 
 ```csharp
-public class Seed : IEntity<Guid>
+public class Seed
+    : IEntity<string>
 {
-    public Guid Id { get; private init; }
-    public string Name { get; private set; }
+    public string Id { get; init; }
 
-    public static Seed Create(string name);
+    private Seed() { }
+
+    public static Seed Create(string name) => new() { Id = name };
 }
 ```
 
 | Свойство | Тип | Описание |
 |----------|-----|----------|
-| `Id` | `Guid` | Первичный ключ |
-| `Name` | `string` | Уникальное имя выполненного сида |
+| `Id` | `string` | Первичный ключ. Используется как имя сида (например, `"person"`) |
+
+> **Семантика:** в `Seed` нет отдельного `Name`-свойства — роль уникального идентификатора сида выполняет сам `Id` типа `string`.
 
 ### 4.2. EF Core конфигурация — `SeedConfigurationBase`
 
+Реальная реализация (`src/Shared/Dal/Shared.Infrastructure.Dal.EFCore/Configurations/SeedConfigurationBase.cs`):
+
 ```csharp
-public abstract class SeedConfigurationBase : IEntityTypeConfiguration<Seed>
+public abstract class SeedConfigurationBase
+    : IEntityTypeConfiguration<Seed>
 {
     public void Configure(EntityTypeBuilder<Seed> builder)
     {
         builder.ToTable("seed", t => t.HasComment("Таблица с сущностями \"Сид БД\"."));
-        builder.HasKey(x => x.Name);
-        builder.Property(x => x.Name)
+        builder.Property(x => x.Id)
             .HasComment("Уникальное наименование сида БД.");
     }
 }
@@ -177,7 +182,7 @@ public abstract class SeedConfigurationBase : IEntityTypeConfiguration<Seed>
 | Настройка | Значение |
 |-----------|----------|
 | Таблица | `seed` |
-| Primary Key | `Name` (не `Id`) |
+| Primary Key | Не задаётся явно в базовом классе — `Id` (`string`) является ключом по контракту `IEntity<string>`. Производные конфигурации в проекте могут доопределить `HasKey(x => x.Id)`. |
 | Наследование | Абстрактный базовый класс — каждый сервис создаёт свою конфигурацию |
 
 ---
@@ -246,25 +251,37 @@ services.RegisterDbSeederJob();
 ```csharp
 public sealed class DbSeederJob(IDbSeeder seeder) : IScheduledJob
 {
-    private static volatile bool _isCompleted;
+    private static int _seeded;
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        if (_isCompleted) return;
-        await seeder.ApplySeedsAsync(cancellationToken);
-        _isCompleted = true;
+        if (Interlocked.CompareExchange(ref _seeded, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await seeder.ApplySeedsAsync(cancellationToken);
+        }
+        catch
+        {
+            Interlocked.Exchange(ref _seeded, 0);
+            throw;
+        }
     }
 
-    internal static void ResetCompletionFlag() => _isCompleted = false;
+    internal static void ResetSeedFlag() => Interlocked.Exchange(ref _seeded, 0);
 }
 ```
 
 | Аспект | Описание |
 |--------|----------|
-| **Хранение флага** | `static volatile bool _isCompleted` — общий для всех экземпляров в рамках процесса. |
+| **Хранение флага** | `static int _seeded` + `Interlocked.CompareExchange(ref _seeded, 1, 0)` — атомарный test-and-set. Гарантирует ровно один «победитель» среди конкурирующих итераций в рамках процесса. |
 | **Назначение** | Если retry-middleware повторно вызывает `ExecuteAsync` (например, в первой попытке был `DbUpdateException` из-за блокировки), второй и последующие вызовы мгновенно выходят. |
-| **Гарантии** | Гарантирует **не более одного выполнения `ApplySeedsAsync` за время жизни процесса**. Не защищает от параллельного запуска нескольких инстансов сервиса на одной БД — для этого полагайтесь на таблицу `seed`. |
-| **`ResetCompletionFlag`** | `internal static` метод. Существует **исключительно для unit-тестов** `Shared.Application.Core.Tests`, где каждый `[Fact]` должен стартовать из «чистого» состояния. В production-коде вызывать не нужно — статический флаг уже удерживается процессом, а задача `OnStartup` выполняется ровно один раз. Помечен `internal`, чтобы случайное использование из бизнес-кода приводило к ошибке компиляции. |
+| **Сброс при ошибке** | Если `ApplySeedsAsync` бросил исключение, флаг сбрасывается через `Interlocked.Exchange(ref _seeded, 0)` — следующая retry-итерация получает шанс выполнить сиды снова. |
+| **Гарантии** | Гарантирует **не более одного выполнения `ApplySeedsAsync` за время жизни процесса** при условии, что хотя бы один вызов завершился успешно. Не защищает от параллельного запуска нескольких инстансов сервиса на одной БД — для этого полагайтесь на таблицу `seed`. |
+| **`ResetSeedFlag`** | `internal static` метод. Существует **исключительно для unit-тестов** `Shared.Application.Core.Tests`, где каждый `[Fact]` должен стартовать из «чистого» состояния. В production-коде вызывать не нужно — статический флаг уже удерживается процессом, а задача `OnStartup` выполняется ровно один раз. Помечен `internal`, чтобы случайное использование из бизнес-кода приводило к ошибке компиляции. |
 
 ### 6.4. Связь с обычным `IDbUpdater.Initialize()`
 

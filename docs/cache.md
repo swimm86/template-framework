@@ -29,8 +29,8 @@ public class DirectoriesQueryHandler(IServiceProvider serviceProvider)
     }
 }
 
-// 3. Кэш + автоматическое обновление по расписанию (Quartz)
-services.RegisterCacheJob(
+// 3. Кэш + автоматическое обновление по расписанию
+services.AddCronCacheJob(
     "directories",
     "0 0/30 * * * ?", // каждые 30 минут
     async sp =>
@@ -78,9 +78,12 @@ public class CacheService<TData>(
 
 | Элемент | Назначение |
 |---------|-----------|
+| `_cache` (`IMemoryCache`) | Резолвится через `serviceProvider.GetRequiredService<IMemoryCache>()` |
 | `_sync` (object lock) | Блокировка на уровне экземпляра для сериализации доступа |
 | `_cacheCreationTask` | Хранит ссылку на текущую задачу загрузки |
 | `IsCompleted` check | Если задача уже выполняется — возвращает её, не создавая новую |
+
+> **Замечание о реализации (`CacheService.cs:27`):** поле `_cache` инициализируется inline через `serviceProvider.GetRequiredService<IMemoryCache>()`. Поскольку `serviceProvider` приходит через primary constructor и доступен в момент инстанцирования, это корректно по семантике. Однако такое использование зависит от того, что `IMemoryCache` уже зарегистрирован в корневом контейнере (его добавляет `RegisterCacheService` через `AddMemoryCache()`).
 
 ### Алгоритм UpdateCacheAsync
 
@@ -244,34 +247,37 @@ public class CacheNotFoundException(string cacheKey)
 
 ---
 
-## Scheduled Cache Refresh с Quartz
+## Scheduled Cache Refresh — AddCronCacheJob / AddFlagsCacheJob
 
-`QuartzJobRegistrar.RegisterCacheJob<TData>` объединяет регистрацию кэша и Quartz-задачи для автоматического обновления кэша по расписанию.
+**Assembly / Namespace:** `Shared.Application.Core.dll` / `Shared.Application.Core.Job.Cache.Extensions`
+**Исходник:** `src/Shared/Core/Shared.Application.Core/Job/Cache/Extensions/ServiceCollectionExtensions.cs`
 
-### RegisterCacheJob с CRON
+> **Важно:** методы `QuartzJobRegistrar.RegisterCacheJob<TData>` **не существуют** в текущей кодовой базе. Регистрация кэш-джоб выполняется через `AddCronCacheJob<TData>` / `AddFlagsCacheJob<TData>` из `Shared.Application.Core.Job.Cache.Extensions.ServiceCollectionExtensions`. Кеш-слой **не зависит напрямую от Quartz** — он опирается на абстракцию `IScheduledJob` и `JobSchedule`. Выбор провайдера (`Shared.Infrastructure.Job.Quartz` или `Shared.Infrastructure.Job.Hangfire`) определяется project reference сервиса.
+
+### AddCronCacheJob<TData>
 
 ```csharp
-public static IServiceCollection RegisterCacheJob<TData>(
-    this IServiceCollection serviceCollection,
+public static IServiceCollection AddCronCacheJob<TData>(
+    this IServiceCollection services,
     string cacheKey,
     string cronExpression,
-    Func<IServiceProvider, Task<TData>> getOrCreateCacheFunc)
+    Func<IServiceProvider, Task<TData>> getOrCreateFunc)
 ```
 
 **Что делает:**
-1. Вызывает `RegisterCacheService(cacheKey, getOrCreateCacheFunc)` — регистрирует кэш
-2. Вызывает `RegisterJob("{cacheKey}.job", cronExpression, ...)` — регистрирует Quartz-задачу
-3. Задача вызывает `cacheService.UpdateCacheAsync()` — обновляет кэш по расписанию
+1. Вызывает `RegisterCacheService(cacheKey, getOrCreateFunc)` — регистрирует `ICacheService<TData>` как keyed singleton + `AddMemoryCache()`
+2. Регистрирует фоновую задачу через `AddJobs(...)` с расписанием `JobSchedule.Cron(cronExpression)`
+3. Действие задачи резолвит `ICacheService<TData>` по ключу и вызывает `UpdateCacheAsync()`
 
-### RegisterCacheJob с JobTriggerFlags
+### AddFlagsCacheJob<TData>
 
 ```csharp
-public static IServiceCollection RegisterCacheJob<TData>(
-    this IServiceCollection serviceCollection,
+public static IServiceCollection AddFlagsCacheJob<TData>(
+    this IServiceCollection services,
     string cacheKey,
-    JobTriggerFlags trigger,
+    JobTriggerFlags flags,
     TimeSpan specificTime,
-    Func<IServiceProvider, Task<TData>> getOrCreateCacheFunc)
+    Func<IServiceProvider, Task<TData>> getOrCreateFunc)
 ```
 
 Альтернатива CRON — использование флагов триггеров:
@@ -292,7 +298,7 @@ public static IServiceCollection RegisterCacheJob<TData>(
 **CRON-выражение — каждые 5 минут:**
 
 ```csharp
-services.RegisterCacheJob(
+services.AddCronCacheJob(
     "test",
     "0 0/5 * * * ?",
     _ => Task.FromResult(Enumerable.Range(0, 10).Select(i => $"item {i}").ToArray()));
@@ -301,18 +307,22 @@ services.RegisterCacheJob(
 **Флаги — ежедневно + каждую минуту:**
 
 ```csharp
-services.RegisterCacheJob(
+services.AddFlagsCacheJob(
     "test",
     JobTriggerFlags.Daily | JobTriggerFlags.EveryMinute,
     new TimeSpan(0, 0, 0, 0),
     _ => Task.FromResult(Enumerable.Range(0, 10).Select(i => $"item {i}").ToArray()));
 ```
 
+### Custom CacheUpdateJob<TData>
+
+Для случаев, когда логика обновления кэша нетривиальна (зависит от нескольких сервисов, требует lifecycle-обработки и т.п.), существуют перегрузки `AddCronCacheJob<TJob, TData>` / `AddFlagsCacheJob<TJob, TData>`, принимающие тип джоба, наследующий `CacheUpdateJob<TData>`. Сам `TJob` регистрируется в DI, а метод `GetCacheDataAsync()` используется как `getOrCreateFunc`.
+
 ### Интеграция с CQRS
 
 ```csharp
 // Program.cs — регистрация
-services.RegisterCacheJob(
+services.AddCronCacheJob(
     "person-cache",
     "0 0/15 * * * ?", // каждые 15 минут
     async sp =>
@@ -343,8 +353,6 @@ public class PersonListQueryHandler(IServiceProvider serviceProvider)
     }
 }
 ```
-
----
 
 ---
 

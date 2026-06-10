@@ -6,7 +6,7 @@
 
 ## 1. Фоновая задача: `HelloWorldJob`
 
-`F:\template\src\Services\Bff\Template.Bff.Application\Jobs\HelloWorldJob.cs`:
+`src/Services/Bff/Template.Bff.Application/Jobs/HelloWorldJob.cs`:
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -76,7 +76,7 @@ app.Run();
 **Quartz (по умолчанию):**
 
 ```xml
-<!-- F:\template\src\Services\Bff\Template.Bff.Application\Template.Bff.Application.csproj -->
+<!-- src/Services/Bff/Template.Bff.Application/Template.Bff.Application.csproj -->
 <ItemGroup>
   <ProjectReference Include="..\..\..\Shared\Job\Shared.Infrastructure.Job.Quartz\Shared.Infrastructure.Job.Quartz.csproj" />
 </ItemGroup>
@@ -98,10 +98,13 @@ app.Run();
 
 ```csharp
 #if USE_HANGFIRE
-    services.AddHangfire(...);
+    services.AddHangfire(config => config.UseInMemoryStorage());
+    services.AddHangfireServer();
     services.AddSingleton<IJobScheduler, HangfireJobScheduler>();
 #else
-    services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+    services.AddQuartz(configure => configure
+        .UseMicrosoftDependencyInjectionJobFactory()
+        .UseInMemoryStore());
     services.AddSingleton<IJobScheduler, QuartzJobScheduler>();
 #endif
 ```
@@ -111,14 +114,14 @@ app.Run();
 ## 6. Доказательство в коде: Bff содержит `HelloWorldJob`, без Quartz-импортов
 
 ```powershell
-PS> Get-ChildItem -Path F:\template\src\Services\Bff\Template.Bff.Application\Jobs -Recurse -Include *.cs |
+PS> Get-ChildItem -Path src\Services\Bff\Template.Bff.Application\Jobs -Recurse -Include *.cs |
       ForEach-Object { Select-String -Path $_.FullName -Pattern 'using (Quartz|Hangfire)' }
 # Должно вернуть 0 строк.
 ```
 
 ## 7. Скрипт-переключатель (опционально)
 
-Создайте `F:\template\src\Services\Bff\Template.Bff.Api\switch-provider.sh` (для Linux/macOS) или `.ps1` (для Windows):
+Создайте `src/Services/Bff/Template.Bff.Api/switch-provider.sh` (для Linux/macOS) или `.ps1` (для Windows):
 
 ### PowerShell
 
@@ -130,7 +133,7 @@ param(
     [string]$Provider
 )
 
-$csproj = "F:\template\src\Services\Bff\Template.Bff.Api\Template.Bff.Api.csproj"
+$csproj = "src/Services/Bff/Template.Bff.Api/Template.Bff.Api.csproj"
 $content = Get-Content $csproj -Raw
 
 $content = $content -replace 'Shared\\Infrastructure\\Job\\Quartz', "Shared\Infrastructure\Job\$Provider"
@@ -147,7 +150,7 @@ Write-Host "Provider switched to $Provider"
 # switch-job-provider.sh
 set -e
 PROVIDER=${1:-Quartz}
-CSPROJ="F:\template\src\Services\Bff\Template.Bff.Api\Template.Bff.Api.csproj"
+CSPROJ="src/Services/Bff/Template.Bff.Api/Template.Bff.Api.csproj"
 
 sed -i "s|Shared.Infrastructure.Job.Quartz|Shared.Infrastructure.Job.${PROVIDER}|g" "$CSPROJ"
 sed -i "s|Shared.Infrastructure.Job.Hangfire|Shared.Infrastructure.Job.${PROVIDER}|g" "$CSPROJ"
@@ -181,4 +184,3 @@ chmod +x switch-job-provider.sh
 | [Architecture](architecture.md) | Слои |
 | [Quartz Adapter](quartz-adapter.md) | Quartz-реализация |
 | [Hangfire Adapter](hangfire-adapter.md) | Hangfire-реализация |
-| [Migration Guide](migration-guide.md) | С `QuartzJobWrapper` на `IScheduledJob` |
