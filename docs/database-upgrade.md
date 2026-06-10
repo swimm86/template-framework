@@ -2,8 +2,9 @@
 
 ## Обзор
 
-**Assembly:** `Shared.Utils.DatabaseUpgrade.dll`  
+**Assembly:** `Shared.Utils.DatabaseUpgrade.dll`
 **Namespace:** `Shared.Utils.DatabaseUpgrade`
+**Исходники:** `src/Shared/Utils/Shared.Utils.DatabaseUpgrade/` (`DbMigrator.cs`, `DbUtils.cs`)
 
 Утилита для выполнения SQL-миграций на PostgreSQL с использованием библиотеки **DbUp**. Поддерживает выполнение embedded-скриптов из сборки, автоматическое создание базы данных при отсутствии и CLI-интерфейс для запуска миграций.
 

@@ -16,6 +16,8 @@
 
 ### Структура Template-сервиса
 
+Общий слой (общий для всех HTTP-сервисов):
+
 ```
 src/Services/Common/
 ├── Template.Domain/              # Ядро: сущности, интерфейсы
@@ -23,8 +25,22 @@ src/Services/Common/
 ├── Template.Infrastructure/      # Внешние интеграции: API-клиенты
 ├── Template.Infrastructure.Dal/  # БД: DbContext, конфигурации, репозитории
 ├── Template.Infrastructure.Mapping/ # AutoMapper-профили
-└── Template.Presentation/        # Контроллеры, CORS, Swagger-настройки
+└── Template.Presentation/        # Контроллеры, CORS, Swagger-настройки (общий)
 ```
+
+Каждый HTTP-сервис добавляет свой `*.Api`-проект (точка входа), `Controllers/Base/{Service}ControllerBase` с атрибутами маршрутизации и может наследовать `UseCommonPresentation()` (либо определить собственный `UseProductPresentation()`):
+
+```
+src/Services/Getter/
+└── Template.Getter.Api/
+    ├── Controllers/
+    │   ├── Base/GetterControllerBase.cs   # [AppName("Template")] + [ControllerType("getter")]
+    │   └── PersonsController.cs
+    ├── Program.cs
+    └── appsettings.json
+```
+
+> Если HTTP-сервис не использует общий `Template.Presentation`, контроллеры и Swagger-конфигурация могут жить прямо в `*.Api`-проекте. Но в `Template` все HTTP-сервисы (Bff/Getter/Setter) ссылаются на общий `Template.Presentation` (`src/Services/Common/Template.Presentation/`).
 
 ---
 
@@ -50,10 +66,13 @@ dotnet new classlib -n ProductService.Infrastructure.Dal -o src/Services/Product
 # Infrastructure.Mapping — библиотека классов
 dotnet new classlib -n ProductService.Infrastructure.Mapping -o src/Services/Product/ProductService.Infrastructure.Mapping
 
-# Presentation — библиотека классов
+# Presentation — библиотека классов (общий для нескольких HTTP-сервисов в Template).
+# В Template этот слой расположен в src/Services/Common/Template.Presentation/ и переиспользуется
+# Bff/Getter/Setter. Если вы делаете изолированный сервис — можете держать Presentation в нём.
 dotnet new classlib -n ProductService.Presentation -o src/Services/Product/ProductService.Presentation
 
-# Api — веб-приложение (точка входа)
+# Api — веб-приложение (точка входа). Обязателен для HTTP-сервиса: сюда выносятся
+# Controllers/Base/{Service}ControllerBase.cs, Program.cs, appsettings.json.
 dotnet new web -n ProductService.Api -o src/Services/Product/ProductService.Api
 ```
 
@@ -201,8 +220,8 @@ Api ──► Presentation ──► Infrastructure.Mapping ──► Infrastruc
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Common\ProductService.Presentation\ProductService.Presentation.csproj" />
-    <!-- Или напрямую, если Common-слоя нет -->
+    <ProjectReference Include="..\ProductService.Presentation\ProductService.Presentation.csproj" />
+    <!-- В Template Bff/Getter/Setter ссылаются на общий ..\..\Common\Template.Presentation\Template.Presentation.csproj -->
   </ItemGroup>
   <!-- StyleDoc как в Domain -->
 </Project>
@@ -337,7 +356,7 @@ public class ProductValidationHandler
     public override string[] RequiredNavigationProperties => [];
 
     protected override Task ExecuteActionAsync(
-        ICollection<Product> entities,
+        IEnumerable<Product> entities,
         CancellationToken cancellationToken)
     {
         foreach (var product in entities)
@@ -369,24 +388,30 @@ ProductService.Application/
 │   └── Dto/
 │       └── Product/
 │           ├── Requests/
-│           │   └── ProductListRequest.cs
+│           │   ├── ProductListRequest.cs
+│           │   └── ProductFilter.cs
 │           └── Responses/
-│               └── ProductPayload.cs
+│               ├── ProductPayload.cs
+│               └── ProductListResponse.cs
 ├── Features/
-│   └── ProductFeature/
-│       └── Cqrs/
-│           ├── Commands/
-│           │   ├── CreateProductCommand.cs
-│           │   ├── CreateProductCommandHandler.cs
-│           │   ├── UpdateProductCommand.cs
-│           │   ├── UpdateProductCommandHandler.cs
-│           │   ├── DeleteProductCommand.cs
-│           │   └── DeleteProductCommandHandler.cs
-│           └── Queries/
-│               ├── ProductReadListQuery.cs
-│               └── ProductReadListQueryHandler.cs
-└── Interfaces/          # Сервисные интерфейсы (если не CQRS)
+│   └── Product/                          # без суффикса Feature
+│       └── Cqrs/                         # в Getter
+│           ├── Commands/                 # структура в Template.Getter
+│           │   └── Create/...            # (на примере Setter — Create/CreateCommand.cs)
+│           └── List/                     # в Bff — Features/Queries/Person/Cqrs/List/
+│               ├── PersonListQuery.cs
+│               ├── PersonReadListQueryHandler.cs
+│               └── Validators/PersonListQueryValidator.cs
+└── Interfaces/                           # Сервисные интерфейсы (если не CQRS)
     └── IProductService.cs
+```
+
+> Реальные раскладки в `Template`:
+> - `Template.Getter.Application` — `Features/Person/Cqrs/List/` (без `Queries/`-прослойки)
+> - `Template.Bff.Application` — `Features/Queries/Person/Cqrs/List/` (с `Queries/`-прослойкой)
+> - `Template.Setter.Application` — `Features/Person/Create/` (CQRS-команды по доменному действию)
+>
+> Оба варианта валидны; выберите один и придерживайтесь его в рамках сервиса.
 ```
 
 ### DependencyInjector
@@ -434,6 +459,8 @@ public class DependencyInjector(
 
 ### Пример ReadListQuery
 
+`ReadListQuery` имеет 3 generic-параметра: `<TRequest, TFilter, TResponse>` (см. `src/Shared/Core/Shared.Application.Cqrs.Core/Abstractions/Queries/Requests/ReadListQuery.cs`). Параметр `TPayload` в нём отсутствует — `TPayload` фигурирует только в `ReadListQueryHandler`.
+
 ```csharp
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 
@@ -444,12 +471,12 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Queries;
 /// </summary>
 public sealed record ProductReadListQuery(
     ProductListRequest Request)
-    : ReadListQuery<ProductListRequest, ProductFilter, ProductListResponse, ProductPayload>(Request);
+    : ReadListQuery<ProductListRequest, ProductFilter, ProductListResponse>(Request);
 ```
 
 ### Пример ReadListQueryHandler
 
-Наследуется от `ReadListQueryHandler<...>` — получает `IUnitOfWork` и пагинацию «из коробки»:
+`ReadListQueryHandler` имеет 6 generic-параметров: `<TQuery, TRequest, TFilter, TResponse, TPayload, TEntity>` (см. `src/Shared/Core/Shared.Application.Cqrs.Core/Abstractions/Queries/Handlers/ReadListQueryHandler.cs`). Получает `IUnitOfWork` и пагинацию «из коробки»:
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -464,8 +491,13 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Queries;
 public sealed class ProductReadListQueryHandler(
     ILoggerFactory loggerFactory,
     IUnitOfWork unitOfWork)
-    : ReadListQueryHandler<ProductReadListQuery, ProductListRequest, ProductFilter,
-        ProductListResponse, ProductPayload, Product>(loggerFactory, unitOfWork)
+    : ReadListQueryHandler<
+        ProductReadListQuery,
+        ProductListRequest,
+        ProductFilter,
+        ProductListResponse,
+        ProductPayload,
+        Product>(loggerFactory, unitOfWork)
 {
 }
 ```
@@ -486,9 +518,14 @@ public sealed record CreateProductCommand(
 ```
 
 ```csharp
+using FluentValidation;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Cqrs.Core.Abstractions;
+using Shared.Application.Core.Auth;
+using Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Mapping.Interfaces;
+using ProductService.Application.Abstractions.Dto.Product.Requests;
+using ProductService.Application.Abstractions.Dto.Product.Responses;
 using ProductService.Domain.Entities;
 
 namespace ProductService.Application.Features.ProductFeature.Cqrs.Commands;
@@ -497,22 +534,33 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Commands;
 /// Handler команды создания продукта.
 /// </summary>
 public sealed class CreateProductCommandHandler(
+    ILoggerFactory loggerFactory,
+    IMapper mapper,
     IUnitOfWork unitOfWork,
-    ILoggerFactory loggerFactory)
-    : EntityRequestHandler<CreateProductCommand, ProductResponse, Product>(unitOfWork, loggerFactory)
+    IEnumerable<IValidator<Product>> validators,
+    IUserProvider? userProvider = null)
+    : CreateCommandHandler<
+        CreateProductCommand,
+        CreateProductRequest,
+        Product,
+        ProductPayload,
+        ProductResponse>(loggerFactory, mapper, unitOfWork, validators, userProvider)
 {
-    /// <inheritdoc />
-    public override async Task<ProductResponse> Handle(
-        CreateProductCommand command,
-        CancellationToken cancellationToken)
-    {
-        var product = Product.Create(command.Request.Name, command.Request.Price);
-        await Repository.AddAsync(product, null, null, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return new ProductResponse { Payload = new ProductPayload { Id = product.Id } };
-    }
+    /// <summary>
+    /// Переопределение маппинга сущности в ответ.
+    /// </summary>
+    /// <param name="entity">Созданная сущность.</param>
+    /// <returns>Ответ с полезной нагрузкой.</returns>
+    protected override ProductResponse CreateResponseDto(Product entity) =>
+        new()
+        {
+            Id = entity.Id,
+            Payload = mapper.Map<Product, ProductPayload>(entity),
+        };
 }
 ```
+
+> Наследование от `CreateCommandHandler<, , , ,>` с **5** generic-параметрами обязательно: этот абстрактный класс инкапсулирует `GuardAsync`, `ValidateAsync`, `Repository.AddAsync`, `SaveChangesAsync` и установку `StatusCode = Status201Created`. Concrete handler не может миновать его через `EntityRequestHandler` — компилятор не позволит переопределить `Handle` без полной реализации. Если требуется нестандартное поведение — переопределяйте `CreateAsync` или `CreateResponseDto`, а не `Handle`.
 
 ### EntityRequestHandler
 
@@ -902,9 +950,9 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseProductPresentation(
         this WebApplication app)
     {
-        return app
-            .UsePresentationCore()
-            .UseCors(Constants.CorsDefaultPolicyName);
+        // Если в вашем сервисе есть CORS — добавьте его здесь, как в Template:
+        // .UseCors(Constants.CorsDefaultPolicyName)
+        return app.UsePresentationCore();
     }
 }
 ```
@@ -983,7 +1031,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.ImplementDependencies();
 
 var app = builder.Build();
-app.UseProductPresentation();
+
+// Шаг 7 (HTTP-сервис): вызвать свой собственный UseProductPresentation() / UseCommonPresentation()
+// из собственного Presentation-слоя. В Template используется UseCommonPresentation()
+// (см. src/Services/Common/Template.Presentation/Extensions/ApplicationBuilderExtensions.cs).
+app.UseCommonPresentation();
 
 app.Run();
 ```
@@ -1113,16 +1165,21 @@ public class ProductListRequest : PageableRequest<ProductFilter>;
 
 ```csharp
 // ProductService.Application/Abstractions/Dto/Product/Requests/ProductFilter.cs
-using Shared.Application.Core.Dto.Requests;
-using Shared.Domain.Core.Dal.Models;
-
 namespace ProductService.Application.Abstractions.Dto.Product.Requests;
 
 /// <summary>
 /// Фильтр для списка продуктов.
 /// </summary>
-public class ProductFilter : ListFilterBase;
+public class ProductFilter
+{
+    /// <summary>
+    /// Часть наименования для поиска.
+    /// </summary>
+    public string? NameContains { get; init; }
+}
 ```
+
+> Наследование от `ListFilterBase` (`Shared.Application.Cqrs.Core.Abstractions.BaseListFilter`) опционально. Базовый фильтр даёт `Ids` — фильтрацию по набору идентификаторов через `ReadListQueryHandler.ConstructOptions`. Если выборка по `Ids` не требуется, фильтр может быть обычным классом (как в `Template.Getter.PersonListFilter`).
 
 ```csharp
 // ProductService.Application/Abstractions/Dto/Product/Requests/CreateProductRequest.cs
@@ -1210,7 +1267,7 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Queries;
 /// </summary>
 public sealed record ProductReadListQuery(
     ProductListRequest Request)
-    : ReadListQuery<ProductListRequest, ProductFilter, ProductListResponse, ProductPayload>(Request);
+    : ReadListQuery<ProductListRequest, ProductFilter, ProductListResponse>(Request);
 ```
 
 ```csharp
@@ -1228,8 +1285,13 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Queries;
 public sealed class ProductReadListQueryHandler(
     ILoggerFactory loggerFactory,
     IUnitOfWork unitOfWork)
-    : ReadListQueryHandler<ProductReadListQuery, ProductListRequest, ProductFilter,
-        ProductListResponse, ProductPayload, Product>(loggerFactory, unitOfWork)
+    : ReadListQueryHandler<
+        ProductReadListQuery,
+        ProductListRequest,
+        ProductFilter,
+        ProductListResponse,
+        ProductPayload,
+        Product>(loggerFactory, unitOfWork)
 {
 }
 ```
@@ -1254,9 +1316,13 @@ public sealed record CreateProductCommand(
 
 ```csharp
 // ProductService.Application/Features/ProductFeature/Cqrs/Commands/CreateProductCommandHandler.cs
+using FluentValidation;
 using Microsoft.Extensions.Logging;
-using Shared.Application.Cqrs.Core.Abstractions;
+using Shared.Application.Core.Auth;
+using Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Domain.Core.Mapping.Interfaces;
+using ProductService.Application.Abstractions.Dto.Product.Requests;
 using ProductService.Application.Abstractions.Dto.Product.Responses;
 using ProductService.Domain.Entities;
 
@@ -1266,23 +1332,29 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Commands;
 /// Handler команды создания продукта.
 /// </summary>
 public sealed class CreateProductCommandHandler(
+    ILoggerFactory loggerFactory,
+    IMapper mapper,
     IUnitOfWork unitOfWork,
-    ILoggerFactory loggerFactory)
-    : EntityRequestHandler<CreateProductCommand, ProductResponse, Product>(unitOfWork, loggerFactory)
+    IEnumerable<IValidator<Product>> validators,
+    IUserProvider? userProvider = null)
+    : CreateCommandHandler<
+        CreateProductCommand,
+        CreateProductRequest,
+        Product,
+        ProductPayload,
+        ProductResponse>(loggerFactory, mapper, unitOfWork, validators, userProvider)
 {
-    /// <inheritdoc />
-    public override async Task<ProductResponse> Handle(
-        CreateProductCommand command,
-        CancellationToken cancellationToken)
-    {
-        var product = Product.Create(command.Request.Name, command.Request.Price);
-        await Repository.AddAsync(product, null, null, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return new ProductResponse
+    /// <summary>
+    /// Переопределение маппинга сущности в ответ.
+    /// </summary>
+    /// <param name="entity">Созданная сущность.</param>
+    /// <returns>Ответ с полезной нагрузкой.</returns>
+    protected override ProductResponse CreateResponseDto(Product entity) =>
+        new()
         {
-            Payload = new ProductPayload { Id = product.Id, Name = product.Name, Price = product.Price },
+            Id = entity.Id,
+            Payload = mapper.Map<Product, ProductPayload>(entity),
         };
-    }
 }
 ```
 
@@ -1502,7 +1574,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.ImplementDependencies();
 
 var app = builder.Build();
-app.UseProductPresentation();
+app.UseCommonPresentation();
 
 app.Run();
 ```

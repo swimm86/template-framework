@@ -9,8 +9,8 @@
 ## 🚀 Quick Start
 
 ```csharp
-// Program.cs — middleware добавляется автоматически через ConfigurePresentationCore
-app.ConfigurePresentationCore(); // внутри регистрирует CorrelationIdMiddleware
+// Program.cs — middleware добавляется автоматически через UsePresentationCore
+app.UsePresentationCore(); // внутри регистрирует CorrelationIdMiddleware
 
 // NLog config — добавление correlation ID в layout
 <target xsi:type="Console" name="console">
@@ -141,11 +141,11 @@ public static bool TryAddCorrelationId(this HttpRequest? request)
 
 ### Регистрация Middleware
 
-Middleware регистрируется автоматически при вызове `ConfigurePresentationCore()`:
+Middleware регистрируется автоматически при вызове `UsePresentationCore()`:
 
 ```csharp
 // Program.cs
-app.ConfigurePresentationCore(); // CorrelationIdMiddleware добавляется внутрь
+app.UsePresentationCore(); // CorrelationIdMiddleware добавляется внутрь
 ```
 
 Если регистрируете вручную — middleware должен быть **как можно раньше** в pipeline:
@@ -397,7 +397,7 @@ public class JobCorrelationIdLayoutRenderer : LayoutRenderer
 | Метод | Описание |
 |-------|----------|
 | `HttpRequestExtensions.GetCorrelationId(this HttpRequest)` | Извлекает `X-Correlation-Id` из заголовков запроса |
-| `HttpRequestExtensions.TryAddCorrelationId(this HttpRequest, Guid correlationId)` | Добавляет Correlation ID в заголовки запроса (для ApiClient) |
+| `HttpRequestExtensions.TryAddCorrelationId(this HttpRequest?)` | Добавляет сгенерированный `Guid.NewGuid()` в заголовок запроса, если валидное значение отсутствует |
 | `HttpContextAccessorExtensions.GetCorrelationId(this IHttpContextAccessor)` | Удобный доступ к Correlation ID через `IHttpContextAccessor` |
 
 Константа `CorrelationIdHeader = "X-Correlation-Id"` используется как имя заголовка.

@@ -30,7 +30,7 @@ Job Scheduler спроектирован в соответствии с трем
 │                RetryMiddleware, RetryOptions                           │
 │  Extensions:   ServiceCollectionExtensions (AddJobs),                  │
 │                CacheJobExtensions, DbSeederExtensions,                 │
-│                ScheduledJobExtensions, CacheUpdateJob, DbSeederJob     │
+│                CacheUpdateJob, DbSeederJob                             │
 │                                                                        │
 │  Зависимости: только Shared.* Core, БЕЗ Quartz, БЕЗ Hangfire.          │
 └────────────────────────────────────────────────────────────────────────┘
@@ -105,7 +105,7 @@ Job Scheduler решает это через **middleware-pipeline** по ана
 2. Пересобрать. Если есть лямбда-джобы — заменить их на классовые (Hangfire не сериализует closure);
 3. Запустить тесты.
 
-Бизнес-джобы не меняются вообще. Подробности — в [Migration Guide](migration-guide.md) и [Zero-Touch Proof](zero-touch-proof.md).
+Бизнес-джобы не меняются вообще. Подробности — в [Zero-Touch Proof](zero-touch-proof.md).
 
 ## Поток выполнения
 
@@ -183,7 +183,5 @@ Job Scheduler решает это через **middleware-pipeline** по ана
 | [Pipeline](pipeline.md) | Подробности о middleware и executor |
 | [Quartz Adapter](quartz-adapter.md) | Конкретная Quartz-реализация |
 | [Hangfire Adapter](hangfire-adapter.md) | Конкретная Hangfire-реализация |
-| [Design](design.md) | Контракты и обоснование |
-| [Migration Guide](migration-guide.md) | Переезд с `QuartzJobWrapper` |
 | [Zero-Touch Proof](zero-touch-proof.md) | Доказательство нулевых правок при смене провайдера |
 | [Pipeline Behaviors](../pipeline-behaviors.md) | Аналог для MediatR (концептуально близок) |

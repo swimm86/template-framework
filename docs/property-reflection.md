@@ -3,7 +3,7 @@
 ## Обзор
 
 **Assembly:** `Shared.Domain.Core.dll`  
-**Namespaces:** `Shared.Domain.Core.Utils`, `Shared.Domain.Core.Utils.Interfaces`, `Shared.DomainCore.Converters`, `Shared.Domain.Core.Converters.Interfaces`
+**Namespaces:** `Shared.Domain.Core.Utils`, `Shared.Domain.Core.Utils.Interfaces`, `Shared.Domain.Core.Converters`, `Shared.Domain.Core.Converters.Interfaces`
 
 Утилиты для доступа к свойствам объектов через **compiled expression trees** вместо обычной reflection. Используются в ApiClient для сериализации multipart form data и других сценариях, где требуется частый доступ к свойствам по имени.
 

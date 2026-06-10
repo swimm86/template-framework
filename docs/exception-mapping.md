@@ -187,9 +187,6 @@ private static Dictionary<Type, IExceptionMapper> CreateMap(IEnumerable<IExcepti
 ```csharp
 public record ErrorResponse : ResponseBase, IWithAdditionalData
 {
-    /// HTTP-статус код ответа
-    public int StatusCode { get; init; }
-
     /// Коллекция ProblemDetails (RFC 7807)
     public IReadOnlyCollection<ProblemDetails> Errors { get; init; }
 
@@ -200,6 +197,8 @@ public record ErrorResponse : ResponseBase, IWithAdditionalData
     public IReadOnlyDictionary<string, object>? AdditionalData { get; init; }
 }
 ```
+
+> `StatusCode` наследуется от `ResponseBase` как мутабельное свойство (`{ get; set; }`) и помечено `[JsonIgnore]`, чтобы не сериализоваться в тело ответа. HTTP-статус выставляется отдельно в `ExceptionHandler.TryHandleAsync` через `httpContext.Response.StatusCode = response.StatusCode`.
 
 ### Переопределяемые методы
 
@@ -485,7 +484,7 @@ builder.Services.AddExceptionHandling();
 
 `AppExceptionMapperBase` использует `ExceptionFormattingPool` — пул объектов `StringBuilder` (`DefaultObjectPool<StringBuilder>`) с политикой `StringBuilderPolicy`. Это снижает аллокации в hot path при форматировании исключений с глубоким стеком вызовов.
 
-Если вы создаёте собственный маппер с интенсивной работой со строками, используйте `DefaultObjectPoolExtensions.UsePool<T>()` / `UsePoolAsync<T>()` для аналогичной оптимизации.
+Если вы создаёте собственный маппер с интенсивной работой со строками, используйте `DefaultObjectPoolExtensions.UsePool<TPoolObject>()` / `UsePoolAsync<TPoolObject>()` / `UsePoolAsync<TPoolObject, TReturnValue>()` для аналогичной оптимизации.
 
 ---
 

@@ -20,7 +20,7 @@
 ## 🏗 Архитектура взаимодействия
 
 ```
-┌─────────────┐  HTTP GET   ┌─────────────┐  HTTP GET   ┌─────────────┐
+┌─────────────┐  HTTP POST  ┌─────────────┐  HTTP POST  ┌─────────────┐
 │  BFF API    │────────────▶│  Getter API │────────────▶│  Setter API │
 │  (Frontend) │◀────────────│   (Read)    │◀────────────│  (Write)    │
 └─────────────┘  Response   └─────────────┘  Response   └─────────────┘
@@ -28,10 +28,12 @@
 
 | Поток | Клиент | Метод | Описание |
 |-------|--------|-------|----------|
-| BFF → Getter | `IGetterClient` | `GET /api/persons` | Получение списка персон с фильтрацией |
-| BFF → Setter | `ISetterClient` | `POST /api/persons` | Создание новой персоны |
+| BFF → Getter | `IGetterClient` | `POST /api/persons/{services\|cqrs}/list` | Получение списка персон с фильтрацией; выбор ветки — через BFF-handler на основе `UseCqrs` |
+| BFF → Setter | `ISetterClient` | `POST /api/persons/create` | Создание новой персоны |
 | Getter → БД | EF Core Repository | `IRepository<Person>` | Чтение через Specification |
 | Setter → БД | EF Core Repository | `IRepository<Person>` | Запись через Unit of Work |
+
+> **BFF вызывает Getter через `POST`** (а не `GET`): тело содержит `PersonListRequest` с фильтрами/пагинацией. Подробнее см. [filtering-sorting-guide.md](filtering-sorting-guide.md).
 
 ---
 
@@ -69,9 +71,9 @@ public class Person : EntityBase<Guid>
 
 | Паттерн | Где показан | Файл |
 |---------|-------------|------|
-| **Query + Handler** | Getter | `Features/Person/Cqrs/List/PersonListQuery.cs` |
-| **Command + Handler** | Setter | `Features/Person/Create/PersonCreateCommand.cs` |
-| **Request/Response models** | BFF | `Person/Cqrs/List/Requests/PersonListRequest.cs` |
+| **Query + Handler** | Getter | `Features/Person/Cqrs/List/PersonListQuery.cs` + `PersonReadListQueryHandler.cs` |
+| **Command + Handler** | Setter | `Features/Person/Create/PersonCreateCommand.cs` + `PersonCreateCommandHandler.cs` |
+| **Request/Response models** | BFF | `Features/Queries/Person/Cqrs/List/Requests/PersonListRequest.cs` |
 | **Validation pipeline** | Setter | `Features/Person/Validators/PersonValidator.cs` |
 
 ### Data Access
@@ -79,7 +81,7 @@ public class Person : EntityBase<Guid>
 | Паттерн | Где показан | Файл |
 |---------|-------------|------|
 | **Repository** | Getter/Setter | `IRepository<Person>` через Shared |
-| **Specification** | Getter | `PersonSpecification` с фильтрацией |
+| **Specification** | Getter | `Specifications/PersonSpecification.cs` |
 | **Entity Configuration** | Common | `Configuration/EntityConfigurations.cs` |
 | **Unit of Work** | Setter | Автоматически через `RepositoryBase` |
 
@@ -87,7 +89,7 @@ public class Person : EntityBase<Guid>
 
 | Паттерн | Где показан | Файл |
 |---------|-------------|------|
-| **AutoMapper Profile** | Common | `MapperProfile.cs` |
+| **AutoMapper Profile** | Common | `src/Services/Common/Template.Infrastructure.Mapping/MapperProfile.cs` |
 | **DTO ↔ Entity** | Все сервисы | `CreateMap<Person, PersonDto>()` |
 
 ### HTTP Client
@@ -125,50 +127,83 @@ public class Person : EntityBase<Guid>
 Bff/
 ├── Template.Bff.Api/                    # Web API
 │   ├── Controllers/                     # PersonController (агрегация)
+│   │   ├── Base/                        # BffControllerBase
+│   │   └── PersonController.cs          # POST /person/list, /person/create
 │   └── DependencyInjection/
 │       └── DependencyInjector.cs        # Регистрация HTTP-клиентов
 ├── Template.Bff.Application/            # CQRS (запросы к другим сервисам)
-│   └── Features/Person/
-│       ├── Cqrs/List/                   # PersonListQuery → GetterClient
-│       └── Cqrs/Create/                 # PersonCreateCommand → SetterClient
-└── Template.Bff.Abstractions/           # Интерфейсы контроллеров
+│   ├── Features/Queries/Person/Cqrs/List/
+│   │   ├── PersonListQuery.cs
+│   │   ├── PersonListQueryHandler.cs    # выбирает GetPersonsPattern по UseCqrs
+│   │   └── Requests/PersonListRequest.cs
+│   ├── HttpClients/                     # GetterClient, SetterClient
+│   ├── Interfaces/HttpClients/          # IGetterClient, ISetterClient
+│   └── HttpClients/Enums/               # GetPersonsPattern (Services | Cqrs)
+└── Template.Bff.Infrastructure/         # Маппинг, конфигурация
+    ├── Mapping/
+    └── DependencyInjection/
 ```
+
+> **Важно:** проекта `Template.Bff.Abstractions` **не существует** — абстракции DTO лежат внутри `Template.Bff.Application`. Контракты, разделяемые с другими сервисами, находятся в `Template.Getter.Application.Abstractions` / `Template.Setter.Application.Abstractions` (см. ниже).
 
 ### Getter (Read Service) — 4 проекта
 
 ```
 Getter/
-├── Template.Getter.Api/                 # Web API
-│   └── Controllers/PersonsController.cs # GET endpoints
-├── Template.Getter.Application/         # CQRS Queries
-│   └── Features/Person/Cqrs/List/       # PersonListQuery + Handler
-├── Template.Getter.Application.Abstractions/
-│   └── Interfaces/IPersonsService.cs    # Контракты
-└── Template.Getter.Infrastructure/      # Specifications, Repositories
-    └── Specifications/PersonSpecification.cs
+├── Template.Getter.Api/                          # Web API
+│   ├── Controllers/PersonsController.cs          # POST endpoints (services/list, cqrs/list)
+│   └── DependencyInjection/
+├── Template.Getter.Application/                  # CQRS Queries, Specifications
+│   ├── Features/Person/Cqrs/List/
+│   │   ├── PersonListQuery.cs
+│   │   ├── PersonReadListQueryHandler.cs
+│   │   └── Validators/
+│   ├── Specifications/PersonSpecification.cs
+│   ├── Services/                                # PersonsService (для ветки Services)
+│   ├── Interfaces/                              # IPersonsService
+│   └── DependencyInjection/
+├── Template.Getter.Application.Abstractions/     # DTO/Request/Response, Enums
+│   ├── Enums/DalPattern.cs
+│   └── Features/Person/List/
+│       ├── Request/PersonListRequest.cs
+│       ├── Request/PersonListFilter.cs
+│       └── Response/PersonListResponse.cs
+└── Template.Getter.Infrastructure/               # EF Core, конфигурации
+    ├── Specifications/
+    ├── Dal/Configuration/
+    ├── Mapping/MapperProfile.cs
+    └── DependencyInjection/
 ```
+
+> **Важно:** `Template.Getter.Application.Abstractions` физически лежит в `Getter/Abstractions/Template.Getter.Application.Abstractions/` (отдельная корневая папка), а не в `Getter/Template.Getter.Application/Abstractions/`. Namespace при этом совпадает: `Template.Getter.Application.Abstractions`.
 
 ### Setter (Write Service) — 4 проекта
 
 ```
 Setter/
 ├── Template.Setter.Api/                          # Web API
-│   └── Controllers/PersonsController.cs          # POST endpoints
-├── Template.Setter.Application/                  # CQRS Commands + handlers
+│   ├── Controllers/PersonsController.cs          # POST /persons/create
+│   └── DependencyInjection/
+├── Template.Setter.Application/                  # CQRS Commands + handlers + Lifecycle + Seeds
 │   ├── Features/Person/Create/
 │   │   ├── PersonCreateCommand.cs                # ICommand + CreateCommand<...>
-│   │   └── PersonCreateCommandHandler.cs         # CreateCommandHandler<...>
-│   └── LifecycleAction/Person/
-│       └── PersonHashLifecycleHandler.cs         # ILifecycleActionHandler<Person>
-├── Template.Setter.Application.Abstractions/      # Общие типы DTO/Request/Response
+│   │   └── PersonCreateCommandHandler.cs
+│   ├── LifecycleAction/Person/                   # ILifecycleActionHandler<Person>
+│   ├── Seeds/PersonSeed.cs                       # [Seed("person", 0)] : ISeed
+│   ├── Validators/PersonValidator.cs
+│   └── DependencyInjection/
+├── Template.Setter.Application.Abstractions/     # Общие типы DTO/Request/Response
 │   └── Features/Person/
-│       ├── Common/Dto/PersonDto.cs               # Базовый DTO
-│       ├── Create/Requests/PersonCreateRequest.cs# : PersonDto
-│       └── Create/Responses/PersonCreateResponse.cs# : CreateResponse<PersonDto>
+│       ├── Common/Dto/                           # (пустая папка — зарезервировано)
+│       ├── Create/Request/PersonCreateRequest.cs
+│       └── Create/Response/PersonCreateResponse.cs
 └── Template.Setter.Infrastructure/               # Mapping, persistence
     ├── Mapping/MapperProfile.cs
-    └── Dal/Configuration/PersonConfigurations.cs
+    ├── Dal/Configuration/PersonConfigurations.cs
+    └── DependencyInjection/
 ```
+
+> **Примечание:** в отличие от Getter, `Features/Person/Create/` (с прописной/строчной `Request/` / `Response/`) находится **внутри** `Template.Setter.Application`, а в `Abstractions/.../Create/` — `Request/`, `Response/` (синглтон-папки). Папки `Requests/`, `Responses/` (множественное число) **не существуют** — опечатка в старой версии документации.
 
 ### Common (Shared between services) — 6 проектов
 
@@ -178,8 +213,10 @@ Setter/
 | `Template.Application` | Общие сервисы, behaviors |
 | `Template.Infrastructure` | HTTP clients, внешние сервисы |
 | `Template.Infrastructure.Dal` | EF Core конфигурации |
-| `Template.Infrastructure.Mapping` | AutoMapper profiles |
+| `Template.Infrastructure.Mapping` | AutoMapper profiles (`src/Services/Common/Template.Infrastructure.Mapping/MapperProfile.cs`) |
 | `Template.Presentation` | Общие DTO, Swagger config |
+
+> **Важно:** `MapperProfile.cs` находится именно в `src/Services/Common/Template.Infrastructure.Mapping/MapperProfile.cs`, **не** в `Common/MapperProfile.cs` (последний путь в старой версии документации был неточным).
 
 ---
 
@@ -191,3 +228,4 @@ Setter/
 - [Api Client](api-client.md) — HTTP-клиенты с валидацией
 - [Mapping](mapping.md) — AutoMapper интеграция
 - [Service Startup](service-startup.md) — bootstrap-флоу
+- [Filtering & Sorting Guide](filtering-sorting-guide.md) — BFF routing Services vs Cqrs

@@ -3,30 +3,48 @@
 **Сборка:** `Shared.Presentation.Core.dll`  
 **Namespace:** `Shared.Presentation.Core.Swagger`  
 **Исходники:** `src/Shared/Core/Shared.Presentation.Core/Swagger/`
+**Пакет:** `Swashbuckle.AspNetCore`
 
 ---
 
 ## 🚀 Quick Start
 
-```csharp
-// Program.cs
-var builder = WebApplication.CreateBuilder(args);
+В `Template` Swagger регистрируется и подключается автоматически — `Program.cs` сводится к двум вызовам. Реальные `Program.cs` сервисов Bff, Getter, Setter выглядят так (`src/Services/Getter/Template.Getter.Api/Program.cs`):
 
-// Регистрация Swagger-сервисов
-builder.Services.AddSwagger();
+```csharp
+using Shared.Presentation.Core.Extensions;
+using Template.Presentation.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.ImplementDependencies();
 
 var app = builder.Build();
-
-// Активация Swagger UI (только Development)
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerConfigured();
-}
+app.UseCommonPresentation();
 
 app.Run();
 ```
 
-Swagger UI доступен по адресу: `https://localhost:<port>/swagger`
+Что происходит «под капотом»:
+
+1. `ImplementDependencies()` (`Shared.Presentation.Core.Extensions.WebApplicationBuilderExtensions`):
+   - Инициализирует `.env`-конфигурацию
+   - Регистрирует контроллеры с конвенциями маршрутизации и `RequestLoggingFilter`
+   - Вызывает `AddReferencedDependencyInjectors()`, который находит ВСЕ наследники `DependencyInjectorBase` из ссылочных сборок и последовательно выполняет их `Inject`. Среди них:
+     - `Shared.Application.Cqrs.Core.DependencyInjection` → `AddMediatR()`
+     - `Shared.Application.Core.DependencyInjection` → регистрация валидаторов, репозиториев, HTTP-аксессора и др.
+     - `Shared.Infrastructure.Core.DependencyInjection` → `AddDelegatingHandlers()`, `AddPrimaryHttpMessageHandlers()`, `AddHttpClients(configuration)` (включая `ApiClientBuilderConfiguratorContext.InitializeApiClientBuilderConfiguratorsMap()`)
+     - `Shared.Presentation.Core.DependencyInjection` → `AddEndpointsApiExplorer()`, `AddSwagger()`, `AddFluentValidation()`, `AddExceptionHandling()`
+     - `Template.Presentation.DependencyInjection` (из `Template.Presentation`) → `ConfigureSwaggerAuth()` + CORS
+
+2. `UseCommonPresentation()` (`Template.Presentation.Extensions.ApplicationBuilderExtensions`):
+   - Вызывает `UsePresentationCore()` (`Shared.Presentation.Core.Extensions.ApplicationBuilderExtensions`):
+     - `UseCorrelationId()` (внутренний extension из `Shared.Presentation.Core.CorrelationId.Extensions`)
+     - В Development — `UseSwaggerConfigured()` (внутренний extension из `Shared.Presentation.Core.Swagger.Extensions`)
+     - `UseExceptionHandler()` (из `Shared.Presentation.Core.Exceptions`)
+     - `UseAuthorization()`, `MapControllers()`
+   - Добавляет `UseCors(Constants.CorsDefaultPolicyName)`
+
+Swagger UI доступен по адресу: `https://localhost:<port>/swagger` (только в Development).
 
 ---
 
@@ -261,10 +279,11 @@ public static IServiceCollection AddSwagger(this IServiceCollection services)
     return services
         .AddSwaggerGen(ConfigureSwaggerGenOptions)
         .Configure<ForwardedHeadersOptions>(options =>
-            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
-                | ForwardedHeaders.XForwardedProto);
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
 }
 ```
+
+> `AddSwagger()` регистрирует не только Swagger-генератор, но и `ForwardedHeadersOptions` для проксирования заголовков `X-Forwarded-For` / `X-Forwarded-Proto`. Эта связка живёт в одном методе намеренно — отдельного `AddForwardedHeaders()`-расширения в проекте нет.
 
 #### Что делает
 
@@ -296,19 +315,25 @@ documentationsPaths.ForEach(xmlFile => options.IncludeXmlComments(xmlFile, true)
 
 **Файл:** `Swagger/Extensions/ApplicationBuilderExtensions.cs`
 
+Класс расширений объявлен как `internal static class`, поэтому `UseSwaggerConfigured` нельзя вызвать напрямую из сервиса. Метод выполняется автоматически из `UsePresentationCore()` в Development-окружении:
+
 ```csharp
-public static IApplicationBuilder UseSwaggerConfigured(
-    this IApplicationBuilder app,
-    Action<SwaggerUIOptions>? setupUiAction = null)
+internal static class ApplicationBuilderExtensions
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(opts =>
+    public static IApplicationBuilder UseSwaggerConfigured(
+        this IApplicationBuilder app,
+        Action<SwaggerUIOptions>? setupUiAction = null)
     {
-        opts.DocExpansion(DocExpansion.None);          // Все endpoint'ы свёрнуты
-        opts.ConfigObject.AdditionalItems.Add("tagsSorter", "alpha");  // Сортировка по алфавиту
-        setupUiAction?.Invoke(opts);                   // Кастомная настройка
-    });
-    return app;
+        app.UseSwagger();
+        app.UseSwaggerUI(opts =>
+        {
+            opts.DocExpansion(DocExpansion.None);
+            opts.ConfigObject.AdditionalItems.Add("tagsSorter", "alpha");
+            setupUiAction?.Invoke(opts);
+        });
+
+        return app;
+    }
 }
 ```
 
@@ -319,81 +344,95 @@ public static IApplicationBuilder UseSwaggerConfigured(
 | `DocExpansion` | `None` | Все endpoint'ы свёрнуты по умолчанию |
 | `tagsSorter` | `alpha` | Контроллеры отсортированы по алфавиту |
 
-#### Кастомизация UI
-
-```csharp
-app.UseSwaggerConfigured(opts =>
-{
-    opts.RoutePrefix = "api-docs";           // Другой URL
-    opts.DocumentTitle = "My API Docs";      // Заголовок страницы
-    opts.SwaggerEndpoint("/swagger/v1/swagger.json", "My API v1");
-});
-```
+Кастомизация `SwaggerUIOptions` возможна только при прямом вызове метода, что в текущей архитектуре не используется (нет публичной точки входа).
 
 ---
 
 ## 🔗 Интеграция с CQRS/Services
 
-### Типичный Program.cs
+### Реальный Program.cs
+
+Все регистрации (`AddMediatR`, `AddFluentValidation`, `AddSwagger`, `AddExceptionHandling`) выполняются автоматически через `DependencyInjectorBase`-классы из Shared-сборок. `Program.cs` сводится к двум вызовам. Реальный пример из `src/Services/Bff/Template.Bff.Api/Program.cs`:
 
 ```csharp
+using Shared.Presentation.Core.Extensions;
+using Template.Presentation.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
-
-// CQRS + MediatR
-builder.Services.AddMediatR();
-
-// FluentValidation
-builder.Services.AddFluentValidation();
-
-// Exception Handling
-builder.Services.AddExceptionHandling();
-
-// Swagger
-builder.Services.AddSwagger();
+builder.ImplementDependencies();
 
 var app = builder.Build();
+app.UseCommonPresentation();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerConfigured();
-}
-
-app.UseExceptionHandler();
-app.MapControllers();
 app.Run();
 ```
 
-### Request DTOs в Swagger
+`UseCommonPresentation()` (`src/Services/Common/Template.Presentation/Extensions/ApplicationBuilderExtensions.cs`) оборачивает `UsePresentationCore()` и добавляет `UseCors(...)`.
+
+### Настройка авторизации в Swagger
+
+В сервисах, где нужен Bearer JWT в Swagger UI, отдельный `ConfigureSwaggerAuth()` подключается через `Template.Presentation.DependencyInjection.DependencyInjector` (`src/Services/Common/Template.Presentation/DependencyInjection/DependencyInjector.cs`):
 
 ```csharp
-[ApiController]
-[Route("api/[controller]")]
-public class PersonsController(IPersonsService personsService) : ControllerBase
+public class DependencyInjector : DependencyInjectorBase
+{
+    protected override IServiceCollection Process(IServiceCollection services)
+    {
+        var allowedOrigins = configuration.GetValue<string>("AllowedOrigins");
+        return services
+            .ConfigureSwaggerAuth()                       // Bearer JWT
+            .AddCors(options => { /* ... */ });
+    }
+}
+```
+
+`ConfigureSwaggerAuth` (`src/Services/Common/Template.Presentation/Swagger/Extensions/DependencyInjectionExtensions.cs`) добавляет `SecurityDefinition` "Bearer" с типом `Http` и схемой `Bearer`, а также требование безопасности, ссылающееся на это определение.
+
+### Request DTOs в Swagger
+
+Реальный `PersonsController` из `src/Services/Getter/Template.Getter.Api/Controllers/PersonsController.cs`:
+
+```csharp
+public sealed class PersonsController(
+    IPersonsService personsService,
+    ISender sender,
+    ILogger<PersonsController> logger)
+    : GetterControllerBase(logger)
 {
     /// <summary>
-    /// Создаёт новую персону.
+    /// Возвращает коллекцию сущностей "Персона" через слой приложения (без CQRS).
     /// </summary>
-    /// <param name="request">Данные для создания.</param>
-    /// <param name="ct">Токен отмены.</param>
-    /// <returns>Созданная персона.</returns>
-    [HttpPost]
-    [ProducesResponseType(typeof(PersonCreateResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PersonCreateResponse>> Create(
-        [FromBody] PersonCreateRequest request,
-        CancellationToken ct)
+    /// <param name="request">Тело запроса.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Коллекция сущностей "Персона".</returns>
+    [HttpPost("services/list")]
+    public Task<IActionResult> GetPersonsByServicesAsync(
+        [FromBody] PersonListRequest request,
+        CancellationToken cancellationToken = default) =>
+        Process(() => personsService.GetPersonsAsync(request, cancellationToken));
+
+    /// <summary>
+    /// Возвращает коллекцию сущностей "Персона" через CQRS (MediatR).
+    /// </summary>
+    /// <param name="request">Тело запроса.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
+    /// <returns>Коллекция сущностей "Персона".</returns>
+    [HttpPost("cqrs/list")]
+    public Task<IActionResult> GetPersonsByCqrsAsync(
+        [FromBody] PersonListRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var response = await personsService.CreateAsync(request, ct);
-        return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
+        return Process(
+            () => sender.Send(new PersonListQuery(request), cancellationToken));
     }
 }
 ```
 
 **Swagger автоматически покажет:**
 
-- `PersonCreateRequest` с корректными `required` полями (благодаря `RequiredByClrNullabilitySchemaFilter`)
-- XML-комментарии к endpoint'у (description, parameters, response)
-- `ErrorResponse` schema для 400 Bad Request
+- `PersonListRequest` с корректными `required` полями (благодаря `RequiredByClrNullabilitySchemaFilter`)
+- XML-комментарии к endpoint'у (description, parameters, response) — для этого `GenerateDocumentationFile=true` должен быть включён в `.csproj`
+- 4xx/5xx схемы ответов через единый `ExceptionHandler` (если в проекте есть `ErrorResponse`)
 
 ---
 

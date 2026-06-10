@@ -41,7 +41,7 @@ protected override IServiceCollection Process(IServiceCollection serviceCollecti
 
 ## Почему `HangfireScheduledJobAdapter`
 
-Hangfire требует, чтобы тело лямбды в `BackgroundJob.Schedule` / `RecurringJob.AddOrUpdate` было **`MethodCallExpression`** на конкретный метод. Лямбда вида `() => capturedFunc(...)` даёт `InvocationExpression` и падает с:
+Hangfire требует, чтобы тело лямбды в методах регистрации задач (`RecurringJob.AddOrUpdate`, создание `BackgroundJob` через `BackgroundJobClient.Create`) было **`MethodCallExpression`** на конкретный метод. Лямбда вида `() => capturedFunc(...)` даёт `InvocationExpression` и падает с:
 
 ```
 Expression body should be of type MethodCallExpression
@@ -99,8 +99,8 @@ public sealed class HangfireScheduledJobAdapter : ... // transient
 | `JobSchedule` | Hangfire-вызов |
 |---------------|----------------|
 | `Cron(expression)` | `RecurringJob.AddOrUpdate<HangfireScheduledJobAdapter>(jobKey, b => b.RunScheduledJobAsync(...), expression)` |
-| `OnStartup` | `BackgroundJob.Schedule<HangfireScheduledJobAdapter>(b => b.RunScheduledJobAsync(...), TimeSpan.Zero)` |
-| `Flags(OnStartup)` | `BackgroundJob.Schedule<HangfireScheduledJobAdapter>(b => b.RunScheduledJobAsync(...), TimeSpan.Zero)` |
+| `OnStartup` | `BackgroundJobClient.Create(adapter, new ScheduledState(TimeSpan.Zero))` |
+| `Flags(OnStartup)` | `BackgroundJobClient.Create(adapter, new ScheduledState(TimeSpan.Zero))` |
 | `Flags(Daily / Weekly / Monthly / EveryHour / EveryMinute)` | Маппится в синтетическое cron-выражение через `BuildCronFromFlag` + `RecurringJob.AddOrUpdate<HangfireScheduledJobAdapter>($"{jobKey}#{flag}", b => b.RunScheduledJobAsync(...), cron)` |
 
 `BuildCronFromFlag` (из `HangfireJobScheduler`):
@@ -126,11 +126,10 @@ opts.AddJob("MyLambdaJob", new JobSchedule.Cron("0 0/5 * * * ?"),
 При попытке зарегистрировать `HangfireJobScheduler` бросает:
 
 ```
-NotSupportedException: HangfireJobScheduler: задача, заданная делегатом 'MyLambdaJob', не поддерживается в Hangfire.
-Используйте задачи в виде класса через opts.AddJob<TClassJob>(...).
+NotSupportedException: Lambda job 'MyLambdaJob' is not supported in Hangfire. Use class jobs via opts.AddJob<TClassJob>(...).
 ```
 
-**Причина:** Hangfire сериализует аргументы и тело делегата. `Func<CancellationToken, Task>` через `ActionDataKey` сериализуется, но `IServiceProvider` внутри замыкания — нет (сервис-провайдер не Serializable). Без service-locator'а задача, заданная делегатом, не имеет доступа к `IServiceProvider` для получения зависимостей.
+**Причина:** Hangfire сериализует аргументы и тело делегата. Чтобы MethodCall был сериализуем, его лямбда должна компилироваться в `MethodCallExpression` на конкретный метод — не в `InvocationExpression` на захваченную локальную `Func`-переменную. У задачи, заданной делегатом, MethodCall указывал бы на `MethodCallExpression` со сложным замыканием на `Func`, которое содержит `IServiceProvider` (а `IServiceProvider` не Serializable). Без service-locator'а задача, заданная делегатом, не имеет доступа к `IServiceProvider` для получения зависимостей.
 
 **Решение:** используйте задачи в виде класса:
 
@@ -171,7 +170,7 @@ public sealed class HangfireJobSchedulerBootstrapper : IHostedService
 | Задачи в виде класса (`IScheduledJob`) | ✅ Полная поддержка | ✅ Полная поддержка |
 | Задачи, заданные делегатом | ✅ Через `JobDataMap` + `QuartzScheduledJobAdapter` | ❌ `NotSupportedException` — замыкание не сериализуемо |
 | `JobSchedule.Cron` | ✅ Нативный `WithCronSchedule` | ✅ `RecurringJob.AddOrUpdate` + cron |
-| `JobSchedule.OnStartup` | ✅ `StartNow()` | ✅ `BackgroundJob.Schedule` + `TimeSpan.Zero` |
+| `JobSchedule.OnStartup` | ✅ `StartNow()` | ✅ `BackgroundJobClient.Create` + `new ScheduledState(TimeSpan.Zero)` |
 | `JobSchedule.Flags` | ✅ Несколько Quartz-триггеров (нативный calendar interval) | ⚠️ Синтетические cron-выражения для каждого флага |
 | In-memory storage | ✅ По умолчанию | ✅ `UseInMemoryStorage` |
 | Multi-instance persistence | ⚠️ Нужен Quartz Cluster + DB | ⚠️ Нужен `UseSqlServerStorage` / `UseRedisStorage` |
@@ -190,5 +189,4 @@ public sealed class HangfireJobSchedulerBootstrapper : IHostedService
 | [Quartz Adapter](quartz-adapter.md) | Альтернативная реализация |
 | [Architecture](architecture.md) | Слои и обоснование |
 | [Pipeline](pipeline.md) | Middleware-цепочка |
-| [Migration Guide](migration-guide.md) | Переезд с `QuartzJobWrapper` |
 | [Zero-Touch Proof](zero-touch-proof.md) | Доказательство нулевых правок при смене провайдера |

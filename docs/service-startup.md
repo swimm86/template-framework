@@ -1,7 +1,11 @@
 # Service Startup — Загрузка приложения
 
-**Assembly:** `Shared.Presentation.Core.dll`, `Shared.Infrastructure.Core.dll`, `Shared.Application.Core.dll`  
-**Namespace:** `Shared.Presentation.Core.Extensions`, `Shared.Infrastructure.Core.DependencyInjection.Extensions`
+**Assembly:** `Shared.Presentation.Core.dll`, `Shared.Application.Core.dll`, `Shared.Infrastructure.Core.dll`
+**Namespace:** `Shared.Presentation.Core.Extensions` (ImplementDependencies / UsePresentationCore)
+**Реальные точки реализации:**
+- `WebApplicationBuilderExtensions.ImplementDependencies` — `src/Shared/Core/Shared.Presentation.Core/Extensions/WebApplicationBuilderExtensions.cs:32`
+- `InitializeConfiguration` — `src/Shared/Core/Shared.Application.Core/Configuration/Extensions/ConfigurationExtensions.cs:115` (вызывается из `ImplementDependencies`)
+- `ApplicationBuilderExtensions.UsePresentationCore` — `src/Shared/Core/Shared.Presentation.Core/Extensions/ApplicationBuilderExtensions.cs`
 
 ---
 
@@ -175,7 +179,7 @@ Template Method Pattern: открытый `Inject()` — логирование 
 
 | Слой | Assembly | Что регистрирует |
 |------|----------|------------------|
-| Application.Core | `Shared.Application.Core` | `IHttpContextAccessor`, JSON-сериализация, репозитории (`IRepository<>`), DbSeeder, PropertyUtil, `IUriValidator`, `IResponseValidator`, `IScopedMemoryCache` |
+| Application.Core | `Shared.Application.Core` | `IHttpContextAccessor`, JSON-сериализация, репозитории (`IRepository<>` Transient), `AddDatabaseUpdater`, `AddDbSeeder`, `AddPropertyUtil`, `IUriValidator` → `RelativeUriValidator`, `IResponseValidator` → `ProxiedResponseValidator`, `IScopedMemoryCache` → `ScopedMemoryCache`, `AddLifecycleActions` |
 | Application.Cqrs.Core | `Shared.Application.Cqrs.Core` | MediatR |
 | Infrastructure.Core | `Shared.Infrastructure.Core` | ApiClient: DelegatingHandlers, HttpClient-конфигурация |
 | Presentation.Core | `Shared.Presentation.Core` | Swagger, FluentValidation, ExceptionHandling, EndpointsApiExplorer |
@@ -188,18 +192,24 @@ Template Method Pattern: открытый `Inject()` — логирование 
 
 #### Application.Core
 
+Реальная реализация (`src/Shared/Core/Shared.Application.Core/DependencyInjection/DependencyInjector.cs:37`):
+
 ```csharp
-protected override IServiceCollection Process(IServiceCollection serviceCollection)
+protected override IServiceCollection Process(
+    IServiceCollection serviceCollection)
 {
     return serviceCollection
+        // TODO: вынести в Presentation-layer после миграции туда ApiClient и других Http-зависимостей
         .AddHttpContextAccessor()
         .ConfigureJsonSerializer()
-        .AddRepositories()          // авто-регистрация IRepository<>
-        .AddDbSeeder()              // авто-регистрация IDbSeeder
+        .AddRepositories()              // авто-регистрация IRepository<> (Transient)
+        .AddDatabaseUpdater()           // регистрация IDbUpdater
+        .AddDbSeeder()                  // авто-регистрация IDbSeeder
         .AddPropertyUtil()
         .AddSingleton<IUriValidator, RelativeUriValidator>()
         .AddSingleton<IResponseValidator, ProxiedResponseValidator>()
-        .AddScoped<IScopedMemoryCache, ScopedMemoryCache>();
+        .AddScoped<IScopedMemoryCache, ScopedMemoryCache>()
+        .AddLifecycleActions();         // регистрация ILifecycleActionHandler-ов
 }
 ```
 
@@ -236,6 +246,8 @@ protected override IServiceCollection Process(IServiceCollection serviceCollecti
     return serviceCollection;
 }
 ```
+
+> **Важно:** `AddDbContext<TSettings, TContext>` (`src/Shared/Dal/Shared.Infrastructure.Dal.EFCore/Extensions/ServiceCollectionExtensions.cs:33`) внутри себя строит **временный** `ServiceProvider` через `serviceCollection.BuildServiceProvider()` + `CreateScope()`, чтобы из scope резолвнуть `IDbContextOptionsBuilderInitializer` и сконфигурировать `DbContextOptionsBuilder`. После инициализации временный scope dispose'ится. Этот шаг — compile-time wiring initializer-а, а не runtime scope leak.
 
 #### Presentation.Core
 

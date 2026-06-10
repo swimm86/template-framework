@@ -13,7 +13,7 @@
 
 1. [Быстрый старт](#быстрый-старт)
 2. [Что попадает в лог](#что-попадает-в-лог)
-3. [LogTask / LogTaskAsync](#logtask--logtaskasync)
+3. [LogTask / LogTaskAsync](#logtask-logtaskasync)
 4. [Атрибут \[LogMethod\]](#атрибут-logmethod)
 5. [Когда использовать что](#когда-использовать-что)
 6. [Расширение поведения](#расширение-поведения)
@@ -33,11 +33,11 @@ using Shared.Common.Logging.Attributes;   // [LogMethod]
 
 ### 2. Инициализация (один раз при старте приложения)
 
-`[LogMethod]` требует, чтобы при старте был вызван `LoggingServiceAccessor.Configure`. Если вы используете `ConfigurePresentationCore`, это происходит автоматически:
+`[LogMethod]` требует, чтобы при старте был вызван `LoggingServiceAccessor.Configure`. Если вы используете `UsePresentationCore`, это происходит автоматически:
 
 ```csharp
 // Program.cs
-app.ConfigurePresentationCore(); // внутри вызывает LoggingServiceAccessor.Configure(app.Services)
+app.UsePresentationCore(); // внутри вызывает LoggingServiceAccessor.Configure(app.Services)
 ```
 
 Если вы подключаете сервис без `Shared.Presentation.Core`, вызовите вручную:
@@ -350,7 +350,7 @@ public class LogMethodWithCorrelationAttribute(
 "{process} processed time: {time}ms."
 ```
 
-Это гарантирует: если вы перешли с `LogTask` на `[LogMethod]` или наоборот, в лог-аггрегаторе (Seq, Elastic, Loki) запросы по полю `process` или по тексту сообщения останутся работать без изменений.
+Это гарантирует: если вы перешли с `LogTask` на `[LogMethod]` или наоборот, в лог-агрегаторе (Seq, Elastic, Loki) запросы по полю `process` или по тексту сообщения останутся работать без изменений.
 
 ### Шаблоны сообщений
 
@@ -358,10 +358,10 @@ public class LogMethodWithCorrelationAttribute(
 
 | Константа | Шаблон |
 |-----------|--------|
-| `StartedMessage` | `{process} started.` |
-| `CompletedMessage` | `{process} completed.` |
-| `FailedMessage` | `{process} failed.` |
-| `ProcessedTimeMessage` | `{process} processed time: {time}ms.` |
+| `Started` | `{process} started.` |
+| `Completed` | `{process} completed.` |
+| `Failed` | `{process} failed.` |
+| `Elapsed` | `{process} processed time: {time}ms.` |
 
 Имена свойств (`process`, `time`) можно использовать для фильтрации в log-агрегаторах (Seq, Elastic, Loki).
 
@@ -428,9 +428,9 @@ finally
 
 Без этого логгер будет `null`. Исключений в Production не будет — методы выполнятся, но логов не будет. В Debug-режиме `Debug.Assert` сигнализирует о проблеме.
 
-**2. Не применять к `static`-методам класса без DI**
+**2. Логгер по `DeclaringType` создаётся через `ILoggerFactory`**
 
-`GetLogger` использует `args.Method.DeclaringType` для создания логгера через `ILoggerFactory`. Если тип не регистрируется в DI, логгер будет создан корректно — `ILoggerFactory` создаёт логгеры для любого типа. Ограничений нет.
+`GetLogger` использует `args.Method.DeclaringType` для создания логгера через `ILoggerFactory`. `ILoggerFactory` создаёт логгеры для любого типа, поэтому атрибут работает с публичными методами любого класса. Ограничений на `static`-методы нет.
 
 **3. `[AttributeUsage(Inherited = false)]`**
 

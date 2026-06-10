@@ -175,14 +175,12 @@ services.AddJobs(opts => opts
 | [Pipeline](job-scheduler/pipeline.md) | `IScheduledJobMiddleware`, дефолтные middleware, как добавить свой |
 | [Quartz Adapter](job-scheduler/quartz-adapter.md) | `QuartzJobScheduler`, `QuartzScheduledJobAdapter`, bootstrapper, DI |
 | [Hangfire Adapter](job-scheduler/hangfire-adapter.md) | `HangfireJobScheduler`, `HangfireScheduledJobAdapter`, ограничение на лямбды, маппинг cron |
-| [Migration Guide](job-scheduler/migration-guide.md) | Переезд с `QuartzJobRegistrar` / `QuartzJobWrapper` на новый API |
 | [Zero-Touch Proof](job-scheduler/zero-touch-proof.md) | Доказательство, что смена провайдера = 0 правок в бизнес-коде |
 
 ## См. также
 
 | Документ | Описание |
 |----------|----------|
-| [Design](job-scheduler/design.md) | Дизайн-решение и контракты (предшественник этой документации) |
 | [Pipeline Behaviors](pipeline-behaviors.md) | Аналогичный pipeline для MediatR — концептуально близок к Job Scheduler pipeline |
 | [Cache](cache.md) | `ICacheService<T>` + `AddCronCacheJob` / `AddFlagsCacheJob` |
 | [Db Seeder](db-seeder.md) | `RegisterDbSeederJob` запускает сиды при старте |

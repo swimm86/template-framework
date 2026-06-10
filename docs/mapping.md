@@ -1,8 +1,9 @@
 # Mapping
 
-**Assembly:** `Shared.Domain.Core.dll` (интерфейс), `Shared.Infrastructure.Mapper.AutoMapper.dll` (реализация)  
+**Assembly:** `Shared.Domain.Core.dll` (интерфейс), `Shared.Infrastructure.Mapper.AutoMapper.dll` (реализация, AutoMapper **14.0.0**)  
 **Namespace:** `Shared.Domain.Core.Mapping.Interfaces`, `Shared.Infrastructure.Mapper.AutoMapper`  
-**Исходники:** `src/Shared/Core/Shared.Domain.Core/Mapping/`, `src/Shared/Mapper/Shared.Infrastructure.Mapper.AutoMapper/`
+**Исходники:** `src/Shared/Core/Shared.Domain.Core/Mapping/`, `src/Shared/Mapper/Shared.Infrastructure.Mapper.AutoMapper/`  
+**Lifetime:** `IMapper` регистрируется в DI как **Singleton** (потокобезопасная обёртка над `global::AutoMapper.IMapper`).
 
 ---
 
@@ -273,7 +274,7 @@ Mapper регистрируется автоматически через `AddRe
 // Program.cs
 builder.ImplementDependencies();
 // Внутри: Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection.Extensions
-// регистрирует IMapper → Mapper (AutoMapper)
+// регистрирует IMapper → Mapper (AutoMapper) как Singleton
 ```
 
 ### Настройка Profile

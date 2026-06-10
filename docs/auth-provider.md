@@ -74,30 +74,37 @@ public async Task<TEntity> AddAsync(
 
 ### Создание — CreateCommandHandler
 
-`CreateCommandHandler` получает `IUserProvider` через DI и передаёт его свойства в `Repository.AddAsync`:
+`CreateCommandHandler` получает `IUserProvider` через DI и передаёт его свойства в `Repository.AddAsync`. Параметр опционален (`IUserProvider? userProvider = null`), поэтому в реализации-обработчике следует использовать `userProvider?.UserId`:
 
 ```csharp
-public abstract class CreateCommandHandler<...>(
+public abstract class CreateCommandHandler<TCommand, TRequest, TEntity, TResponsePayload, TResponse>(
     ILoggerFactory loggerFactory,
     IMapper mapper,
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<TEntity>> validators,
-    IUserProvider userProvider)     // ← внедрение через DI
-    : EntityRequestHandler<...>
+    IUserProvider? userProvider = null)   // ← внедрение через DI, опционально
+    : EntityRequestHandler<TCommand, TResponse, TEntity>(unitOfWork, loggerFactory)
+    where TResponsePayload : class
+    where TResponse : CreateResponse<TResponsePayload>, new()
+    where TCommand : CreateCommand<TRequest, TResponse>
+    where TEntity : class, IEntity
 {
-    protected virtual async Task<TResponse> CreateAsync(...)
+    protected virtual async Task<TResponse> CreateAsync(
+        TCommand command,
+        CancellationToken cancellationToken)
     {
         var entity = mapper.Map<TRequest, TEntity>(command.Request);
-        await ProcessEntityAsync(entity, command);
+        await ProcessEntityAsync(entity, command, cancellationToken);
         await ValidateAsync(entity, validators, cancellationToken);
         var newEntity = await Repository
-            .AddAsync(entity, userProvider.UserId, userProvider.UserFullName, cancellationToken);
-        //                             ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+            .AddAsync(entity, userProvider?.UserId, userProvider?.UserFullName, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken: cancellationToken);
         return CreateResponseDto(newEntity);
     }
 }
 ```
+
+> Полный код: `/src/Shared/Core/Shared.Application.Cqrs.Core/Abstractions/Commands/Handlers/CreateCommandHandler.cs`. Класс использует 5 generic-параметров: `<TCommand, TRequest, TEntity, TResponsePayload, TResponse>`.
 
 ### Обновление — UpdateCommandHandler
 
@@ -110,7 +117,7 @@ protected virtual async Task<TResponse> UpdateAsync(...)
 
     if (entity is IWithUpdated entityWithUpdated)
     {
-        entityWithUpdated.SetUpdatedByUserId(userProvider.UserId);
+        entityWithUpdated.SetUpdatedByUserId(userProvider?.UserId);
     }
     // ...
 }
@@ -121,8 +128,7 @@ protected virtual async Task<TResponse> UpdateAsync(...)
 ```csharp
 protected virtual async Task<Response> DeleteAsync(TEntity entity, TCommand command)
 {
-    await Repository.RemoveAsync(entity, userId: userProvider.UserId);
-    //                                       ^^^^^^^^^^^^^^^^^^^^
+    await Repository.RemoveAsync(entity, userId: userProvider?.UserId);
     await unitOfWork.SaveChangesAsync(default);
     return new Response { StatusCode = StatusCodes.Status200OK };
 }
@@ -130,8 +136,14 @@ protected virtual async Task<Response> DeleteAsync(TEntity entity, TCommand comm
 
 ### Удаление — EfRepository.RemoveAsync (soft delete)
 
+`EfRepository` (`/src/Shared/Dal/Shared.Infrastructure.Dal.EFCore/Repository/EfRepository.cs`) предоставляет **две** перегрузки `RemoveAsync`: с явным `Guid? userId` и без него (тогда `userId` всегда `null`):
+
 ```csharp
-public Task RemoveAsync(TEntity entity, Guid? userId, bool hard = false, ...)
+public Task RemoveAsync(
+    TEntity entity,
+    Guid? userId,
+    bool hard = false,
+    CancellationToken cancellationToken = default)
 {
     if (!hard && entity is IWithDeleted deletable)
     {
@@ -145,15 +157,23 @@ public Task RemoveAsync(TEntity entity, Guid? userId, bool hard = false, ...)
 
     return Task.CompletedTask;
 }
+
+public Task RemoveAsync(
+    TEntity entity,
+    bool hard = false,
+    CancellationToken cancellationToken = default)
+{
+    return RemoveAsync(entity, null, hard, cancellationToken);
+}
 ```
 
 ---
 
 ## Реализация IUserProvider
 
-### HTTP-контекст провайдер
+В репозитории Template готовых реализаций `IUserProvider` нет — каждая команда реализует провайдер самостоятельно под свои требования (JWT, cookies, заголовки, и т.д.). Ниже приведены **референсные** реализации, которые можно адаптировать.
 
-Типичная реализация извлекает данные пользователя из `HttpContext` (JWT-claims, заголовки и т.д.):
+### HTTP-контекст провайдер (reference implementation)
 
 ```csharp
 using System.Security.Claims;
@@ -201,7 +221,7 @@ public class HttpUserProvider : IUserProvider
 }
 ```
 
-### Провайдер для фоновых задач
+### Провайдер для фоновых задач (reference implementation)
 
 Для background-задач (MassTransit consumers, Quartz jobs), где нет HTTP-контекста, используется реализация с предустановленным идентификатором:
 
@@ -227,7 +247,7 @@ public class SystemUserProvider : IUserProvider
 
 ## Регистрация в DI
 
-### В service-слое (через DependencyInjector)
+### Через DependencyInjector
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
@@ -249,27 +269,11 @@ public class DependencyInjector : DependencyInjectorBase
 ### Ручная регистрация в Program.cs
 
 ```csharp
-builder.Services.AddScoped<IUserProvider, HttpUserProvider>();
-```
-
-### Условная регистрация
-
-```csharp
-// HTTP-запросы — HttpUserProvider
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserProvider, HttpUserProvider>();
-
-// Фоновые задачи — SystemUserProvider (MassTransit consumers)
-builder.Services.AddSingleton<IUserProvider>(sp =>
-{
-    // Для фоновых задач определяем контекст через scoped factory
-    var httpContext = sp.GetService<IHttpContextAccessor>()?.HttpContext;
-    return httpContext != null
-        ? (IUserProvider)new HttpUserProvider(
-            sp.GetRequiredService<IHttpContextAccessor>())
-        : new SystemUserProvider();
-});
 ```
+
+> `IHttpContextAccessor` обязателен для `HttpUserProvider`; он зарегистрирован автоматически в `Shared.Application.Core.DependencyInjection.DependencyInjector.Process`.
 
 ---
 
@@ -289,9 +293,12 @@ builder.Services.AddSingleton<IUserProvider>(sp =>
 // IWithCreated.OnCreate принимает nullable-параметры:
 void OnCreate(Guid? userId, string? userName);
 
-// В EfRepository.AddAsync:
-// userId: userProvider.UserId  → Guid (не null, но может быть Guid.Empty)
-// userName: userProvider.UserFullName → string (может быть null/empty)
+// В CreateCommandHandler.CreateAsync:
+// userId: userProvider?.UserId  → Guid? (null если провайдер не зарегистрирован)
+// userName: userProvider?.UserFullName → string? (null если провайдер не зарегистрирован)
+
+// EfRepository.AddAsync принимает Guid? userId, string? userName и передаёт их
+// в OnCreate. При null поля аудита остаются не заполненными.
 ```
 
 ---

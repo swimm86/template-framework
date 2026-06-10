@@ -1,7 +1,8 @@
 # Авто-регистрация зависимостей (Auto-Registration)
 
-**Сборка:** `Shared.Application.Core`  
-**Namespace:** `Shared.Application.Core.DependencyInjection.Extensions`
+**Сборка:** `Shared.Application.Core.dll`  
+**Namespace:** `Shared.Application.Core.DependencyInjection.Extensions`  
+**Исходники:** `src/Shared/Core/Shared.Application.Core/DependencyInjection/`
 
 ---
 
@@ -93,6 +94,7 @@ var validators = serviceProvider.GetServices<IValidator>();
 ```
 
 Алгоритм поиска service type:
+
 ```csharp
 var serviceType = type.GetInterfaces()
     .First(t => baseType.IsGenericTypeDefinition
@@ -189,9 +191,10 @@ excludedAttributesTypes =
 
 `AssemblyHelper.GetDerivedTypesFromAssemblies()` проходит по всем сборкам текущего AppDomain и находит типы, которые:
 
-- Наследуются от `baseType` (классы) или реализуют `baseType` (интерфейсы)
-- Не содержат атрибутов из `excludedAttributesTypes`
-- Содержат атрибуты из `includedAttributesTypes` (если указан)
+- Являются неабстрактными классами.
+- Наследуются от `baseType` (классы) или реализуют `baseType` (интерфейсы).
+- Не содержат атрибутов из `excludedAttributesTypes`.
+- Содержат атрибуты из `includedAttributesTypes` (если указан).
 
 ### Шаг 3: Фильтрация IsGenericTypeDefinition
 
@@ -259,7 +262,7 @@ builder.Services.AddSingleton<CustomHttpClientHandler>(sp =>
 
 **Файл:** `Shared.Application.Core/DependencyInjection/Base/DependencyInjectorBase.cs`
 
-Абстрактный базовый класс для реализации внедрения зависимостей слоя.
+Абстрактный базовый класс для реализации внедрения зависимостей слоя. Использует **Template Method** + **структурированные лог-сообщения** из `DependencyInjectionLogMessages`.
 
 ```csharp
 public abstract class DependencyInjectorBase
@@ -277,12 +280,12 @@ public abstract class DependencyInjectorBase
         try
         {
             var result = Process(serviceCollection);
-            Logger.LogInformation("Dependencies injected.");
+            Logger.LogInformation(DependencyInjectionLogMessages.DependenciesInjected);
             return result;
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Dependencies not injected.");
+            Logger.LogError(ex, DependencyInjectionLogMessages.DependenciesNotInjected);
             throw;
         }
     }
@@ -292,6 +295,18 @@ public abstract class DependencyInjectorBase
 }
 ```
 
+**`DependencyInjectionLogMessages`** (`Shared.Application.Core/DependencyInjection/DependencyInjectionLogMessages.cs`):
+
+```csharp
+public static class DependencyInjectionLogMessages
+{
+    public const string DependenciesInjected = "Dependencies injected.";
+    public const string DependenciesNotInjected = "Dependencies not injected.";
+}
+```
+
+> Лог-сообщения централизованы и могут быть подхвачены source-generator'ом для structured logging.
+
 ### Template Method Pattern
 
 ```
@@ -300,28 +315,37 @@ Inject()  ← public, с logging + error handling
     └── Process()  ← abstract, наследники реализуют регистрацию
 ```
 
-### Пример наследника
+### Пример наследника (реальный код)
 
 ```csharp
-public class InfrastructureDependencyInjector : DependencyInjectorBase
+// /src/Shared/Core/Shared.Application.Core/DependencyInjection/DependencyInjector.cs
+public class DependencyInjector(ILoggerFactory loggerFactory)
+    : DependencyInjectorBase(loggerFactory)
 {
-    public InfrastructureDependencyInjector(ILoggerFactory loggerFactory)
-        : base(loggerFactory) { }
-
-    protected override IServiceCollection Process(IServiceCollection services)
+    protected override IServiceCollection Process(IServiceCollection serviceCollection)
     {
-        return services
-            .RegisterDerivedTypeDependencies<IRepository>(
-                serviceTypeAsInterface: true,
-                lifetime: ServiceLifetime.Scoped)
-            .RegisterDerivedTypeDependencies<IUnitOfWork>(
-                serviceTypeAsInterface: true,
-                lifetime: ServiceLifetime.Scoped);
+        return serviceCollection
+            // TODO: вынести в Presentation-layer после миграции туда ApiClient
+            .AddHttpContextAccessor()
+            .ConfigureJsonSerializer()
+            .AddRepositories()
+            .AddDatabaseUpdater()
+            .AddDbSeeder()
+            .AddPropertyUtil()
+            .AddSingleton<IUriValidator, RelativeUriValidator>()
+            .AddSingleton<IResponseValidator, ProxiedResponseValidator>()
+            .AddScoped<IScopedMemoryCache, ScopedMemoryCache>()
+            .AddLifecycleActions();
     }
 }
+```
 
-// Использование
-var injector = new InfrastructureDependencyInjector(loggerFactory);
+> Здесь используются **специализированные extension-методы** (`AddRepositories`, `AddDatabaseUpdater`, `AddDbSeeder`, `AddPropertyUtil`, `ConfigureJsonSerializer`, `AddLifecycleActions`), а не `RegisterDerivedTypeDependencies<IRepository>` напрямую. Это связано с тем, что репозитории требуют generic-обёртки (`IRepository<T>`) и оптимизированной регистрации по сборкам.
+
+### Использование
+
+```csharp
+var injector = new Shared.Application.Core.DependencyInjection.DependencyInjector(loggerFactory);
 injector.Inject(builder.Services);
 ```
 
@@ -398,6 +422,7 @@ public sealed class ValidationExceptionMapper : IExceptionMapper<ValidationExcep
 | Используйте `serviceTypeAsInterface: false` для абстрактных классов | `RegisterDerivedTypeDependencies<DelegatingHandler>(false, ...)` |
 | Помечайте `[ManualConfiguration]` типы с runtime-зависимостями | `[ManualConfiguration] public class CustomHandler` |
 | Используйте `includedAttributesTypes` для selective registration | `RegisterDerivedTypeDependencies(..., includedAttributesTypes: [typeof(FeatureFlagAttribute)])` |
+| Используйте `DependencyInjectorBase` для регистрации целого слоя | `: DependencyInjectorBase(loggerFactory) { Process(...) }` |
 
 ### ❌ Избегайте
 
@@ -407,6 +432,7 @@ public sealed class ValidationExceptionMapper : IExceptionMapper<ValidationExcep
 | Открытые generic-типы как реализации | Исключаются через `IsGenericTypeDefinition` |
 | Забытый `[ManualConfiguration]` на типе с runtime-зависимостями | DI выбросит ошибку при резолве |
 | Регистрация одного и того же типа дважды | Second registration silently overwrites first |
+| Строковые литералы в лог-сообщениях injector'а | Используйте `DependencyInjectionLogMessages` для структурированного логирования |
 
 ### AddRepositories
 
@@ -425,5 +451,6 @@ services.AddRepositories();
 | Документ | Описание |
 |----------|----------|
 | [CQRS](cqrs.md) | Разделение команд и запросов |
-| [Exception Mapping](exception-mapping.md) | Маппинг исключений (использует auto-registration для IExceptionMapper) |
 | [Pipeline Behaviors](pipeline-behaviors.md) | Pipeline Behaviours — Logging, Validation |
+| [Exception Mapping](exception-mapping.md) | Маппинг исключений (использует auto-registration для IExceptionMapper) |
+| [AssemblyHelper](assembly-helper.md) | `GetAssembliesByPrefix`, `GetDerivedTypesFromAssemblies` |
