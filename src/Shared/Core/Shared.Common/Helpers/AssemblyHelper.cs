@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Reflection;
+using Shared.Common.Attributes;
 
 namespace Shared.Common.Helpers;
 
@@ -13,13 +14,26 @@ namespace Shared.Common.Helpers;
 /// </summary>
 public static class AssemblyHelper
 {
+    private static readonly Func<Assembly?> ResolveStartupAssembly = () =>
+        AppDomain.CurrentDomain
+            .GetAssemblies()
+            .FirstOrDefault(a => a.IsDefined(typeof(StartupAssemblyAttribute), false))
+        ?? Assembly.GetEntryAssembly();
+
+    private static Lazy<Assembly?> _startupAssemblyCache = new(
+        ResolveStartupAssembly,
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
     /// <summary>
     /// Возвращает название модуля, представляющее собой имя сборки, содержащей точку входа в приложение.
     /// </summary>
     /// <param name="entryAssembly">Сборка для получения имени модуля. Если не указана, используется сборка точки входа в приложение.</param>
     /// <returns>Имя сборки, которая была определена как точка входа в приложение.</returns>
-    public static string GetModuleName(Assembly? entryAssembly = null) =>
-        (entryAssembly ?? Assembly.GetEntryAssembly())!.GetName().Name!;
+    public static string GetModuleName(Assembly? entryAssembly = null)
+    {
+        var result = (entryAssembly ?? _startupAssemblyCache.Value)!.GetName().Name!;
+        return result;
+    }
 
     /// <summary>
     /// Возвращает перечисление сборок, загруженных в текущий домен приложения, которые соответствуют заданному префиксу.
@@ -157,6 +171,18 @@ public static class AssemblyHelper
         => appDomain
             .GetAssemblies()
             .SingleOrDefault(assembly => assembly.GetName().Name == assemblyName);
+
+    /// <summary>
+    /// Сбрасывает кеш startup-сборки. Используется в тестах, проверяющих сценарии
+    /// с несколькими сборками, помеченными <see cref="StartupAssemblyAttribute"/>,
+    /// где порядок загрузки сборок в <see cref="AppDomain"/> влияет на результат.
+    /// </summary>
+    internal static void ResetStartupAssemblyCache()
+    {
+        _startupAssemblyCache = new Lazy<Assembly?>(
+            ResolveStartupAssembly,
+            LazyThreadSafetyMode.ExecutionAndPublication);
+    }
 
     /// <summary>
     /// Безопасно получает типы из сборки, защищая от <see cref="ReflectionTypeLoadException"/>
