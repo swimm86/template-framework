@@ -1,14 +1,18 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="DbSeeder.cs" company="swimm86@yandex.ru">
+// <copyright file="DbUpdater.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Application.Core.Dal.DbUpdater.Interfaces;
 using Shared.Infrastructure.Dal.EFCore;
 
 namespace Template.DatabaseUpgrade;
 
-/// <see />
+/// <summary>
+/// Обновлятор базы данных, делегирующий инициализацию схемы <see cref="IEnsureSchemaStrategy"/>.
+/// </summary>
 public class DbUpdater(
-    DbContext dbContext)
-    : DbUpdaterBase(dbContext);
+    DbContext dbContext,
+    IEnsureSchemaStrategy ensureSchemaStrategy)
+    : DbUpdaterBase(dbContext, ensureSchemaStrategy);
