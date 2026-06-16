@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.Testing\Shared.Testing.csproj" />
     <ProjectReference Include="..\..\..\..\Shared\Dal\Shared.Infrastructure.Dal.EFCore\Shared.Infrastructure.Dal.EFCore.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Dal\Shared.Infrastructure.Dal.EFCore.Postgres\Shared.Infrastructure.Dal.EFCore.Postgres.csproj" />
   </ItemGroup>
 
   <ItemGroup>
