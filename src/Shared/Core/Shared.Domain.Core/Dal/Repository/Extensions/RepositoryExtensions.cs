@@ -68,10 +68,10 @@ public static class RepositoryExtensions
         CancellationToken cancellationToken = default)
         where TEntity : class, IEntity
     {
-        var entity = await repository.GetAsync(id, options, cancellationToken);
+        var entity = await repository.GetAsync(id!, options, cancellationToken);
         if (entity is null)
         {
-            throw new NotFoundException(typeof(TEntity), id);
+            throw new NotFoundException(typeof(TEntity), id!);
         }
 
         return entity;
@@ -99,10 +99,10 @@ public static class RepositoryExtensions
         CancellationToken cancellationToken = default)
         where TEntity : class, IEntity
     {
-        var entity = await repository.GetAsync(id, options, selector, cancellationToken);
+        var entity = await repository.GetAsync(id!, options, selector, cancellationToken);
         if (entity is null)
         {
-            throw new NotFoundException(typeof(TEntity), id);
+            throw new NotFoundException(typeof(TEntity), id!);
         }
 
         return entity;
@@ -130,7 +130,7 @@ public static class RepositoryExtensions
         options.AddFilter(entity => ids.Contains(entity.Id));
         var entities = ids.Length == 1
             ? await repository.GetRangeAsync(options, cancellationToken: cancellationToken)
-            : [await repository.GetAsync(ids.Single(), options, cancellationToken)];
+            : [(await repository.GetAsync(ids.Single()!, options, cancellationToken))!];
 
         var notFoundEntities = entities.Where(entity => !ids.Contains(entity.Id)).ToArray();
         if (notFoundEntities.Any())
