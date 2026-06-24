@@ -4,26 +4,24 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Shared.Application.Core.Dal.DbSeeder.Interfaces;
 using Shared.Application.Core.Dal.DbUpdater.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore;
 
 /// <summary>
-/// Реализация <see cref="IDbSeeder"/>.
+/// Реализация <see cref="IDbUpdater"/>.
 /// </summary>
 /// <param name="dbContext"><see cref="DbContext"/>.</param>
+/// <param name="ensureSchemaStrategy">Стратегия инициализации схемы базы данных.</param>
 public abstract class DbUpdaterBase(
-    DbContext dbContext)
+    DbContext dbContext,
+    IEnsureSchemaStrategy ensureSchemaStrategy)
     : IDbUpdater, IDisposable, IAsyncDisposable
 {
     /// <inheritdoc />
     public void CreateDbIfNotExists()
     {
-        if (!dbContext.Database.GetPendingMigrations().Any())
-        {
-            dbContext.Database.EnsureCreated();
-        }
+        ensureSchemaStrategy.EnsureSchemaIfNeeded();
     }
 
     /// <inheritdoc />

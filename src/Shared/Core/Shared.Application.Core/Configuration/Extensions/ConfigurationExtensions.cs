@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Reflection;
 using DotNetEnv.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -141,28 +140,46 @@ public static class ConfigurationExtensions
     /// <item>.env.{EnvironmentName}</item>
     /// </list>
     /// Если файл существует, он загружается в конфигурацию.
-    /// Файл с указанием окружения имеет приоритет над базовым файлом .env.
+    /// Файл с указанием окружения имеет приоритет над базовым файлом .env:
+    /// ключи, присутствующие только в <c>.env</c>, сохраняются, ключи,
+    /// переопределённые в <c>.env.{EnvironmentName}</c>, заменяют значения из базового файла.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// Выбрасывается, если путь к исполняемой сборке не может быть определён.
-    /// </exception>
     public static IConfigurationBuilder LoadEnv(
         this IConfigurationBuilder configurationBuilder,
         IHostEnvironment hostEnvironment)
     {
-        var assemblyPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
-        Directory.SetCurrentDirectory(assemblyPath);
+        return configurationBuilder.LoadEnvFromPath(
+            AppContext.BaseDirectory,
+            hostEnvironment.EnvironmentName);
+    }
 
-        return IsValidName(EnvFileName, out var path) ||
-               IsValidName($"{EnvFileName}.{hostEnvironment.EnvironmentName.ToLower()}", out path)
-            ? configurationBuilder.AddDotNetEnv(path)
-            : configurationBuilder;
-
-        bool IsValidName(string envName, out string path)
+    /// <summary>
+    /// Загружает <c>.env</c> и <c>.env.{environmentName}</c> из указанной директории
+    /// в построитель конфигурации.
+    /// </summary>
+    /// <param name="basePath">Директория, в которой ищутся файлы <c>.env</c>.</param>
+    /// <param name="environmentName">Имя окружения; используется для поиска <c>.env.{environmentName}</c>.</param>
+    /// <inheritdoc cref="LoadEnv"/>
+    /// <param name="configurationBuilder"/>
+    internal static IConfigurationBuilder LoadEnvFromPath(
+        this IConfigurationBuilder configurationBuilder,
+        string basePath,
+        string environmentName)
+    {
+        var envPath = Path.Combine(basePath, EnvFileName);
+        if (File.Exists(envPath))
         {
-            path = Path.Combine(assemblyPath, envName);
-            var result = File.Exists(path);
-            return result;
+            configurationBuilder.AddDotNetEnv(envPath);
         }
+
+        var envSpecificPath = Path.Combine(
+            basePath,
+            $"{EnvFileName}.{environmentName.ToLowerInvariant()}");
+        if (File.Exists(envSpecificPath))
+        {
+            configurationBuilder.AddDotNetEnv(envSpecificPath);
+        }
+
+        return configurationBuilder;
     }
 }

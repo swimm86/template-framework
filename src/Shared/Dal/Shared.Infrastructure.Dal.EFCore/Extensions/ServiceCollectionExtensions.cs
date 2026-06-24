@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Application.Core.Dal.DbUpdater.Interfaces;
 using Shared.Application.Core.DependencyInjection.Attributes;
 using Shared.Common.Extensions;
 using Shared.Common.Helpers;
@@ -54,7 +55,8 @@ public static class ServiceCollectionExtensions
             // Регистрируем базовый DbContext для использования в EfRepository<>
             .AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>())
             .AddScoped(typeof(IRepository<>), typeof(EfRepository<>))
-            .AddScoped<IUnitOfWork, EfUnitOfWork<TContext>>();
+            .AddScoped<IUnitOfWork, EfUnitOfWork<TContext>>()
+            .AddScoped<IEnsureSchemaStrategy, RelationalEnsureSchemaStrategy<TContext>>();
     }
 
     /// <summary>

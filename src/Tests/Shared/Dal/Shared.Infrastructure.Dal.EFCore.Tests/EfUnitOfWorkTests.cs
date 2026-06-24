@@ -53,7 +53,9 @@ public sealed class EfUnitOfWorkTests
 
     #region Constructor Tests
 
-    /// <summary>Проверяет что конструктор включает транзакции когда TransactionsEnabled=true.</summary>
+    /// <summary>
+    /// Проверяет что конструктор включает транзакции когда TransactionsEnabled=true.
+    /// </summary>
     [Fact]
     public void Constructor_TransactionsEnabled_SetsUseTransactionTrue()
     {
@@ -68,7 +70,9 @@ public sealed class EfUnitOfWorkTests
         uow.IsTransactionEnabled.Should().BeTrue();
     }
 
-    /// <summary>Проверяет что конструктор отключает транзакции когда TransactionsEnabled=false.</summary>
+    /// <summary>
+    /// Проверяет что конструктор отключает транзакции когда TransactionsEnabled=false.
+    /// </summary>
     [Fact]
     public void Constructor_TransactionsDisabled_SetsUseTransactionFalse()
     {
@@ -87,7 +91,9 @@ public sealed class EfUnitOfWorkTests
 
     #region SaveChangesAsync Tests
 
-    /// <summary>Проверяет что SaveChangesAsync сохраняет изменения в БД.</summary>
+    /// <summary>
+    /// Проверяет что SaveChangesAsync сохраняет изменения в БД.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_WithEntity_PersistsToDatabase()
     {
@@ -107,7 +113,9 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Should().ContainSingle(e => e.Name == "test");
     }
 
-    /// <summary>Проверяет что SaveChangesAsync уважает CancellationToken.</summary>
+    /// <summary>
+    /// Проверяет что SaveChangesAsync уважает CancellationToken.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_WithCancelledToken_ThrowsOperationCanceledException()
     {
@@ -129,7 +137,9 @@ public sealed class EfUnitOfWorkTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
     }
 
-    /// <summary>Проверяет что SaveChangesAsync с commitTransaction=false не коммитит транзакцию.</summary>
+    /// <summary>
+    /// Проверяет что SaveChangesAsync с commitTransaction=false не коммитит транзакцию.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_CommitTransactionFalse_DoesNotCommitTransaction()
     {
@@ -149,7 +159,9 @@ public sealed class EfUnitOfWorkTests
         uow.IsTransactionEnabled.Should().BeTrue();
     }
 
-    /// <summary>Проверяет что SaveChangesAsync с дефолтным commitTransaction коммитит транзакцию.</summary>
+    /// <summary>
+    /// Проверяет что SaveChangesAsync с дефолтным commitTransaction коммитит транзакцию.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_DefaultCommitTransaction_CommitsAndPersists()
     {
@@ -173,7 +185,9 @@ public sealed class EfUnitOfWorkTests
 
     #region SaveChangesAsync Transaction Tests
 
-    /// <summary>Проверяет что SaveChangesAsync коммитит транзакцию при успехе.</summary>
+    /// <summary>
+    /// Проверяет что SaveChangesAsync коммитит транзакцию при успехе.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_OnSuccess_CommitsTransaction()
     {
@@ -193,7 +207,9 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Should().ContainSingle(e => e.Name == "commit-test");
     }
 
-    /// <summary>Проверяет что SaveChangesAsync откатывает транзакцию при ошибке.</summary>
+    /// <summary>
+    /// Проверяет что SaveChangesAsync откатывает транзакцию при ошибке.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_OnFailure_RollbacksTransaction()
     {
@@ -221,7 +237,9 @@ public sealed class EfUnitOfWorkTests
 
     #region SaveChangesAsync BeforeSave Tests
 
-    /// <summary>Проверяет что IBeforeSaveChangesService вызывается перед сохранением.</summary>
+    /// <summary>
+    /// Проверяет что IBeforeSaveChangesService вызывается перед сохранением.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_WithBeforeSaveService_CallsProcessAsync()
     {
@@ -242,7 +260,9 @@ public sealed class EfUnitOfWorkTests
         beforeSaveService.LastDbContext.Should().BeSameAs(context);
     }
 
-    /// <summary>Проверяет что null IBeforeSaveChangesService не вызывает ошибок.</summary>
+    /// <summary>
+    /// Проверяет что null IBeforeSaveChangesService не вызывает ошибок.
+    /// </summary>
     [Fact]
     public async Task SaveChangesAsync_WithNullBeforeSaveService_NoOp()
     {
@@ -265,7 +285,9 @@ public sealed class EfUnitOfWorkTests
 
     #region GetRepository Tests
 
-    /// <summary>Проверяет что GetRepository возвращает зарегистрированный репозиторий.</summary>
+    /// <summary>
+    /// Проверяет что GetRepository возвращает зарегистрированный репозиторий.
+    /// </summary>
     [Fact]
     public void GetRepository_WithRegisteredRepository_ReturnsInstance()
     {
@@ -286,7 +308,9 @@ public sealed class EfUnitOfWorkTests
         result.Should().BeSameAs(fakeRepo);
     }
 
-    /// <summary>Проверяет что GetRepository выбрасывает исключение если репозиторий не зарегистрирован.</summary>
+    /// <summary>
+    /// Проверяет что GetRepository выбрасывает исключение если репозиторий не зарегистрирован.
+    /// </summary>
     [Fact]
     public void GetRepository_WithUnregisteredRepository_ThrowsInvalidOperationException()
     {
@@ -307,7 +331,9 @@ public sealed class EfUnitOfWorkTests
 
     #region ClearTracking Tests
 
-    /// <summary>Проверяет что ClearTracking очищает change tracker.</summary>
+    /// <summary>
+    /// Проверяет что ClearTracking очищает change tracker.
+    /// </summary>
     [Fact]
     public void ClearTracking_ClearsChangeTracker()
     {
@@ -332,7 +358,9 @@ public sealed class EfUnitOfWorkTests
 
     #region EnableTransaction / DisableTransaction Tests
 
-    /// <summary>Проверяет что EnableTransaction устанавливает флаг использования транзакции.</summary>
+    /// <summary>
+    /// Проверяет что EnableTransaction устанавливает флаг использования транзакции.
+    /// </summary>
     [Fact]
     public void EnableTransaction_SetsUseTransactionFlag()
     {
@@ -350,7 +378,9 @@ public sealed class EfUnitOfWorkTests
         uow.IsTransactionEnabled.Should().BeTrue();
     }
 
-    /// <summary>Проверяет что EnableTransaction возвращает IUnitOfWork для fluent chaining.</summary>
+    /// <summary>
+    /// Проверяет что EnableTransaction возвращает IUnitOfWork для fluent chaining.
+    /// </summary>
     [Fact]
     public void EnableTransaction_ReturnsIUnitOfWorkForFluentChaining()
     {
@@ -366,7 +396,9 @@ public sealed class EfUnitOfWorkTests
         result.Should().BeSameAs(uow);
     }
 
-    /// <summary>Проверяет что DisableTransaction сбрасывает флаг использования транзакции.</summary>
+    /// <summary>
+    /// Проверяет что DisableTransaction сбрасывает флаг использования транзакции.
+    /// </summary>
     [Fact]
     public void DisableTransaction_ClearsUseTransactionFlag()
     {
@@ -384,7 +416,9 @@ public sealed class EfUnitOfWorkTests
         uow.IsTransactionEnabled.Should().BeFalse();
     }
 
-    /// <summary>Проверяет что DisableTransaction возвращает IUnitOfWork для fluent chaining.</summary>
+    /// <summary>
+    /// Проверяет что DisableTransaction возвращает IUnitOfWork для fluent chaining.
+    /// </summary>
     [Fact]
     public void DisableTransaction_ReturnsIUnitOfWorkForFluentChaining()
     {
@@ -404,23 +438,9 @@ public sealed class EfUnitOfWorkTests
 
     #region CommitTransactionAsync Tests
 
-    /// <summary>Проверяет что CommitTransactionAsync успешно коммитит транзакцию.</summary>
-    [Fact(Skip = "InMemory provider does not support real transactions")]
-    public async Task CommitTransactionAsync_WhenEnabled_CommitsSuccessfully()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: true);
-        var uow = CreateUnitOfWork(context, settings);
-
-        // Act
-        await uow.CommitTransactionAsync(CancellationToken.None);
-
-        // Assert
-        uow.CurrentTransaction.Should().BeNull();
-    }
-
-    /// <summary>Проверяет что CommitTransactionAsync выбрасывает исключение когда транзакции отключены.</summary>
+    /// <summary>
+    /// Проверяет что CommitTransactionAsync выбрасывает исключение когда транзакции отключены.
+    /// </summary>
     [Fact]
     public async Task CommitTransactionAsync_WhenDisabled_ThrowsInvalidOperationException()
     {
@@ -440,23 +460,9 @@ public sealed class EfUnitOfWorkTests
 
     #region RollbackTransactionAsync Tests
 
-    /// <summary>Проверяет что RollbackTransactionAsync успешно откатывает транзакцию.</summary>
-    [Fact(Skip = "InMemory provider does not support real transactions")]
-    public async Task RollbackTransactionAsync_WhenEnabled_RollbacksSuccessfully()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var settings = CreateSettings(transactionsEnabled: true);
-        var uow = CreateUnitOfWork(context, settings);
-
-        // Act
-        await uow.RollbackTransactionAsync(CancellationToken.None);
-
-        // Assert
-        uow.CurrentTransaction.Should().BeNull();
-    }
-
-    /// <summary>Проверяет что RollbackTransactionAsync выбрасывает исключение когда транзакции отключены.</summary>
+    /// <summary>
+    /// Проверяет что RollbackTransactionAsync выбрасывает исключение когда транзакции отключены.
+    /// </summary>
     [Fact]
     public async Task RollbackTransactionAsync_WhenDisabled_ThrowsInvalidOperationException()
     {
@@ -476,7 +482,9 @@ public sealed class EfUnitOfWorkTests
 
     #region SaveChanges (sync) Tests
 
-    /// <summary>Проверяет что SaveChanges делегирует SaveChangesAsync.</summary>
+    /// <summary>
+    /// Проверяет что SaveChanges делегирует SaveChangesAsync.
+    /// </summary>
     [Fact]
     public void SaveChanges_DelegatesToSaveChangesAsync()
     {
@@ -500,7 +508,9 @@ public sealed class EfUnitOfWorkTests
 
     #region Dispose Tests
 
-    /// <summary>Проверяет что Dispose освобождает текущую транзакцию.</summary>
+    /// <summary>
+    /// Проверяет что Dispose освобождает текущую транзакцию.
+    /// </summary>
     [Fact]
     public void Dispose_DisposesCurrentTransaction()
     {

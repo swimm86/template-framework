@@ -20,8 +20,6 @@ public class DbContextOptionsBuilderInitializer(
     IConfiguration configuration)
     : IDbContextOptionsBuilderInitializer
 {
-    private const string DefaultConnectionString = "Host=localhost:5433;Database=template;Username=postgres;Password=sw;commandtimeout=0;Include Error Detail=true;Search Path=public";
-
     /// <inheritdoc />
     public void Initialize<TSettings>(
         DbContextOptionsBuilder options,
@@ -29,11 +27,19 @@ public class DbContextOptionsBuilderInitializer(
         where TSettings : DbSettingsBase
     {
         var settings = configuration.GetOptions<TSettings>();
-        var connectionString = string.IsNullOrWhiteSpace(settings?.ConnectionString)
-            ? DefaultConnectionString
-            : settings.ConnectionString;
+        var connectionString = settings?.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                $"Connection string for {typeof(TSettings).Name} is not configured.");
+        }
+
         var sourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         options.UseNpgsql(sourceBuilder.Build(), builder => builder.MigrationsAssembly(migrationAssemblyName));
-        options.EnableSensitiveDataLogging();
+
+        if (settings?.EnableSensitiveDataLogging is true)
+        {
+            options.EnableSensitiveDataLogging();
+        }
     }
 }

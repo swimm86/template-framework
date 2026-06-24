@@ -27,7 +27,11 @@ items.ForEach(item => Console.WriteLine(item.Name));
 
 // Асинхронный ForEach для IEnumerable
 await items.ForeachAsync(
-    async item => await _repository.UpdateAsync(item),
+    async item =>
+    {
+        item.Name = "updated";
+        await _repository.SaveChangesAsync(cancellationToken);
+    },
     cancellationToken);
 
 // Асинхронный ForEach для IAsyncEnumerable

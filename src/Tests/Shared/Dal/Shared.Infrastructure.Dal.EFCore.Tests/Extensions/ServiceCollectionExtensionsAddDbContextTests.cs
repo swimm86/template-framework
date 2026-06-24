@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Shared.Application.Core.Dal.DbUpdater.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.UnitOfWork.Interfaces;
+using Shared.Infrastructure.Dal.EFCore;
 using Shared.Infrastructure.Dal.EFCore.Extensions;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Repository;
@@ -22,7 +24,7 @@ public sealed class ServiceCollectionExtensionsAddDbContextTests
 
     /// <summary>
     /// <c>AddDbContext</c> регистрирует фабрику контекста,
-    /// сам контекст, репозиторий и unit of work.
+    /// сам контекст, репозиторий, unit of work и стратегию инициализации схемы.
     /// </summary>
     [Fact]
     public void AddDbContext_RegistersDbContextFactoryRepositoryAndUnitOfWork()
@@ -45,6 +47,34 @@ public sealed class ServiceCollectionExtensionsAddDbContextTests
         services.Should().Contain(d =>
             d.ServiceType == typeof(IUnitOfWork) &&
             d.ImplementationType == typeof(EfUnitOfWork<InjectorTestDbContext>));
+        services.Should().Contain(d =>
+            d.ServiceType == typeof(IEnsureSchemaStrategy) &&
+            d.ImplementationType == typeof(RelationalEnsureSchemaStrategy<InjectorTestDbContext>));
+    }
+
+    /// <summary>
+    /// <see cref="IEnsureSchemaStrategy"/> после регистрации через <c>AddDbContext</c>
+    /// успешно разрешается из DI в рамках scoped-области.
+    /// </summary>
+    [Fact]
+    public async Task AddDbContext_ServiceProvider_ResolvesEnsureSchemaStrategy()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IHostEnvironment, FakeHostEnvironment>();
+        services.AddSingleton<IDbContextOptionsBuilderInitializer, InMemoryDbContextOptionsBuilderInitializer>();
+        services.AddDbContext<InjectorTestDbSettings, InjectorTestDbContext>(
+            typeof(InjectorTestDbContext).Assembly.FullName!);
+
+        // Act
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+
+        var strategy = scope.ServiceProvider.GetRequiredService<IEnsureSchemaStrategy>();
+
+        // Assert
+        strategy.Should().NotBeNull();
+        strategy.Should().BeOfType<RelationalEnsureSchemaStrategy<InjectorTestDbContext>>();
     }
 
     /// <summary>

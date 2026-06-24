@@ -21,33 +21,43 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
         _connection.Open();
     }
 
-    private IntegrationTestDbContext CreateContext()
+    private DbContextOptions<IntegrationTestDbContext> CreateOptions()
     {
-        var options = new DbContextOptionsBuilder<IntegrationTestDbContext>()
+        return new DbContextOptionsBuilder<IntegrationTestDbContext>()
             .UseSqlite(_connection)
             .Options;
+    }
 
-        return new IntegrationTestDbContext(options);
+    private IntegrationTestDbContext CreateContext()
+    {
+        return new IntegrationTestDbContext(CreateOptions());
+    }
+
+    private IDbContextFactory<IntegrationTestDbContext> CreateContextFactory()
+    {
+        var options = CreateOptions();
+        return new TestDbContextFactory<IntegrationTestDbContext>(options);
     }
 
     public void Dispose()
     {
         _connection.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     #region CreateDbIfNotExists Tests
 
     /// <summary>
-    /// Проверяет что CreateDbIfNotExists создаёт схему базы данных когда нет pending миграций
-    /// (GetPendingMigrations возвращает пустой список — миграции не настроены).
+    /// <c>CreateDbIfNotExists</c> создаёт схему базы данных, когда нет pending-миграций
+    /// (миграции не настроены, <c>GetPendingMigrations</c> возвращает пустой список).
     /// </summary>
     [Fact]
     public void CreateDbIfNotExists_NoPendingMigrations_CreatesSchema()
     {
         // Arrange
         using var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var factory = CreateContextFactory();
+        var strategy = new TestRelationalEnsureSchemaStrategy<IntegrationTestDbContext>(factory);
+        var updater = new TestDbUpdater(context, strategy);
 
         // Act
         updater.CreateDbIfNotExists();
@@ -63,14 +73,16 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
     }
 
     /// <summary>
-    /// Проверяет что CreateDbIfNotExists идемпотентен: повторный вызов не вызывает ошибок.
+    /// <c>CreateDbIfNotExists</c> идемпотентен: повторный вызов не вызывает ошибок.
     /// </summary>
     [Fact]
     public void CreateDbIfNotExists_CalledTwice_DoesNotThrow()
     {
         // Arrange
         using var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var factory = CreateContextFactory();
+        var strategy = new TestRelationalEnsureSchemaStrategy<IntegrationTestDbContext>(factory);
+        var updater = new TestDbUpdater(context, strategy);
         updater.CreateDbIfNotExists();
 
         // Act
@@ -85,32 +97,31 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
     #region Migrate Tests
 
     /// <summary>
-    /// Проверяет что Migrate не вызывает Database.Migrate когда нет pending миграций
-    /// (миграции не зарегистрированы, GetPendingMigrations возвращает пустой список).
+    /// <c>Migrate</c> не вызывает <c>Database.Migrate</c>, когда нет pending-миграций.
     /// </summary>
     [Fact]
     public void Migrate_NoPendingMigrations_DoesNotCallDatabaseMigrate()
     {
         // Arrange
         using var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var updater = new TestDbUpdater(context, new StubEnsureSchemaStrategy());
 
         // Act
         updater.Migrate();
 
-        // Assert — GetPendingMigrations() returned empty, so base.Migrate() was not called
+        // Assert
         updater.MigrateWasCalled.Should().BeTrue("TestDbUpdater.Migrate() records the call before delegating");
     }
 
     /// <summary>
-    /// Проверяет что Migrate не вызывает исключений при отсутствии pending миграций.
+    /// <c>Migrate</c> не бросает исключений при отсутствии pending-миграций.
     /// </summary>
     [Fact]
     public void Migrate_NoPendingMigrations_DoesNotThrow()
     {
         // Arrange
         using var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var updater = new TestDbUpdater(context, new StubEnsureSchemaStrategy());
 
         // Act
         var act = () => updater.Migrate();
@@ -124,14 +135,14 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
     #region Initialize Tests
 
     /// <summary>
-    /// Проверяет что Initialize не бросает исключений (виртуальный метод с пустой реализацией).
+    /// <c>Initialize</c> не бросает исключений (виртуальный метод с пустой реализацией).
     /// </summary>
     [Fact]
     public void Initialize_WithSqliteContext_DoesNotThrow()
     {
         // Arrange
         using var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var updater = new TestDbUpdater(context, new StubEnsureSchemaStrategy());
 
         // Act
         var act = () => updater.Initialize();
@@ -145,14 +156,14 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
     #region Dispose Tests
 
     /// <summary>
-    /// Проверяет что Dispose освобождает DbContext (операции на контексте после Dispose выбрасывают исключение).
+    /// <c>Dispose</c> освобождает <see cref="DbContext"/> (операции после <c>Dispose</c> бросают исключение).
     /// </summary>
     [Fact]
     public void Dispose_WithSqliteContext_DisposesContext()
     {
         // Arrange
         var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var updater = new TestDbUpdater(context, new StubEnsureSchemaStrategy());
 
         // Act
         updater.Dispose();
@@ -163,14 +174,14 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
     }
 
     /// <summary>
-    /// Проверяет что DisposeAsync освобождает DbContext асинхронно.
+    /// <c>DisposeAsync</c> освобождает <see cref="DbContext"/> асинхронно.
     /// </summary>
     [Fact]
     public async Task DisposeAsync_WithSqliteContext_DisposesContext()
     {
         // Arrange
         var context = CreateContext();
-        var updater = new TestDbUpdater(context);
+        var updater = new TestDbUpdater(context, new StubEnsureSchemaStrategy());
 
         // Act
         await updater.DisposeAsync();

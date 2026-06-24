@@ -41,53 +41,42 @@ public sealed class AssemblyHelperTests
     /// Тестовый класс с атрибутом для проверки поиска производных типов.
     /// </summary>
     [TestMarker("TestClass1")]
-    private class TestClassWithAttribute
-    {
-    }
+    private class TestClassWithAttribute;
 
     /// <summary>
     /// Тестовый класс без атрибута.
     /// </summary>
-    private class TestClassWithoutAttribute
-    {
-    }
+    private class TestClassWithoutAttribute;
 
     /// <summary>
     /// Базовый класс для проверки наследования.
     /// </summary>
-    private abstract class BaseClass
-    {
-    }
+    private abstract class BaseClass;
 
     /// <summary>
     /// Производный класс для проверки поиска наследников.
     /// </summary>
     [TestMarker("Derived")]
-    private class DerivedClass : BaseClass
-    {
-    }
+    private class DerivedClass
+        : BaseClass;
 
     /// <summary>
     /// Базовый интерфейс для проверки реализации интерфейсов.
     /// </summary>
-    private interface ITestInterface
-    {
-    }
+    private interface ITestInterface;
 
     /// <summary>
     /// Класс, реализующий интерфейс.
     /// </summary>
     [TestMarker("InterfaceImpl")]
-    private class InterfaceImplementation : ITestInterface
-    {
-    }
+    private class InterfaceImplementation
+        : ITestInterface;
 
     /// <summary>
     /// Производный generic-тип для проверки поиска сборок по базовому generic-типу.
     /// </summary>
-    private class TestStringList : List<string>
-    {
-    }
+    private class TestStringList
+        : List<string>;
 
     #region GetModuleName Tests
 
@@ -139,7 +128,7 @@ public sealed class AssemblyHelperTests
         var entryAssembly = typeof(AssemblyHelperTests).Assembly;
 
         // Act
-        var result = AssemblyHelper.GetAssembliesByPrefix(entryAssembly);
+        var result = AssemblyHelper.GetAssembliesByPrefix(entryAssembly).ToArray();
 
         // Assert
         result.Should().NotBeEmpty();
@@ -323,7 +312,7 @@ public sealed class AssemblyHelperTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.FullName.Should().Be(targetAssembly.FullName);
+        result.FullName.Should().Be(targetAssembly.FullName);
     }
 
     /// <summary>
@@ -349,15 +338,125 @@ public sealed class AssemblyHelperTests
 
     /// <summary>
     /// Проверяет обработку null-входа для GetModuleName.
+    /// Тестовая сборка помечена <see cref="Shared.Common.Attributes.StartupAssemblyAttribute"/>
+    /// (см. <c>AssemblyStartupAssemblyMarker</c>), поэтому <c>GetModuleName(null)</c>
+    /// должен вернуть имя тестовой сборки.
     /// </summary>
     [Fact]
-    public void GetModuleName_NullEntryAssembly_UsesGetEntryAssembly()
+    public void GetModuleName_NullEntryAssembly_ReturnsStartupAssemblyName()
     {
         // Act
         var result = AssemblyHelper.GetModuleName(entryAssembly: null);
 
         // Assert
         result.Should().NotBeNull();
+        result.Should().Be(typeof(AssemblyHelperTests).Assembly.GetName().Name);
+    }
+
+    /// <summary>
+    /// Проверяет, что <c>GetModuleName(null)</c> находит сборку,
+    /// помеченную <see cref="Shared.Common.Attributes.StartupAssemblyAttribute"/>,
+    /// а не полагается на <see cref="Assembly.GetEntryAssembly"/>.
+    /// </summary>
+    [Fact]
+    public void GetModuleName_NullEntryAssembly_ResolvesStartupAssemblyByAttribute()
+    {
+        // Arrange
+        var expectedName = typeof(AssemblyHelperTests).Assembly.GetName().Name;
+        var hasStartupAttribute = typeof(AssemblyHelperTests).Assembly
+            .IsDefined(typeof(Attributes.StartupAssemblyAttribute), false);
+        hasStartupAttribute.Should().BeTrue(
+            "тестовая сборка должна быть помечена [assembly: StartupAssembly] " +
+            "для проверки выбора startup через атрибут");
+
+        // Act
+        var result = AssemblyHelper.GetModuleName(entryAssembly: null);
+
+        // Assert
+        result.Should().Be(expectedName);
+    }
+
+    /// <summary>
+    /// Проверяет, что явная <c>entryAssembly</c> имеет приоритет
+    /// над startup-сборкой, найденной по атрибуту.
+    /// </summary>
+    [Fact]
+    public void GetModuleName_ExplicitEntryAssembly_OverridesStartupAttribute()
+    {
+        // Arrange
+        var anotherAssembly = typeof(object).Assembly;
+
+        // Act
+        var result = AssemblyHelper.GetModuleName(anotherAssembly);
+
+        // Assert
+        result.Should().Be(anotherAssembly.GetName().Name);
+        result.Should().NotBe(typeof(AssemblyHelperTests).Assembly.GetName().Name);
+    }
+
+    /// <summary>
+    /// Проверяет, что результат стабилен при множественных вызовах
+    /// (reflection-поиск кешируется и не возвращает разные значения
+    /// на разных итерациях).
+    /// </summary>
+    [Fact]
+    public void GetModuleName_RepeatedCalls_ReturnsConsistentValue()
+    {
+        // Act
+        var first = AssemblyHelper.GetModuleName();
+        var second = AssemblyHelper.GetModuleName();
+        var third = AssemblyHelper.GetModuleName();
+
+        // Assert
+        first.Should().Be(second);
+        second.Should().Be(third);
+    }
+
+    /// <summary>
+    /// Проверяет, что после сброса кеша результат по-прежнему стабилен
+    /// и соответствует startup-сборке. Подтверждает, что <see cref="AssemblyHelper.ResetStartupAssemblyCache"/>
+    /// пересоздаёт <see cref="Lazy{T}"/> без потери контракта.
+    /// </summary>
+    [Fact]
+    public void GetModuleName_AfterCacheReset_ReturnsSameStartupAssembly()
+    {
+        // Arrange
+        var beforeReset = AssemblyHelper.GetModuleName();
+        var expectedAssembly = typeof(AssemblyHelperTests).Assembly.GetName().Name;
+
+        // Act
+        AssemblyHelper.ResetStartupAssemblyCache();
+        var afterReset = AssemblyHelper.GetModuleName();
+
+        // Assert
+        beforeReset.Should().Be(expectedAssembly);
+        afterReset.Should().Be(expectedAssembly);
+    }
+
+    /// <summary>
+    /// Проверяет, что в текущем <see cref="AppDomain"/> ровно одна сборка
+    /// помечена <see cref="Shared.Common.Attributes.StartupAssemblyAttribute"/>.
+    /// Это контрактное требование: при наличии нескольких помеченных сборок
+    /// выбор <see cref="AppDomain.CurrentDomain"/>.<see cref="AppDomain.GetAssemblies"/>
+    /// недетерминирован, что делает <see cref="AssemblyHelper.GetModuleName"/>
+    /// без явного '<c>entryAssembly</c>' ненадёжным.
+    /// </summary>
+    [Fact]
+    public void StartupAssemblyAttribute_IsDefinedOnceInAppDomain()
+    {
+        // Act
+        var startupAssemblies = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .Where(assembly =>
+                assembly.IsDefined(typeof(Attributes.StartupAssemblyAttribute), false))
+            .ToArray();
+
+        // Assert
+        startupAssemblies.Should().HaveCount(
+            1,
+            "в AppDomain должна быть ровно одна startup-сборка; " +
+            "иначе GetModuleName() без явного entryAssembly вернёт недетерминированный результат");
+        startupAssemblies[0].GetName().Name.Should().Be(typeof(AssemblyHelperTests).Assembly.GetName().Name);
     }
 
     /// <summary>

@@ -20,4 +20,9 @@ public abstract class DbSettingsBase
     /// Признак того, что по умолчанию включена транзакционность.
     /// </summary>
     required public bool TransactionsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Признак того, что включено логирование запросов.
+    /// </summary>
+    required public bool EnableSensitiveDataLogging { get; set; } = false;
 }
