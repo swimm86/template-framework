@@ -7,9 +7,10 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Query;
 using Shared.Common.Extensions;
+using Shared.Domain.Core.Dal;
+using Shared.Domain.Core.Dal.Repository;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
-using Shared.Domain.Core.Dal.Specification.Interfaces;
 using Shared.Domain.Core.Interfaces;
 
 namespace Shared.Infrastructure.Dal.EFCore.Repository;
@@ -33,10 +34,12 @@ public class EfRepository<TEntity>(
 
     /// <inheritdoc/>
     public Task<TEntity?> GetAsync(
-        object? id,
+        object id,
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         options = GetFirstOrDefaultOptions(id, options);
         return evaluator
             .Build(DbSet, options)
@@ -45,11 +48,13 @@ public class EfRepository<TEntity>(
 
     /// <inheritdoc/>
     public Task<TOut?> GetAsync<TOut>(
-        object? id,
+        object id,
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         options = GetFirstOrDefaultOptions(id, options);
         return GetQuery(options, selector).FirstOrDefaultAsync(cancellationToken);
     }
@@ -70,7 +75,7 @@ public class EfRepository<TEntity>(
         QueryOptions<TEntity>? options = null,
         int? skip = null,
         int? take = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default) =>
         GetQuery(options, selector)
             .GetRange(skip, take)
@@ -89,7 +94,7 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task<TOut?> FirstOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
     {
         return evaluator
@@ -110,7 +115,7 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task<TOut?> SingleOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
     {
         return GetQuery(options, selector)
@@ -130,12 +135,77 @@ public class EfRepository<TEntity>(
     /// <inheritdoc/>
     public Task<TOut?> LastOrDefaultAsync<TOut>(
         QueryOptions<TEntity>? options = null,
-        Expression<Func<TEntity, TOut>>? selector = default,
+        Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
     {
         return GetQuery(options, selector)
             .LastOrDefaultAsync(cancellationToken);
     }
+
+    /// <inheritdoc/>
+    public Task<List<IGrouping<TKey, TEntity>>> GetGroupingAsync<TKey>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        OrderDirectionType? groupKeyOrderDirection = null,
+        CancellationToken cancellationToken = default)
+    {
+        GroupingPagingGuard.EnsureGroupOrderingForPaging(skip, take, groupKeyOrderDirection);
+
+        return OrderGroupedByKey(Set(options).GroupBy(keySelector), groupKeyOrderDirection)
+            .GetRange(skip, take)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public Task<List<TOut>> GetGroupingAsync<TKey, TOut>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        Expression<Func<IGrouping<TKey, TEntity>, TOut>>? selector = null,
+        OrderDirectionType? groupKeyOrderDirection = null,
+        CancellationToken cancellationToken = default)
+    {
+        GroupingPagingGuard.EnsureGroupOrderingForPaging(skip, take, groupKeyOrderDirection);
+
+        return GetQuery(
+            source => OrderGroupedByKey(source.GroupBy(keySelector), groupKeyOrderDirection),
+            options,
+            selector)
+            .GetRange(skip, take)
+            .ToListAsync(cancellationToken);
+    }
+
+/// <inheritdoc/>
+    public Task<int> CountGroupsAsync<TKey>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default) =>
+        Set(options)
+            .GroupBy(keySelector)
+            .CountAsync(cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<TOut?> MaxAsync<TOut>(
+        Expression<Func<TEntity, TOut>> selector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default) =>
+        Set(options)
+            .Select(selector)
+            .DefaultIfEmpty()
+            .MaxAsync(cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<TOut?> MinAsync<TOut>(
+        Expression<Func<TEntity, TOut>> selector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default) =>
+        Set(options)
+            .Select(selector)
+            .DefaultIfEmpty()
+            .MinAsync(cancellationToken);
 
     /// <inheritdoc/>
     public Task<int> CountAsync(
@@ -193,21 +263,7 @@ public class EfRepository<TEntity>(
     }
 
     /// <inheritdoc/>
-    public Task UpdateRangeAsync(
-        Expression<Func<TEntity, bool>>? condition = default,
-        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
-    {
-        var options = new QueryOptions<TEntity>();
-        if (condition != default)
-        {
-            options.AddFilter(condition);
-        }
-
-        return UpdateRangeAsync(options, updateData);
-    }
-
-    /// <inheritdoc/>
-    public Task UpdateRangeAsync(
+    public Task ExecuteUpdateRangeAsync(
         QueryOptions<TEntity> options,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
     {
@@ -231,14 +287,6 @@ public class EfRepository<TEntity>(
 
         var updateExpression = Expression.Lambda<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>>(setPropertyCalls, parameter);
         return query.ExecuteUpdateAsync(updateExpression);
-    }
-
-    /// <inheritdoc/>
-    public Task UpdateRangeAsync(
-        ISpecification<TEntity> specification,
-        params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
-    {
-        return UpdateRangeAsync(specification.BuildOptions(), updateData);
     }
 
     /// <inheritdoc/>
@@ -291,25 +339,46 @@ public class EfRepository<TEntity>(
             cancellationToken);
     }
 
+    /// <remarks>
+    /// Необходимо включать трекинг, наче внутренний
+    /// <c>GetRangeAsync</c> вернёт detached-инстансы, что приводит либо к
+    /// <see cref="InvalidOperationException"/> при <c>DbSet.Remove</c> на detached-инстансе
+    /// с уже-tracked ключом (<c>hard=true</c>), либо к не-сохранению soft-delete мутаций
+    /// в БД (<c>hard=false</c>).
+    /// </remarks>
     /// <inheritdoc/>
     public async Task RemoveRangeAsync(
         QueryOptions<TEntity> options,
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
+        options.WithTracking = true;
         var entities = await GetRangeAsync(options, cancellationToken: cancellationToken);
         await RemoveRangeAsync(entities, hard, cancellationToken);
     }
 
     /// <inheritdoc/>
     public Task RemoveRangeAsync(
-        Expression<Func<TEntity, bool>> conditions,
+        Expression<Func<TEntity, bool>> predicate,
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
         var options = new QueryOptions<TEntity>(true);
-        options.AddFilter(conditions);
+        options.AddFilter(predicate);
         return RemoveRangeAsync(options, hard, cancellationToken);
+    }
+
+    /// <remarks>
+    /// <c>Не работает с TPT</c>.
+    /// <para/><inheritdoc path="/remarks"/>
+    /// </remarks>
+    /// <inheritdoc/>
+    public Task ExecuteRemoveRangeAsync(
+        QueryOptions<TEntity> options,
+        CancellationToken cancellationToken = default)
+    {
+        var query = evaluator.Build(DbSet, options);
+        return query.ExecuteDeleteAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -373,14 +442,7 @@ public class EfRepository<TEntity>(
     public Task SaveChangesAsync(CancellationToken cancellationToken) =>
         dbContext.SaveChangesAsync(cancellationToken);
 
-    private IQueryable<TOut> GetQuery<TOut>(
-        QueryOptions<TEntity>? options,
-        Expression<Func<TEntity, TOut>>? selector) =>
-        selector is null
-            ? evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options)
-            : evaluator.Build(DbSet, options).Select(selector);
-
-    private QueryOptions<TEntity> GetFirstOrDefaultOptions(
+    private static QueryOptions<TEntity> GetFirstOrDefaultOptions(
         object? id,
         QueryOptions<TEntity>? options)
     {
@@ -392,4 +454,36 @@ public class EfRepository<TEntity>(
 
         return options;
     }
+
+    private static IQueryable<IGrouping<TKey, TEntity>> OrderGroupedByKey<TKey>(
+        IQueryable<IGrouping<TKey, TEntity>> grouped,
+        OrderDirectionType? groupKeyOrderDirection)
+    {
+        if (groupKeyOrderDirection is null)
+        {
+            return grouped;
+        }
+
+        if (groupKeyOrderDirection == OrderDirectionType.Ascending)
+        {
+            return grouped.OrderBy(g => g.Key);
+        }
+
+        return grouped.OrderByDescending(g => g.Key);
+    }
+
+    private IQueryable<TOut> GetQuery<TOut>(
+        QueryOptions<TEntity>? options,
+        Expression<Func<TEntity, TOut>>? selector) =>
+        selector is null
+            ? evaluator.BuildWithTransform<TEntity, TOut>(DbSet, options)
+            : evaluator.Build(DbSet, options).Select(selector);
+
+    private IQueryable<TOut> GetQuery<TIntermediate, TOut>(
+        Func<IQueryable<TEntity>, IQueryable<TIntermediate>> postBuildProcess,
+        QueryOptions<TEntity>? options,
+        Expression<Func<TIntermediate, TOut>>? selector) =>
+        selector is null
+            ? evaluator.BuildWithTransform<TEntity, TIntermediate, TOut>(DbSet, postBuildProcess, options)
+            : postBuildProcess(evaluator.Build(DbSet, options)).Select(selector);
 }
