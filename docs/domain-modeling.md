@@ -208,7 +208,7 @@ public class Person : EntityWithMetadata<Person, int>
         FirstName = firstName;
         LastName = lastName;
         MiddleName = middleName;
-        // OnUpdate() вызовется автоматически из EfRepository
+        // OnUpdate() вызовется автоматически из IBeforeSaveChangesService при SaveChangesAsync (для tracked-сущности)
     }
 }
 ```
@@ -449,8 +449,9 @@ EfRepository автоматически вызывает lifecycle-методы 
 repository.AddAsync(person);
 // → person.OnCreate(userId, userName)  — заполняет CreatedBy*, DateCreated
 
-// При обновлении
-repository.UpdateAsync(person);
+// При обновлении (tracked-сущность: модифицируется напрямую, OnUpdate сработает при SaveChangesAsync)
+person.FirstName = "...";
+await _unitOfWork.SaveChangesAsync();
 // → person.OnUpdate(userId)  — заполняет UpdatedBy*, DateUpdated
 
 // При удалении

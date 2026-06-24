@@ -179,7 +179,7 @@ Template Method Pattern: открытый `Inject()` — логирование 
 
 | Слой | Assembly | Что регистрирует |
 |------|----------|------------------|
-| Application.Core | `Shared.Application.Core` | `IHttpContextAccessor`, JSON-сериализация, репозитории (`IRepository<>` Transient), `AddDatabaseUpdater`, `AddDbSeeder`, `AddPropertyUtil`, `IUriValidator` → `RelativeUriValidator`, `IResponseValidator` → `ProxiedResponseValidator`, `IScopedMemoryCache` → `ScopedMemoryCache`, `AddLifecycleActions` |
+| Application.Core | `Shared.Application.Core` | `IHttpContextAccessor`, JSON-сериализация, репозитории (`IRepository<>` Scoped), `AddDatabaseUpdater`, `AddDbSeeder`, `AddPropertyUtil`, `IUriValidator` → `RelativeUriValidator`, `IResponseValidator` → `ProxiedResponseValidator`, `IScopedMemoryCache` → `ScopedMemoryCache`, `AddLifecycleActions` |
 | Application.Cqrs.Core | `Shared.Application.Cqrs.Core` | MediatR |
 | Infrastructure.Core | `Shared.Infrastructure.Core` | ApiClient: DelegatingHandlers, HttpClient-конфигурация |
 | Presentation.Core | `Shared.Presentation.Core` | Swagger, FluentValidation, ExceptionHandling, EndpointsApiExplorer |
@@ -202,7 +202,7 @@ protected override IServiceCollection Process(
         // TODO: вынести в Presentation-layer после миграции туда ApiClient и других Http-зависимостей
         .AddHttpContextAccessor()
         .ConfigureJsonSerializer()
-        .AddRepositories()              // авто-регистрация IRepository<> (Transient)
+        .AddRepositories()              // авто-регистрация IRepository<> (Scoped)
         .AddDatabaseUpdater()           // регистрация IDbUpdater
         .AddDbSeeder()                  // авто-регистрация IDbSeeder
         .AddPropertyUtil()

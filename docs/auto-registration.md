@@ -442,7 +442,7 @@ public sealed class ValidationExceptionMapper : IExceptionMapper<ValidationExcep
 services.AddRepositories();
 ```
 
-Принцип работы аналогичен `RegisterDerivedTypeDependencies<IRepository>()`, но оптимизирован для репозиториев — сканирует сборки, находит все `EfRepository<T>`, регистрирует их как `IRepository<T>`.
+Принцип работы аналогичен `RegisterDerivedTypeDependencies<IRepository>()`, но оптимизирован для репозиториев — сканирует сборки, находит все `EfRepository<T>`, регистрирует их как `IRepository<T>` с lifetime **Scoped** (см. `Shared.Infrastructure.Dal.EFCore.Extensions.ServiceCollectionExtensions.cs:57`).
 
 ---
 

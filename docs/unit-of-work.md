@@ -97,7 +97,7 @@ public async Task CreateOrder(CreateOrderRequest request)
 }
 ```
 
-> **Альтернатива для bulk-операций:** если нужно обновить много продуктов одним SQL-запросом без загрузки в память, используйте `productRepo.UpdateRangeAsync(x => productIds.Contains(x.Id), IRepository<Product>.GetUpdateRangeAsyncLambdaFunc(x => x.Stock, x => x.Stock - delta))`.
+> **Альтернатива для bulk-операций:** если нужно обновить много продуктов одним SQL-запросом без загрузки в память, используйте `productRepo.ExecuteUpdateRangeAsync(x => productIds.Contains(x.Id), IRepository<Product>.GetUpdateRangeAsyncLambdaFunc(x => x.Stock, x => x.Stock - delta))`.
 
 ### 3. Явное управление транзакциями
 

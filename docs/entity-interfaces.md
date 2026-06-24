@@ -57,14 +57,14 @@ public class Person : IEntity<Guid>
 
 ## Audit Interfaces
 
-Интерфейсы для отслеживания жизненного цикла сущности. EfRepository автоматически заполняет эти поля при операциях `AddAsync`, `UpdateAsync`, `RemoveAsync`, используя `IUserProvider` для получения контекста текущего пользователя.
+Интерфейсы для отслеживания жизненного цикла сущности. EfRepository автоматически заполняет эти поля при операциях `AddAsync` и `RemoveAsync` (soft-delete), а также при изменении tracked-сущности с последующим `SaveChangesAsync` (через `IBeforeSaveChangesService`), используя `IUserProvider` для получения контекста текущего пользователя. Метода `IRepository.UpdateAsync` не существует — обновление идёт через `ChangeTracker` либо через DB-level `ExecuteUpdateRangeAsync`.
 
 | Интерфейс | Свойство | Методы | Авто-заполняется при |
 |-----------|----------|--------|---------------------|
 | `IWithDateCreated` | `DateTime DateCreated` | `SetDateCreated(DateTime)` | `AddAsync` |
 | `IWithCreated` | `Guid? CreatedByUserId`<br>`string? CreatedByUserName` | `SetCreatedByUserId(Guid?)`<br>`SetCreatedByUserName(string?)`<br>`OnCreate()` | `AddAsync` |
-| `IWithDateUpdated` | `DateTime? DateUpdated` | `SetDateUpdated(DateTime?)` | `UpdateAsync` |
-| `IWithUpdated` | `Guid? UpdatedByUserId` | `SetUpdatedByUserId(Guid?)`<br>`OnUpdate()` | `UpdateAsync` |
+| `IWithDateUpdated` | `DateTime? DateUpdated` | `SetDateUpdated(DateTime?)` | `SaveChangesAsync` (tracked, через `IBeforeSaveChangesService`) |
+| `IWithUpdated` | `Guid? UpdatedByUserId` | `SetUpdatedByUserId(Guid?)`<br>`OnUpdate()` | `SaveChangesAsync` (tracked, через `IBeforeSaveChangesService`) |
 | `IWithDateDeleted` | `DateTime? DateDeleted` | `SetDateDeleted(DateTime?)` | `RemoveAsync` (soft) |
 | `IWithDeleted` | `Guid? DeletedByUserId`<br>`bool IsDeleted` | `SetDeletedByUserId(Guid?)`<br>`OnDelete()`<br>`SetIsDeleted()` | `RemoveAsync` (soft) |
 
@@ -149,7 +149,7 @@ if (entity is IWithCreated withCreated)
     withCreated.OnCreate(_userProvider.UserId, _userProvider.UserFullName);
 }
 
-// Внутри EfRepository.UpdateAsync():
+// В IBeforeSaveChangesService (вызывается из SaveChangesAsync для tracked-сущности):
 if (entity is IWithUpdated withUpdated)
 {
     withUpdated.OnUpdate(_userProvider.UserId);

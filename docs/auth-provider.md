@@ -45,7 +45,7 @@ public interface IUserProvider
 
 ## Авто-заполнение аудиторских полей
 
-EfRepository и базовые CQRS-обработчики автоматически передают `IUserProvider.UserId` и `IUserProvider.UserFullName` в методы репозитория при выполнении операций с сущностями.
+`EfRepository` принимает `userId` / `userName` параметрами методов (`AddAsync`, `RemoveAsync`) и сам **не** обращается к `IUserProvider`. Значения из `IUserProvider.UserId` / `IUserProvider.UserFullName` подставляют базовые CQRS-обработчики (`CreateCommandHandler`, `UpdateCommandHandler` и т.п.) при вызове методов репозитория.
 
 ### Механизм в EfRepository
 
