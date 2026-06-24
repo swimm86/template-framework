@@ -125,28 +125,6 @@ public sealed class EfQueryEvaluatorTests
         context.Entry(result[0]).State.Should().Be(EntityState.Detached);
     }
 
-    /// <summary>Проверяет что Build с Distinct применяет Distinct.</summary>
-    [Fact(Skip = "InMemory provider does not support Distinct on IQueryable with entity tracking")]
-    public void Build_WithDistinct_AppliesDistinct()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var evaluator = CreateEvaluator();
-        var id = Guid.NewGuid();
-        context.Entities.Add(CreateEntity(id: id, name: "duplicate"));
-        context.Entities.Add(CreateEntity(id: id, name: "duplicate"));
-        context.SaveChanges();
-
-        var options = new QueryOptions<TestEntityWithCreatedDeleted>(distinct: true);
-        var queryable = context.Entities.AsQueryable();
-
-        // Act
-        var result = evaluator.Build(queryable, options);
-
-        // Assert
-        result.Should().HaveCount(1);
-    }
-
     /// <summary>Проверяет что Build с OrderBy применяет сортировку.</summary>
     [Fact]
     public void Build_WithOrderBy_AppliesOrdering()
@@ -386,27 +364,6 @@ public sealed class EfQueryEvaluatorTests
     #endregion
 
     #region BuildWithTransform Tests
-
-    /// <summary>Проверяет что BuildWithTransform проецирует результат в выходной тип.</summary>
-    [Fact(Skip = "InMemory provider does not support ProjectTo for transforms")]
-    public void BuildWithTransform_ProjectsToOutputType()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var evaluator = CreateEvaluator();
-        context.Entities.Add(CreateEntity(name: "projected"));
-        context.SaveChanges();
-
-        var options = new QueryOptions<TestEntityWithCreatedDeleted>();
-        options.AddFilter(e => e.Name == "projected");
-        var queryable = context.Entities.AsQueryable();
-
-        // Act
-        var result = evaluator.BuildWithTransform<TestEntityWithCreatedDeleted, string>(queryable, options);
-
-        // Assert
-        result.Should().ContainSingle("projected");
-    }
 
     /// <summary>Проверяет что BuildWithTransform с postBuildProcess применяет промежуточное преобразование.</summary>
     [Fact]

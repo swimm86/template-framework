@@ -6,6 +6,7 @@
 
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Infrastructure.Dal.EFCore.Repository;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
@@ -25,7 +26,7 @@ public sealed class EfRepositoryTests
         return new TestEfRepositoryDbContext(options);
     }
 
-    private static EfRepository<TestEntityWithCreatedDeleted> CreateRepository(
+    private static IRepository<TestEntityWithCreatedDeleted> CreateRepository(
         TestEfRepositoryDbContext context)
     {
         var evaluator = new EfQueryEvaluator(new FakeMapper());
@@ -43,7 +44,9 @@ public sealed class EfRepositoryTests
 
     #region GetAsync Tests
 
-    /// <summary>Проверяет что GetAsync возвращает сущность по идентификатору.</summary>
+    /// <summary>
+    /// Проверяет что GetAsync возвращает сущность по идентификатору.
+    /// </summary>
     [Fact]
     public async Task GetAsync_ById_ReturnsEntity()
     {
@@ -62,7 +65,9 @@ public sealed class EfRepositoryTests
         result.Id.Should().Be(entity.Id);
     }
 
-    /// <summary>Проверяет что GetAsync возвращает null при отсутствии сущности.</summary>
+    /// <summary>
+    /// Проверяет что GetAsync возвращает null при отсутствии сущности.
+    /// </summary>
     [Fact]
     public async Task GetAsync_NotFound_ReturnsNull()
     {
@@ -77,22 +82,9 @@ public sealed class EfRepositoryTests
         result.Should().BeNull();
     }
 
-    /// <summary>Проверяет что GetAsync возвращает null при null идентификаторе.</summary>
-    [Fact]
-    public async Task GetAsync_WithNullId_ReturnsNull()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var repo = CreateRepository(context);
-
-        // Act
-        var result = await repo.GetAsync(null, cancellationToken: TestContext.Current.CancellationToken);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    /// <summary>Проверяет что GetAsync с селектором возвращает спроецированное значение.</summary>
+    /// <summary>
+    /// Проверяет что GetAsync с селектором возвращает спроецированное значение.
+    /// </summary>
     [Fact]
     public async Task GetAsync_WithSelector_ReturnsProjectedResult()
     {
@@ -116,7 +108,9 @@ public sealed class EfRepositoryTests
 
     #region GetRangeAsync Tests
 
-    /// <summary>Проверяет что GetRangeAsync возвращает все сущности.</summary>
+    /// <summary>
+    /// Проверяет что GetRangeAsync возвращает все сущности.
+    /// </summary>
     [Fact]
     public async Task GetRangeAsync_ReturnsAllEntities()
     {
@@ -136,7 +130,9 @@ public sealed class EfRepositoryTests
         result.Should().HaveCount(5);
     }
 
-    /// <summary>Проверяет что GetRangeAsync корректно применяет пагинацию skip/take.</summary>
+    /// <summary>
+    /// Проверяет что GetRangeAsync корректно применяет пагинацию skip/take.
+    /// </summary>
     [Fact]
     public async Task GetRangeAsync_WithSkipTake_ReturnsPaginatedResults()
     {
@@ -156,7 +152,9 @@ public sealed class EfRepositoryTests
         result.Should().HaveCount(3);
     }
 
-    /// <summary>Проверяет что GetRangeAsync с селектором возвращает спроецированные результаты.</summary>
+    /// <summary>
+    /// Проверяет что GetRangeAsync с селектором возвращает спроецированные результаты.
+    /// </summary>
     [Fact]
     public async Task GetRangeAsync_WithSelector_ReturnsProjectedResults()
     {
@@ -173,10 +171,12 @@ public sealed class EfRepositoryTests
         var result = await repo.GetRangeAsync(selector: selector, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        result.Should().BeEquivalentTo(["projected1", "projected2"]);
+        result.Should().BeEquivalentTo("projected1", "projected2");
     }
 
-    /// <summary>Проверяет что GetRangeAsync с фильтром возвращает отфильтрованные результаты.</summary>
+    /// <summary>
+    /// Проверяет что GetRangeAsync с фильтром возвращает отфильтрованные результаты.
+    /// </summary>
     [Fact]
     public async Task GetRangeAsync_WithFilter_ReturnsFilteredResults()
     {
@@ -198,7 +198,9 @@ public sealed class EfRepositoryTests
         result[0].Name.Should().Be("alpha");
     }
 
-    /// <summary>Проверяет что GetRangeAsync возвращает пустой список при пустой БД.</summary>
+    /// <summary>
+    /// Проверяет что GetRangeAsync возвращает пустой список при пустой БД.
+    /// </summary>
     [Fact]
     public async Task GetRangeAsync_EmptyDb_ReturnsEmptyList()
     {
@@ -217,7 +219,9 @@ public sealed class EfRepositoryTests
 
     #region FirstOrDefaultAsync Tests
 
-    /// <summary>Проверяет что FirstOrDefaultAsync возвращает первый элемент.</summary>
+    /// <summary>
+    /// Проверяет что FirstOrDefaultAsync возвращает первый элемент.
+    /// </summary>
     [Fact]
     public async Task FirstOrDefaultAsync_ReturnsFirstEntity()
     {
@@ -235,7 +239,9 @@ public sealed class EfRepositoryTests
         result.Should().NotBeNull();
     }
 
-    /// <summary>Проверяет что FirstOrDefaultAsync возвращает null при пустой БД.</summary>
+    /// <summary>
+    /// Проверяет что FirstOrDefaultAsync возвращает null при пустой БД.
+    /// </summary>
     [Fact]
     public async Task FirstOrDefaultAsync_EmptyDb_ReturnsNull()
     {
@@ -250,30 +256,13 @@ public sealed class EfRepositoryTests
         result.Should().BeNull();
     }
 
-    /// <summary>Проверяет что FirstOrDefaultAsync с селектором возвращает спроецированное значение.</summary>
-    [Fact(Skip = "InMemory provider does not support ProjectTo for transforms")]
-    public async Task FirstOrDefaultAsync_WithSelector_ReturnsProjectedValue()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var repo = CreateRepository(context);
-        context.Entities.Add(CreateEntity(name: "projected"));
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        Expression<Func<TestEntityWithCreatedDeleted, string>> selector = e => e.Name;
-
-        // Act
-        var result = await repo.FirstOrDefaultAsync(selector: selector, cancellationToken: TestContext.Current.CancellationToken);
-
-        // Assert
-        result.Should().Be("projected");
-    }
-
     #endregion
 
     #region SingleOrDefaultAsync Tests
 
-    /// <summary>Проверяет что SingleOrDefaultAsync возвращает единственную подходящую сущность.</summary>
+    /// <summary>
+    /// Проверяет что SingleOrDefaultAsync возвращает единственную подходящую сущность.
+    /// </summary>
     [Fact]
     public async Task SingleOrDefaultAsync_SingleMatch_ReturnsEntity()
     {
@@ -295,7 +284,9 @@ public sealed class EfRepositoryTests
         result.Id.Should().Be(entity.Id);
     }
 
-    /// <summary>Проверяет что SingleOrDefaultAsync возвращает null при отсутствии совпадений.</summary>
+    /// <summary>
+    /// Проверяет что SingleOrDefaultAsync возвращает null при отсутствии совпадений.
+    /// </summary>
     [Fact]
     public async Task SingleOrDefaultAsync_NoMatch_ReturnsNull()
     {
@@ -313,7 +304,9 @@ public sealed class EfRepositoryTests
         result.Should().BeNull();
     }
 
-    /// <summary>Проверяет что SingleOrDefaultAsync с селектором возвращает спроецированное значение.</summary>
+    /// <summary>
+    /// Проверяет что SingleOrDefaultAsync с селектором возвращает спроецированное значение.
+    /// </summary>
     [Fact]
     public async Task SingleOrDefaultAsync_WithSelector_ReturnsProjectedValue()
     {
@@ -336,7 +329,9 @@ public sealed class EfRepositoryTests
 
     #region LastOrDefaultAsync Tests
 
-    /// <summary>Проверяет что LastOrDefaultAsync возвращает последний элемент.</summary>
+    /// <summary>
+    /// Проверяет что LastOrDefaultAsync возвращает последний элемент.
+    /// </summary>
     [Fact]
     public async Task LastOrDefaultAsync_ReturnsLastEntity()
     {
@@ -355,7 +350,9 @@ public sealed class EfRepositoryTests
         result.Name.Should().Be("last");
     }
 
-    /// <summary>Проверяет что LastOrDefaultAsync с селектором возвращает спроецированное значение.</summary>
+    /// <summary>
+    /// Проверяет что LastOrDefaultAsync с селектором возвращает спроецированное значение.
+    /// </summary>
     [Fact]
     public async Task LastOrDefaultAsync_WithSelector_ReturnsProjectedValue()
     {
@@ -378,7 +375,9 @@ public sealed class EfRepositoryTests
 
     #region CountAsync Tests
 
-    /// <summary>Проверяет что CountAsync возвращает корректное количество сущностей.</summary>
+    /// <summary>
+    /// Проверяет что CountAsync возвращает корректное количество сущностей.
+    /// </summary>
     [Fact]
     public async Task CountAsync_ReturnsCorrectCount()
     {
@@ -398,7 +397,9 @@ public sealed class EfRepositoryTests
         count.Should().Be(5);
     }
 
-    /// <summary>Проверяет что CountAsync с фильтром возвращает отфильтрованное количество.</summary>
+    /// <summary>
+    /// Проверяет что CountAsync с фильтром возвращает отфильтрованное количество.
+    /// </summary>
     [Fact]
     public async Task CountAsync_WithFilter_ReturnsFilteredCount()
     {
@@ -420,7 +421,9 @@ public sealed class EfRepositoryTests
         count.Should().Be(2);
     }
 
-    /// <summary>Проверяет что CountAsync возвращает 0 при пустой БД.</summary>
+    /// <summary>
+    /// Проверяет что CountAsync возвращает 0 при пустой БД.
+    /// </summary>
     [Fact]
     public async Task CountAsync_EmptyDb_ReturnsZero()
     {
@@ -439,7 +442,9 @@ public sealed class EfRepositoryTests
 
     #region AnyAsync Tests
 
-    /// <summary>Проверяет что AnyAsync возвращает true при наличии сущностей.</summary>
+    /// <summary>
+    /// Проверяет что AnyAsync возвращает true при наличии сущностей.
+    /// </summary>
     [Fact]
     public async Task AnyAsync_WithEntities_ReturnsTrue()
     {
@@ -456,7 +461,9 @@ public sealed class EfRepositoryTests
         result.Should().BeTrue();
     }
 
-    /// <summary>Проверяет что AnyAsync возвращает false при пустой БД.</summary>
+    /// <summary>
+    /// Проверяет что AnyAsync возвращает false при пустой БД.
+    /// </summary>
     [Fact]
     public async Task AnyAsync_EmptyDb_ReturnsFalse()
     {
@@ -471,7 +478,9 @@ public sealed class EfRepositoryTests
         result.Should().BeFalse();
     }
 
-    /// <summary>Проверяет что AnyAsync с фильтром возвращает корректный результат.</summary>
+    /// <summary>
+    /// Проверяет что AnyAsync с фильтром возвращает корректный результат.
+    /// </summary>
     [Fact]
     public async Task AnyAsync_WithFilter_ReturnsCorrectResult()
     {
@@ -497,7 +506,9 @@ public sealed class EfRepositoryTests
 
     #region SumAsync Tests
 
-    /// <summary>Проверяет что SumAsync возвращает корректную сумму по селектору.</summary>
+    /// <summary>
+    /// Проверяет что SumAsync возвращает корректную сумму по селектору.
+    /// </summary>
     [Fact]
     public async Task SumAsync_ReturnsCorrectSum()
     {
@@ -523,7 +534,9 @@ public sealed class EfRepositoryTests
 
     #region AddAsync Tests
 
-    /// <summary>Проверяет что AddAsync добавляет сущность в DbContext.</summary>
+    /// <summary>
+    /// Проверяет что AddAsync добавляет сущность в DbContext.
+    /// </summary>
     [Fact]
     public async Task AddAsync_AddsEntityToDbContext()
     {
@@ -543,7 +556,9 @@ public sealed class EfRepositoryTests
         context.Entry(entity).State.Should().Be(EntityState.Added);
     }
 
-    /// <summary>Проверяет что AddAsync для IWithCreated сущности устанавливает информацию о создании.</summary>
+    /// <summary>
+    /// Проверяет что AddAsync для IWithCreated сущности устанавливает информацию о создании.
+    /// </summary>
     [Fact]
     public async Task AddAsync_IWithCreatedEntity_SetsCreationInfo()
     {
@@ -567,7 +582,9 @@ public sealed class EfRepositoryTests
         entity.DateCreated.Should().NotBe(default);
     }
 
-    /// <summary>Проверяет что AddAsync возвращает ту же сущность.</summary>
+    /// <summary>
+    /// Проверяет что AddAsync возвращает ту же сущность.
+    /// </summary>
     [Fact]
     public async Task AddAsync_ReturnsSameEntity()
     {
@@ -591,7 +608,9 @@ public sealed class EfRepositoryTests
 
     #region AddRangeAsync Tests
 
-    /// <summary>Проверяет что AddRangeAsync добавляет несколько сущностей.</summary>
+    /// <summary>
+    /// Проверяет что AddRangeAsync добавляет несколько сущностей.
+    /// </summary>
     [Fact]
     public async Task AddRangeAsync_AddsMultipleEntities()
     {
@@ -612,7 +631,9 @@ public sealed class EfRepositoryTests
         context.Entities.Should().HaveCount(3);
     }
 
-    /// <summary>Проверяет что AddRangeAsync для IWithCreated сущностей устанавливает информацию о создании.</summary>
+    /// <summary>
+    /// Проверяет что AddRangeAsync для IWithCreated сущностей устанавливает информацию о создании.
+    /// </summary>
     [Fact]
     public async Task AddRangeAsync_IWithCreatedEntities_SetsCreationInfo()
     {
@@ -641,7 +662,9 @@ public sealed class EfRepositoryTests
 
     #region RemoveAsync Tests
 
-    /// <summary>Проверяет что RemoveAsync при мягком удалении устанавливает IsDeleted.</summary>
+    /// <summary>
+    /// Проверяет что RemoveAsync при мягком удалении устанавливает IsDeleted.
+    /// </summary>
     [Fact]
     public async Task RemoveAsync_SoftDelete_SetsIsDeleted()
     {
@@ -664,7 +687,9 @@ public sealed class EfRepositoryTests
         context.Entry(entity).State.Should().Be(EntityState.Modified);
     }
 
-    /// <summary>Проверяет что RemoveAsync при жёстком удалении удаляет сущность из DbContext.</summary>
+    /// <summary>
+    /// Проверяет что RemoveAsync при жёстком удалении удаляет сущность из DbContext.
+    /// </summary>
     [Fact]
     public async Task RemoveAsync_HardDelete_RemovesFromDbContext()
     {
@@ -685,7 +710,9 @@ public sealed class EfRepositoryTests
         context.Entry(entity).State.Should().Be(EntityState.Deleted);
     }
 
-    /// <summary>Проверяет что RemoveAsync с userId устанавливает DeletedByUserId.</summary>
+    /// <summary>
+    /// Проверяет что RemoveAsync с userId устанавливает DeletedByUserId.
+    /// </summary>
     [Fact]
     public async Task RemoveAsync_WithUserId_SetsDeletedByUserId()
     {
@@ -708,7 +735,9 @@ public sealed class EfRepositoryTests
         entity.DeletedByUserId.Should().Be(userId);
     }
 
-    /// <summary>Проверяет что RemoveAsync без userId оставляет DeletedByUserId равным null.</summary>
+    /// <summary>
+    /// Проверяет что RemoveAsync без userId оставляет DeletedByUserId равным null.
+    /// </summary>
     [Fact]
     public async Task RemoveAsync_WithoutUserId_SetsNullDeletedByUserId()
     {
@@ -734,7 +763,9 @@ public sealed class EfRepositoryTests
 
     #region RemoveRangeAsync Tests
 
-    /// <summary>Проверяет что RemoveRangeAsync по сущностям мягко удаляет все.</summary>
+    /// <summary>
+    /// Проверяет что RemoveRangeAsync по сущностям мягко удаляет все.
+    /// </summary>
     [Fact]
     public async Task RemoveRangeAsync_ByEntities_SoftDeletesAll()
     {
@@ -755,7 +786,9 @@ public sealed class EfRepositoryTests
         entities.Should().AllSatisfy(e => e.IsDeleted.Should().BeTrue());
     }
 
-    /// <summary>Проверяет что RemoveRangeAsync по условию удаляет подходящие сущности.</summary>
+    /// <summary>
+    /// Проверяет что RemoveRangeAsync по условию удаляет подходящие сущности.
+    /// </summary>
     [Fact]
     public async Task RemoveRangeAsync_ByCondition_RemovesMatchingEntities()
     {
@@ -776,33 +809,13 @@ public sealed class EfRepositoryTests
         context.Entities.Should().HaveCount(1);
     }
 
-    /// <summary>Проверяет что RemoveRangeAsync по опциям удаляет подходящие сущности.</summary>
-    [Fact(Skip = "InMemory provider does not support RemoveRange with options properly")]
-    public async Task RemoveRangeAsync_ByOptions_RemovesMatchingEntities()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var repo = CreateRepository(context);
-        context.Entities.Add(CreateEntity(name: "remove"));
-        context.Entities.Add(CreateEntity(name: "keep"));
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var options = new QueryOptions<TestEntityWithCreatedDeleted>();
-        options.AddFilter(e => e.Name == "remove");
-
-        // Act
-        await repo.RemoveRangeAsync(options, hard: true, cancellationToken: TestContext.Current.CancellationToken);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Assert
-        context.Entities.Should().HaveCount(1);
-    }
-
     #endregion
 
     #region RemovePermanentRangeAsync Tests
 
-    /// <summary>Проверяет что RemovePermanentRangeAsync жёстко удаляет все сущности.</summary>
+    /// <summary>
+    /// Проверяет что RemovePermanentRangeAsync жёстко удаляет все сущности.
+    /// </summary>
     [Fact]
     public async Task RemovePermanentRangeAsync_HardDeletesAll()
     {
@@ -826,61 +839,11 @@ public sealed class EfRepositoryTests
 
     #endregion
 
-    #region UpdateRangeAsync Tests
-
-    /// <summary>Проверяет что UpdateRangeAsync по условию обновляет подходящие сущности.</summary>
-    [Fact(Skip = "InMemory provider does not support ExecuteUpdateAsync")]
-    public async Task UpdateRangeAsync_ByCondition_UpdatesMatchingEntities()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var repo = CreateRepository(context);
-        context.Entities.Add(CreateEntity(name: "old1"));
-        context.Entities.Add(CreateEntity(name: "old2"));
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        Expression<Func<TestEntityWithCreatedDeleted, bool>> condition = e => e.Name.StartsWith("old");
-        Expression<Func<TestEntityWithCreatedDeleted, string>> property = e => e.Name;
-        Expression<Func<TestEntityWithCreatedDeleted, string>> value = e => "updated";
-
-        // Act
-        await repo.UpdateRangeAsync(condition, (property, value));
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Assert
-        context.Entities.Should().AllSatisfy(e => e.Name.Should().Be("updated"));
-    }
-
-    /// <summary>Проверяет что UpdateRangeAsync по опциям обновляет подходящие сущности.</summary>
-    [Fact(Skip = "InMemory provider does not support ExecuteUpdateAsync")]
-    public async Task UpdateRangeAsync_ByOptions_UpdatesMatchingEntities()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var repo = CreateRepository(context);
-        context.Entities.Add(CreateEntity(name: "update-me"));
-        context.Entities.Add(CreateEntity(name: "keep"));
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var options = new QueryOptions<TestEntityWithCreatedDeleted>();
-        options.AddFilter(e => e.Name == "update-me");
-        Expression<Func<TestEntityWithCreatedDeleted, string>> property = e => e.Name;
-        Expression<Func<TestEntityWithCreatedDeleted, string>> value = e => "updated";
-
-        // Act
-        await repo.UpdateRangeAsync(options, (property, value));
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Assert
-        var updated = context.Entities.Single(e => e.Name == "updated");
-        updated.Should().NotBeNull();
-    }
-
-    #endregion
-
     #region Execute Tests
 
-    /// <summary>Проверяет что Execute без транзакции возвращает результат.</summary>
+    /// <summary>
+    /// Проверяет что Execute без транзакции возвращает результат.
+    /// </summary>
     [Fact]
     public void Execute_WithoutTransaction_ReturnsResult()
     {
@@ -895,8 +858,10 @@ public sealed class EfRepositoryTests
         result.Should().Be(42);
     }
 
-    /// <summary>Проверяет что Execute с транзакцией фиксирует изменения при успехе.</summary>
-    [Fact(Skip = "InMemory provider does not support transactions")]
+    /// <summary>
+    /// Проверяет что Execute с транзакцией фиксирует изменения при успехе.
+    /// </summary>
+    [Fact]
     public void Execute_WithTransaction_CommitsOnSuccess()
     {
         // Arrange
@@ -910,7 +875,9 @@ public sealed class EfRepositoryTests
         result.Should().Be(42);
     }
 
-    /// <summary>Проверяет что Execute с транзакцией откатывает изменения при ошибке.</summary>
+    /// <summary>
+    /// Проверяет что Execute с транзакцией откатывает изменения при ошибке.
+    /// </summary>
     [Fact]
     public void Execute_WithTransaction_RollbacksOnFailure()
     {
@@ -929,7 +896,9 @@ public sealed class EfRepositoryTests
 
     #region ExecuteAsync Tests
 
-    /// <summary>Проверяет что ExecuteAsync без транзакции возвращает результат.</summary>
+    /// <summary>
+    /// Проверяет что ExecuteAsync без транзакции возвращает результат.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_WithoutTransaction_ReturnsResult()
     {
@@ -947,8 +916,10 @@ public sealed class EfRepositoryTests
         result.Should().Be(42);
     }
 
-    /// <summary>Проверяет что ExecuteAsync с транзакцией фиксирует изменения при успехе.</summary>
-    [Fact(Skip = "InMemory provider does not support transactions")]
+    /// <summary>
+    /// Проверяет что ExecuteAsync с транзакцией фиксирует изменения при успехе.
+    /// </summary>
+    [Fact]
     public async Task ExecuteAsync_WithTransaction_CommitsOnSuccess()
     {
         // Arrange
@@ -965,7 +936,9 @@ public sealed class EfRepositoryTests
         result.Should().Be(42);
     }
 
-    /// <summary>Проверяет что ExecuteAsync с транзакцией откатывает изменения при ошибке.</summary>
+    /// <summary>
+    /// Проверяет что ExecuteAsync с транзакцией откатывает изменения при ошибке.
+    /// </summary>
     [Fact]
     public async Task ExecuteAsync_WithTransaction_RollbacksOnFailure()
     {
@@ -984,7 +957,9 @@ public sealed class EfRepositoryTests
 
     #region Set Tests
 
-    /// <summary>Проверяет что Set без опций возвращает IQueryable.</summary>
+    /// <summary>
+    /// Проверяет что Set без опций возвращает IQueryable.
+    /// </summary>
     [Fact]
     public void Set_WithoutOptions_ReturnsQueryable()
     {
@@ -1000,7 +975,9 @@ public sealed class EfRepositoryTests
         queryable.Should().BeAssignableTo<IQueryable<TestEntityWithCreatedDeleted>>();
     }
 
-    /// <summary>Проверяет что Set с опциями возвращает отфильтрованный IQueryable.</summary>
+    /// <summary>
+    /// Проверяет что Set с опциями возвращает отфильтрованный IQueryable.
+    /// </summary>
     [Fact]
     public void Set_WithOptions_ReturnsFilteredQueryable()
     {
@@ -1025,7 +1002,9 @@ public sealed class EfRepositoryTests
 
     #region SaveChanges Tests
 
-    /// <summary>Проверяет что SaveChanges делегирует сохранение DbContext.</summary>
+    /// <summary>
+    /// Проверяет что SaveChanges делегирует сохранение DbContext.
+    /// </summary>
     [Fact]
     public void SaveChanges_DelegatesToDbContext()
     {
@@ -1061,7 +1040,9 @@ public sealed class EfRepositoryTests
 
     #region NoTracking Tests
 
-    /// <summary>Проверяет что GetAsync с no-tracking отвязывает сущность от контекста.</summary>
+    /// <summary>
+    /// Проверяет что GetAsync с no-tracking отвязывает сущность от контекста.
+    /// </summary>
     [Fact]
     public async Task GetAsync_NoTracking_DetachesEntity()
     {
@@ -1084,5 +1065,206 @@ public sealed class EfRepositoryTests
 
     #endregion
 
+    #region MaxAsync / MinAsync Tests
 
+    public enum AggregateKind { Max, Min }
+
+    public enum ProjectionKind { IntLength, StringName }
+
+    public enum Population { Empty, Populated }
+
+    /// <summary>
+    /// Проверяет MaxAsync и MinAsync для value/reference типов на пустой и заполненной выборке.
+    /// </summary>
+    [Theory]
+    [InlineData(AggregateKind.Max, ProjectionKind.IntLength, Population.Empty, 0)]
+    [InlineData(AggregateKind.Max, ProjectionKind.IntLength, Population.Populated, 4)]
+    [InlineData(AggregateKind.Max, ProjectionKind.StringName, Population.Empty, null)]
+    [InlineData(AggregateKind.Max, ProjectionKind.StringName, Population.Populated, "ccc")]
+    [InlineData(AggregateKind.Min, ProjectionKind.IntLength, Population.Empty, 0)]
+    [InlineData(AggregateKind.Min, ProjectionKind.IntLength, Population.Populated, 1)]
+    [InlineData(AggregateKind.Min, ProjectionKind.StringName, Population.Empty, null)]
+    [InlineData(AggregateKind.Min, ProjectionKind.StringName, Population.Populated, "a")]
+    public async Task AggregateAsync_ReturnsExpected(
+        AggregateKind kind,
+        ProjectionKind projection,
+        Population population,
+        object? expected)
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+
+        if (population == Population.Populated)
+        {
+            context.Entities.Add(CreateEntity(name: "a"));
+            context.Entities.Add(CreateEntity(name: "bbbb"));
+            context.Entities.Add(CreateEntity(name: "ccc"));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        object? result = (kind, projection) switch
+        {
+            (AggregateKind.Max, ProjectionKind.IntLength) => await repo.MaxAsync(
+                e => e.Name.Length,
+                cancellationToken: TestContext.Current.CancellationToken),
+            (AggregateKind.Max, ProjectionKind.StringName) => await repo.MaxAsync(
+                e => e.Name,
+                cancellationToken: TestContext.Current.CancellationToken),
+            (AggregateKind.Min, ProjectionKind.IntLength) => await repo.MinAsync(
+                e => e.Name.Length,
+                cancellationToken: TestContext.Current.CancellationToken),
+            (AggregateKind.Min, ProjectionKind.StringName) => await repo.MinAsync(
+                e => e.Name,
+                cancellationToken: TestContext.Current.CancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    #endregion
+
+    #region GetGroupingAsync / CountGroupsAsync Tests
+
+    /// <summary>
+    /// Проверяет GetGroupingAsync с пагинацией без явного orderBy бросает исключение.
+    /// </summary>
+    [Fact]
+    public async Task GetGroupingAsync_WithSkipTakeWithoutOrder_Throws()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        context.Entities.Add(CreateEntity(name: "a"));
+        context.Entities.Add(CreateEntity(name: "bb"));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Expression<Func<TestEntityWithCreatedDeleted, int>> keySelector = e => e.Name.Length;
+
+        // Act
+        var act = () => repo.GetGroupingAsync(
+            keySelector,
+            skip: 0,
+            take: 10,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithParameterName("groupKeyOrderDirection");
+    }
+
+    /// <summary>
+    /// Проверяет GetGroupingAsync с проекцией возвращает спроецированные группы.
+    /// </summary>
+    [Fact]
+    public async Task GetGroupingAsync_WithSelector_ReturnsProjectedGroups()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        context.Entities.Add(CreateEntity(name: "a"));
+        context.Entities.Add(CreateEntity(name: "aa"));
+        context.Entities.Add(CreateEntity(name: "bbb"));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Expression<Func<TestEntityWithCreatedDeleted, int>> keySelector = e => e.Name.Length;
+        Expression<Func<IGrouping<int, TestEntityWithCreatedDeleted>, GroupSummary>> selector =
+            g => new GroupSummary(g.Key, g.Count());
+
+        // Act
+        var result = await repo.GetGroupingAsync(
+            keySelector,
+            selector: selector,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEquivalentTo([
+            new GroupSummary(1, 1),
+            new GroupSummary(2, 1),
+            new GroupSummary(3, 1)
+        ]);
+    }
+
+    private sealed record GroupSummary(int Key, int Count);
+
+    /// <summary>
+    /// Проверяет CountGroupsAsync возвращает количество уникальных ключей группировки.
+    /// </summary>
+    [Fact]
+    public async Task CountGroupsAsync_ByKey_ReturnsGroupCount()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        context.Entities.Add(CreateEntity(name: "a"));
+        context.Entities.Add(CreateEntity(name: "aa"));
+        context.Entities.Add(CreateEntity(name: "bbb"));
+        context.Entities.Add(CreateEntity(name: "bbbb"));
+        context.Entities.Add(CreateEntity(name: "bbbbb"));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Expression<Func<TestEntityWithCreatedDeleted, int>> keySelector = e => e.Name.Length;
+
+        // Act
+        var count = await repo.CountGroupsAsync(
+            keySelector,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        count.Should().Be(5);
+    }
+
+    /// <summary>
+    /// Проверяет CountGroupsAsync с фильтром учитывает только подходящие сущности.
+    /// </summary>
+    [Fact]
+    public async Task CountGroupsAsync_WithFilter_CountsFilteredGroups()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        context.Entities.Add(CreateEntity(name: "alpha"));
+        context.Entities.Add(CreateEntity(name: "alphaa"));
+        context.Entities.Add(CreateEntity(name: "betaaa"));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Expression<Func<TestEntityWithCreatedDeleted, int>> keySelector = e => e.Name.Length;
+        var options = new QueryOptions<TestEntityWithCreatedDeleted>();
+        options.AddFilter(e => e.Name.StartsWith("alpha"));
+
+        // Act
+        var count = await repo.CountGroupsAsync(
+            keySelector,
+            options,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        count.Should().Be(2);
+    }
+
+    /// <summary>
+    /// Проверяет CountGroupsAsync на пустой БД возвращает 0.
+    /// </summary>
+    [Fact]
+    public async Task CountGroupsAsync_EmptyDb_ReturnsZero()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+
+        Expression<Func<TestEntityWithCreatedDeleted, int>> keySelector = e => e.Name.Length;
+
+        // Act
+        var count = await repo.CountGroupsAsync(
+            keySelector,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        count.Should().Be(0);
+    }
+
+    #endregion
 }

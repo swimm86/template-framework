@@ -104,50 +104,6 @@ public sealed class DbUpdaterBaseTests
 
     #endregion
 
-    #region Migrate Tests
-
-    /// <summary>
-    /// <see cref="DbUpdaterBase.Migrate"/> через InMemory-провайдер
-    /// не вызывает <c>Database.Migrate</c> (провайдер не поддерживает реляционные методы),
-    /// поэтому тест помечен <c>Skip</c>. Реляционные сценарии покрываются
-    /// интеграционными тестами с SQLite (<see cref="Repository.Integration.DbUpdaterBaseIntegrationTests"/>).
-    /// </summary>
-    [Fact(Skip = "InMemory provider does not support relational migration methods")]
-    public void Migrate_NoPendingMigrations_DoesNotCallMigrate()
-    {
-        // Arrange
-        using var dbContext = CreateDbContext();
-        var updater = new TestDbUpdater(dbContext, new StubEnsureSchemaStrategy());
-
-        // Act
-        updater.Migrate();
-
-        // Assert
-        updater.MigrateWasCalled.Should().BeFalse();
-    }
-
-    /// <summary>
-    /// <see cref="DbUpdaterBase.Migrate"/> через InMemory-провайдер
-    /// не вызывает <c>Database.Migrate</c> (провайдер не поддерживает реляционные методы),
-    /// поэтому тест помечен <c>Skip</c>.
-    /// </summary>
-    [Fact(Skip = "InMemory provider does not support relational migration methods")]
-    public void Migrate_WithPendingMigrations_CallsMigrate()
-    {
-        // Arrange
-        using var dbContext = CreateDbContext();
-        var updater = new TestDbUpdater(dbContext, new StubEnsureSchemaStrategy());
-
-        // Act
-        updater.Migrate();
-
-        // Assert - with InMemory provider, GetPendingMigrations returns empty,
-        // so MigrateWasCalled should be false. This verifies the guard condition works.
-        updater.MigrateWasCalled.Should().BeFalse();
-    }
-
-    #endregion
-
     #region Initialize Tests
 
     /// <summary>

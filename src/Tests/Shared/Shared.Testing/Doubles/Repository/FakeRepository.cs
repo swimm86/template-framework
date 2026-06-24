@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using Shared.Domain.Core.Dal;
+using Shared.Domain.Core.Dal.Repository;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
 using Shared.Domain.Core.Dal.Specification.Interfaces;
@@ -18,7 +19,7 @@ public sealed class FakeRepository<TEntity>
     public Func<TEntity, object>? KeySelector { get; set; }
 
     /// <summary>
-    /// Преобразователь сущности <typeparamref name="TEntity"/> в проекцию <typeparamref name="TOut"/>,
+    /// Преобразователь сущности <typeparamref name="TEntity"/> в проекцию,
     /// используемый в <c>GetRangeAsync&lt;TOut&gt;</c> при отсутствии явного <c>selector</c>.
     /// </summary>
     /// <remarks>
@@ -54,15 +55,12 @@ public sealed class FakeRepository<TEntity>
     #region Read methods
 
     public Task<TEntity?> GetAsync(
-        object? id,
+        object id,
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        if (id is null)
-        {
-            return Task.FromResult<TEntity?>(null);
-        }
+        ArgumentNullException.ThrowIfNull(id);
 
         if (!_storage.TryGetValue(id, out var entity))
         {
@@ -73,20 +71,20 @@ public sealed class FakeRepository<TEntity>
     }
 
     public Task<TEntity?> GetAsync(
-        object? id,
+        object id,
         ISpecification<TEntity> specification,
         CancellationToken cancellationToken = default)
         => GetAsync(id, specification.BuildOptions(), cancellationToken);
 
     public Task<TOut?> GetAsync<TOut>(
-        object? id,
+        object id,
         QueryOptions<TEntity>? options = null,
         Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnGet);
-        if (id is null)
-            return Task.FromResult<TOut?>(default);
+        ArgumentNullException.ThrowIfNull(id);
+
         if (!_storage.TryGetValue(id, out var entity) || !MatchesOptions(entity, options))
         {
             return Task.FromResult<TOut?>(default);
@@ -346,14 +344,17 @@ public sealed class FakeRepository<TEntity>
 
     #region Update methods
 
-    public Task UpdateRangeAsync(
-        Expression<Func<TEntity, bool>>? condition = null,
+    public Task ExecuteUpdateRangeAsync(
+        Expression<Func<TEntity, bool>>? predicate = null,
         params (LambdaExpression propertyExpression,
             LambdaExpression valueExpression)[] updateData)
     {
         var query = _storage.Values.AsQueryable();
-        if (condition is not null)
-            query = query.Where(condition);
+        if (predicate is not null)
+        {
+            query = query.Where(predicate);
+        }
+
         var entities = query.ToList();
         foreach (var entity in entities)
         {
@@ -369,7 +370,7 @@ public sealed class FakeRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task UpdateRangeAsync(
+    public Task ExecuteUpdateRangeAsync(
         QueryOptions<TEntity> options,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
     {
@@ -389,10 +390,112 @@ public sealed class FakeRepository<TEntity>
         return Task.CompletedTask;
     }
 
-    public Task UpdateRangeAsync(
+    public Task ExecuteUpdateRangeAsync(
         ISpecification<TEntity> specification,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
-        => UpdateRangeAsync(specification.BuildOptions(), updateData);
+        => ExecuteUpdateRangeAsync(specification.BuildOptions(), updateData);
+
+    #endregion
+
+    #region Grouping methods
+
+    public Task<List<IGrouping<TKey, TEntity>>> GetGroupingAsync<TKey>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        OrderDirectionType? groupKeyOrderDirection = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured(ExceptionToThrowOnGet);
+        GroupingPagingGuard.EnsureGroupOrderingForPaging(skip, take, groupKeyOrderDirection);
+        var grouped = ApplyOptions(_storage.Values.AsQueryable(), options).GroupBy(keySelector);
+        grouped = ApplyGroupKeyOrdering(grouped, groupKeyOrderDirection);
+        var query = grouped;
+        if (skip.HasValue) query = query.Skip(skip.Value);
+        if (take.HasValue) query = query.Take(take.Value);
+        return Task.FromResult(query.ToList());
+    }
+
+    public Task<List<TOut>> GetGroupingAsync<TKey, TOut>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        QueryOptions<TEntity>? options = null,
+        int? skip = null,
+        int? take = null,
+        Expression<Func<IGrouping<TKey, TEntity>, TOut>>? selector = null,
+        OrderDirectionType? groupKeyOrderDirection = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured(ExceptionToThrowOnGet);
+        GroupingPagingGuard.EnsureGroupOrderingForPaging(skip, take, groupKeyOrderDirection);
+        var grouped = ApplyOptions(_storage.Values.AsQueryable(), options).GroupBy(keySelector);
+        grouped = ApplyGroupKeyOrdering(grouped, groupKeyOrderDirection);
+        var query = grouped;
+        if (skip.HasValue) query = query.Skip(skip.Value);
+        if (take.HasValue) query = query.Take(take.Value);
+        var selectorFunc = selector?.Compile();
+        var projected = selectorFunc is not null
+            ? query.Select(selectorFunc)
+            : query.Select(g => (TOut)(object)g.ToList());
+        return Task.FromResult(projected.ToList());
+    }
+
+    public Task<int> CountGroupsAsync<TKey>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured(ExceptionToThrowOnGet);
+        return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).GroupBy(keySelector).Count());
+    }
+
+    public Task<int> CountGroupsAsync<TKey>(
+        Expression<Func<TEntity, TKey>> keySelector,
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+        => CountGroupsAsync(keySelector, specification.BuildOptions(), cancellationToken);
+
+    public Task<TOut?> MaxAsync<TOut>(
+        Expression<Func<TEntity, TOut>> selector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured(ExceptionToThrowOnGet);
+        var query = ApplyOptions(_storage.Values.AsQueryable(), options);
+        return Task.FromResult(query.Any() ? query.Max(selector) : default);
+    }
+
+    public Task<TOut?> MaxAsync<TOut>(
+        Expression<Func<TEntity, TOut>> selector,
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+        => MaxAsync(selector, specification.BuildOptions(), cancellationToken);
+
+    public Task<TOut?> MinAsync<TOut>(
+        Expression<Func<TEntity, TOut>> selector,
+        QueryOptions<TEntity>? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured(ExceptionToThrowOnGet);
+        var query = ApplyOptions(_storage.Values.AsQueryable(), options);
+        return Task.FromResult(query.Any() ? query.Min(selector) : default);
+    }
+
+    public Task<TOut?> MinAsync<TOut>(
+        Expression<Func<TEntity, TOut>> selector,
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+        => MinAsync(selector, specification.BuildOptions(), cancellationToken);
+
+    private static IQueryable<IGrouping<TKey, TEntity>> ApplyGroupKeyOrdering<TKey>(
+        IQueryable<IGrouping<TKey, TEntity>> grouped,
+        OrderDirectionType? groupKeyOrderDirection) =>
+        groupKeyOrderDirection switch
+        {
+            OrderDirectionType.Ascending => grouped.OrderBy(g => g.Key),
+            OrderDirectionType.Descending => grouped.OrderByDescending(g => g.Key),
+            _ => grouped,
+        };
 
     #endregion
 
@@ -403,17 +506,27 @@ public sealed class FakeRepository<TEntity>
         Guid? userId,
         bool hard = false,
         CancellationToken cancellationToken = default)
-        => RemoveAsync(entity, hard, cancellationToken);
+    {
+        ThrowIfConfigured(ExceptionToThrowOnRemove);
+        RemoveCallCount++;
+        if (!hard && entity is IWithDeleted deletable)
+        {
+            deletable.SetIsDeleted();
+            deletable.OnDelete(userId);
+        }
+        else
+        {
+            _storage.TryRemove(GetKey(entity), out _);
+        }
+        return Task.CompletedTask;
+    }
 
     public Task RemoveAsync(
         TEntity entity,
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
-        ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
-        _storage.TryRemove(GetKey(entity), out _);
-        return Task.CompletedTask;
+        return RemoveAsync(entity, userId: null, hard, cancellationToken);
     }
 
     public Task RemoveRangeAsync(
@@ -424,7 +537,17 @@ public sealed class FakeRepository<TEntity>
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
         foreach (var entity in entities)
-            _storage.TryRemove(GetKey(entity), out _);
+        {
+            if (!hard && entity is IWithDeleted deletable)
+            {
+                deletable.SetIsDeleted();
+                deletable.OnDelete(userId: null);
+            }
+            else
+            {
+                _storage.TryRemove(GetKey(entity), out _);
+            }
+        }
         return Task.CompletedTask;
     }
 
@@ -453,13 +576,13 @@ public sealed class FakeRepository<TEntity>
     }
 
     public Task RemoveRangeAsync(
-        Expression<Func<TEntity, bool>> conditions,
+        Expression<Func<TEntity, bool>> predicate,
         bool hard = false,
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
         RemoveCallCount++;
-        var toRemove = _storage.Values.Where(conditions.Compile()).ToList();
+        var toRemove = _storage.Values.Where(predicate.Compile()).ToList();
         foreach (var entity in toRemove)
             _storage.TryRemove(GetKey(entity), out _);
         return Task.CompletedTask;
@@ -470,6 +593,28 @@ public sealed class FakeRepository<TEntity>
         bool hard = false,
         CancellationToken cancellationToken = default)
         => RemoveRangeAsync(specification.BuildOptions(), hard, cancellationToken);
+
+    public Task ExecuteRemoveRangeAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default) =>
+        ExecuteRemoveRangeAsync(new QueryOptions<TEntity>().AddFilter(predicate), cancellationToken);
+
+    public Task ExecuteRemoveRangeAsync(
+        QueryOptions<TEntity> options,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfConfigured(ExceptionToThrowOnRemove);
+        RemoveCallCount++;
+        var toRemove = ApplyOptions(_storage.Values.AsQueryable(), options).ToList();
+        foreach (var entity in toRemove)
+            _storage.TryRemove(GetKey(entity), out _);
+        return Task.CompletedTask;
+    }
+
+    public Task ExecuteRemoveRangeAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken cancellationToken = default)
+        => ExecuteRemoveRangeAsync(specification.BuildOptions(), cancellationToken);
 
     #endregion
 
