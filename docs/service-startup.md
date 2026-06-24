@@ -124,7 +124,7 @@ public static IApplicationBuilder UsePresentationCore(this WebApplication app)
 
 ### UseCommonPresentation (пример из Template)
 
-В сервисах микросервисов `UsePresentationCore` оборачивается в `UseCommonPresentation`, добавляя CORS:
+В production-приложениях `UsePresentationCore` оборачивается в `UseCommonPresentation`, добавляя CORS:
 
 ```csharp
 // Template.Presentation/Extensions/ApplicationBuilderExtensions.cs
@@ -183,7 +183,7 @@ Template Method Pattern: открытый `Inject()` — логирование 
 | Application.Cqrs.Core | `Shared.Application.Cqrs.Core` | MediatR |
 | Infrastructure.Core | `Shared.Infrastructure.Core` | ApiClient: DelegatingHandlers, HttpClient-конфигурация |
 | Presentation.Core | `Shared.Presentation.Core` | Swagger, FluentValidation, ExceptionHandling, EndpointsApiExplorer |
-| Dal.EFCore.Postgres | `Shared.Infrastructure.Dal.EFCore.Postgres` | Npgsql legacy timestamp, `IDbContextOptionsBuilderInitializer`, DbContext'ы, `IQueryEvaluator` → `EfQueryEvaluator`, `IRepository<>` → `EfRepository<>`, `IUnitOfWork` |
+| Dal.EFCore.Postgres | `Shared.Infrastructure.Dal.EFCore.Postgres` | Npgsql legacy timestamp, `IDbContextOptionsBuilderInitializer`, DbContext'ы, `IQueryEvaluator` → `EfQueryEvaluator`, `IGetterRepository<>` / `ISetterRepository<>` / `IRepository<>` → `EfRepository<>`, `IUnitOfWork` |
 | Logging | `Shared.Infrastructure.Logging` | NLog |
 | Mapper | `Shared.Infrastructure.Mapper.AutoMapper` | AutoMapper profiles, `IMapper` → `Mapper` |
 | Job.Quartz | `Shared.Infrastructure.Job.Quartz` | Quartz hosted service (`WaitForJobsToComplete = true`) |
@@ -248,6 +248,8 @@ protected override IServiceCollection Process(IServiceCollection serviceCollecti
 ```
 
 > **Важно:** `AddDbContext<TSettings, TContext>` (`src/Shared/Dal/Shared.Infrastructure.Dal.EFCore/Extensions/ServiceCollectionExtensions.cs:33`) внутри себя строит **временный** `ServiceProvider` через `serviceCollection.BuildServiceProvider()` + `CreateScope()`, чтобы из scope резолвнуть `IDbContextOptionsBuilderInitializer` и сконфигурировать `DbContextOptionsBuilder`. После инициализации временный scope dispose'ится. Этот шаг — compile-time wiring initializer-а, а не runtime scope leak.
+>
+> **Три scoped-сервиса поверх одного `EfRepository<T>.`** Внутри `AddDbContext` под все три интерфейса репозитория (`IGetterRepository<>` / `ISetterRepository<>` / `IRepository<>`) регистрируется один и тот же `EfRepository<T>` как `Scoped`. В рамках HTTP-запроса инжекция любого из трёх возвращает один экземпляр с общим `DbContext` и общим `ChangeTracker` — иначе reads и writes потеряли бы транзакционную целостность. Регистрация трёх, а не одного, позволяет прикладному коду выбирать между `IRepository<T>` (контракт по умолчанию, который возвращает `IUnitOfWork.GetRepository<T>()`) и узкими `IGetterRepository<T>` / `ISetterRepository<T>` для ISP-сценариев. Подробнее — в [Repository Pattern](repository.md#di-registration) и [Когда использовать какой интерфейс](repository.md#когда-использовать-какой-интерфейс).
 
 #### Presentation.Core
 
@@ -317,7 +319,7 @@ protected override IServiceCollection Process(IServiceCollection serviceCollecti
 
 ## Полный пример Program.cs
 
-### Типичный микросервис (Getter / Setter)
+### Типичное Web API приложение
 
 ```csharp
 using Shared.Presentation.Core.Extensions;
@@ -343,7 +345,7 @@ app.UseCommonPresentation();
 app.Run();
 ```
 
-### BFF-сервис
+### Минимальное Web API приложение
 
 ```csharp
 using Shared.Presentation.Core.Extensions;
@@ -392,7 +394,7 @@ dbUpdater.Initialize();
 
 ### Собственный DependencyInjector
 
-Для регистрации сервисов конкретного микросервиса создайте собственный инжектор:
+Для регистрации сервисов конкретного приложения создайте собственный инжектор:
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;

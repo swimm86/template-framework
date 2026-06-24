@@ -15,11 +15,11 @@ namespace Shared.Domain.Core.Dal.Repository.Interfaces;
 /// </summary>
 /// <typeparam name="TEntity">Тип сущности.</typeparam>
 /// <remarks>
-/// <para>Рекомендации по выбору интерфейса репозитория:</para>
+/// <para>Контракт репозитория разделён на три интерфейса в духе Interface Segregation Principle:</para>
 /// <list type="bullet">
-///   <item><see cref="IGetterRepository{TEntity}"/> — для read-only сценариев (Getter-сервис, проекции, агрегации).</item>
-///   <item><see cref="ISetterRepository{TEntity}"/> — для write-only сценариев (Setter-сервис, команды).</item>
-///   <item><see cref="IRepository{TEntity}"/> — когда в рамках одного scope требуются и чтение, и запись.</item>
+///   <item><see cref="IGetterRepository{TEntity}"/> — read-only: запросы, проекции, агрегации.</item>
+///   <item><see cref="ISetterRepository{TEntity}"/> — write-only: добавление, обновление, удаление, Execute, SaveChanges.</item>
+///   <item><see cref="IRepository{TEntity}"/> — composite: оба контракта плюс <see cref="Set(QueryOptions{TEntity}?)"/>.</item>
 /// </list>
 /// </remarks>
 public interface IRepository<TEntity>

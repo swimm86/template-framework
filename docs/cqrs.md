@@ -244,7 +244,7 @@ public abstract class ReadListQuery<TRequest, TFilter, TResponse>(TRequest reque
 }
 ```
 
-**Пример (из Getter-сервиса):**
+**Пример:**
 
 ```csharp
 public sealed record PersonReadListQuery(PersonListRequest request)
@@ -369,6 +369,18 @@ public sealed class PersonUpdateCommandHandler(
     }
 }
 ```
+
+### CQRS и Repository
+
+Базовый `EntityRequestHandler<TRequest, TResponse, TEntity>` отдаёт свойство
+
+```csharp
+protected IRepository<TEntity> Repository => unitOfWork.GetRepository<TEntity>();
+```
+
+Именно `IRepository<T>` (а не узкие `IGetterRepository<T>` / `ISetterRepository<T>`) — рабочий контракт по умолчанию для всех встроенных command/query-handler'ов. Это сделано намеренно: стандартный CRUD-цикл — «прочитать, потом изменить» (`GetByIdOrThrowAsync` → `AddAsync`/`RemoveAsync`/`ExecuteUpdateRangeAsync`), и для него нужен полный контракт.
+
+Узкие `IGetterRepository<T>` / `ISetterRepository<T>` — это **опциональный ISP-инструмент** для потребителей, которым действительно нужна только одна сторона (например, проекционный код или pure-write миграционный handler). Если вы наследуете `EntityRequestHandler` и хотите сузить контракт — перекройте свойство `Repository` в наследнике, вернув `IGetterRepository<T>` или `ISetterRepository<T>`, и зарегистрируйте соответствующий сервис в DI. Подробнее — в [Repository Pattern](repository.md#когда-использовать-какой-интерфейс).
 
 ---
 
