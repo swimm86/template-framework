@@ -5,12 +5,13 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging.Abstractions;
+using Shared.Application.Core.Dto.Requests;
 using Template.Getter.Application.Abstractions.Enums;
 using Template.Getter.Application.Abstractions.Features.Person.List.Request;
 using Template.Getter.Application.Abstractions.Features.Person.List.Response;
 using Template.Getter.Application.Features.Person.Cqrs.List;
 using Template.Getter.Application.Tests.TestDoubles;
-using PersonEntity = global::Template.Domain.Entities.Person;
+using PersonEntity = Template.Domain.Entities.Person;
 
 namespace Template.Getter.Application.Tests.Features.Person.Cqrs.List;
 
@@ -51,7 +52,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> при пустом репозитории
+    /// <see cref="PersonReadListQueryHandler"/> при пустом репозитории
     /// возвращает пустую полезную нагрузку.
     /// </summary>
     [Fact]
@@ -75,7 +76,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> возвращает все элементы
+    /// <see cref="PersonReadListQueryHandler"/> возвращает все элементы
     /// при размере страницы, превышающем общее количество.
     /// </summary>
     [Fact]
@@ -99,7 +100,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> применяет пагинацию и возвращает
+    /// <see cref="PersonReadListQueryHandler"/> применяет пагинацию и возвращает
     /// корректную страницу (25 элементов, размер 10, страница 2 — 10 элементов).
     /// </summary>
     [Fact]
@@ -125,7 +126,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> применяет пагинацию и возвращает
+    /// <see cref="PersonReadListQueryHandler"/> применяет пагинацию и возвращает
     /// остаток данных на последней странице (25 элементов, размер 10, страница 3 — 5 элементов).
     /// </summary>
     [Fact]
@@ -151,7 +152,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> пробрасывает <see cref="CancellationToken"/>
+    /// <see cref="PersonReadListQueryHandler"/> пробрасывает <see cref="CancellationToken"/>
     /// в репозиторий.
     /// </summary>
     [Fact]
@@ -177,7 +178,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> при <c>Filter = null</c> не выбрасывает
+    /// <see cref="PersonReadListQueryHandler"/> при <c>Filter = null</c> не выбрасывает
     /// исключений.
     /// </summary>
     [Fact]
@@ -202,7 +203,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> при заполненном <see cref="PersonListFilter.Email"/>
+    /// <see cref="PersonReadListQueryHandler"/> при заполненном <see cref="PersonListFilter.Email"/>
     /// применяет соответствующий фильтр и возвращает только подходящие сущности.
     /// </summary>
     [Fact]
@@ -228,7 +229,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> сохраняет <see cref="PersonListRequest.PageNumber"/>
+    /// <see cref="PersonReadListQueryHandler"/> сохраняет <see cref="PageableRequest.PageNumber"/>
     /// из запроса в ответе.
     /// </summary>
     [Fact]
@@ -252,7 +253,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> возвращает ответ
+    /// <see cref="PersonReadListQueryHandler"/> возвращает ответ
     /// с корректно заполненными полями пагинации.
     /// </summary>
     [Fact]
@@ -278,7 +279,7 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler.Handle"/> обращается к
+    /// <see cref="PersonReadListQueryHandler"/> обращается к
     /// <c>unitOfWork.GetRepository&lt;PersonEntity&gt;()</c>.
     /// </summary>
     [Fact]

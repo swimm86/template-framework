@@ -103,7 +103,10 @@ public sealed class FakeRepository<TEntity>
         ISpecification<TEntity> specification,
         Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
-        => GetAsync(id, specification.BuildOptions(), selector, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return GetAsync(id, specification.BuildOptions(), selector, cancellationToken);
+    }
 
     public Task<List<TEntity>> GetRangeAsync(
         QueryOptions<TEntity>? options = null,

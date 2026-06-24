@@ -61,7 +61,7 @@ public sealed class QueryOptionsTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="QueryOptions{T}.AddOrderBy"/> добавляет сортировку с указанным выражением и направлением.
+    /// Проверяет, что <see cref="QueryOptions{T}.AddOrderBy(Expression{Func{T, object}}, OrderDirectionType, int?)"/> добавляет сортировку с указанным выражением и направлением.
     /// </summary>
     [Fact]
     public void AddOrderBy_WithExpressionAndDirection_AddsToOrderBy()
@@ -79,7 +79,7 @@ public sealed class QueryOptionsTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="QueryOptions{T}.AddInclude{TProperty}"/> возвращает объект для цепочки включений (ThenInclude) и добавляет Include.
+    /// Проверяет, что <see cref="QueryOptions{T}.AddInclude{TProperty}(Expression{Func{T, TProperty}})"/> возвращает объект для цепочки включений (ThenInclude) и добавляет Include.
     /// </summary>
     [Fact]
     public void AddInclude_ReturnsIncludableForChaining()

@@ -137,7 +137,7 @@ public sealed class DbSeederJobTests
     /// <see cref="DbSeederJob"/> сбрасывает флаг идемпотентности — повторный вызов
     /// приведёт к новой попытке <see cref="IDbSeeder.ApplySeedsAsync"/>.
     /// <para>
-    /// Это соответствует семантике in-process <see cref="Pipeline.Middlewares.RetryMiddleware"/>:
+    /// Это соответствует семантике in-process <see cref="Shared.Application.Core.Job.Pipeline.Middlewares.RetryMiddleware"/>:
     /// одна попытка <see cref="DbSeederJob"/> == один вызов <see cref="IDbSeeder.ApplySeedsAsync"/>,
     /// а решение «повторить ли» принимает middleware.
     /// </para>

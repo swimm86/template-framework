@@ -42,6 +42,12 @@ public sealed class ServiceCollectionExtensionsAddDbContextTests
         services.Should().Contain(d => d.ServiceType == typeof(IDbContextFactory<InjectorTestDbContext>));
         services.Should().Contain(d => d.ServiceType == typeof(InjectorTestDbContext));
         services.Should().Contain(d =>
+            d.ServiceType == typeof(IGetterRepository<>) &&
+            d.ImplementationType == typeof(EfRepository<>));
+        services.Should().Contain(d =>
+            d.ServiceType == typeof(ISetterRepository<>) &&
+            d.ImplementationType == typeof(EfRepository<>));
+        services.Should().Contain(d =>
             d.ServiceType == typeof(IRepository<>) &&
             d.ImplementationType == typeof(EfRepository<>));
         services.Should().Contain(d =>

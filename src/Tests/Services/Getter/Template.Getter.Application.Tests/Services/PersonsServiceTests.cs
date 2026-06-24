@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.AspNetCore.Http;
+using Shared.Application.Core.Dto.Requests;
 using Template.Domain.Entities;
 using Template.Getter.Application.Abstractions.Enums;
 using Template.Getter.Application.Abstractions.Features.Person.List.Request;
@@ -391,7 +392,7 @@ public sealed class PersonsServiceTests
 
     /// <summary>
     /// <see cref="PersonsService.GetPersonsAsync"/> с <see cref="DalPattern.UnitOfWork"/>
-    /// сохраняет <see cref="PersonListRequest.PageNumber"/> из запроса.
+    /// сохраняет <see cref="PageableRequest.PageNumber"/> из запроса.
     /// </summary>
     [Fact]
     public async Task GetPersonsAsync_UnitOfWorkPattern_PreservesRequestPageNumber()
@@ -416,7 +417,7 @@ public sealed class PersonsServiceTests
 
     /// <summary>
     /// <see cref="PersonsService.GetPersonsAsync"/> с <see cref="DalPattern.Repository"/>
-    /// сохраняет <see cref="PersonListRequest.PageNumber"/> из запроса.
+    /// сохраняет <see cref="PageableRequest.PageNumber"/> из запроса.
     /// </summary>
     [Fact]
     public async Task GetPersonsAsync_RepositoryPattern_PreservesRequestPageNumber()
@@ -441,7 +442,7 @@ public sealed class PersonsServiceTests
 
     /// <summary>
     /// <see cref="PersonsService.GetPersonsAsync"/> с <see cref="DalPattern.Specification"/>
-    /// сохраняет <see cref="PersonListRequest.PageNumber"/> из запроса.
+    /// сохраняет <see cref="PageableRequest.PageNumber"/> из запроса.
     /// </summary>
     [Fact]
     public async Task GetPersonsAsync_SpecificationPattern_PreservesRequestPageNumber()

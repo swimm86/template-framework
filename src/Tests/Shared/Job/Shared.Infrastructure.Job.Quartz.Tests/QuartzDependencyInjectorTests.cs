@@ -78,7 +78,7 @@ public sealed class QuartzDependencyInjectorTests
     }
 
     /// <summary>
-    /// Повторный вызов <c><see cref="QuartzDependencyInjector.Inject"/></c> на той же
+    /// Повторный вызов <c><see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/></c> на той же
     /// коллекции сервисов не должен падать (всё регистрируется идемпотентно
     /// по API Quartz).
     /// </summary>

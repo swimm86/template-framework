@@ -28,7 +28,7 @@ namespace Template.Getter.Application.Tests.DependencyInjection;
 public sealed class DependencyInjectorTests
 {
     /// <summary>
-    /// <see cref="DependencyInjector.Inject"/> регистрирует <see cref="IPersonsService"/>
+    /// <see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/> регистрирует <see cref="IPersonsService"/>
     /// в коллекции сервисов.
     /// </summary>
     [Fact]
@@ -49,7 +49,7 @@ public sealed class DependencyInjectorTests
     }
 
     /// <summary>
-    /// <see cref="DependencyInjector.Inject"/> регистрирует <see cref="IPersonsService"/>
+    /// <see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/> регистрирует <see cref="IPersonsService"/>
     /// со временем жизни <c>Scoped</c>: два разных scope дают разные экземпляры.
     /// </summary>
     [Fact]
@@ -76,7 +76,7 @@ public sealed class DependencyInjectorTests
     }
 
     /// <summary>
-    /// <see cref="DependencyInjector.Inject"/> регистрирует <see cref="IPersonsService"/>
+    /// <see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/> регистрирует <see cref="IPersonsService"/>
     /// с реализацией <see cref="PersonsService"/>.
     /// </summary>
     [Fact]
@@ -95,7 +95,7 @@ public sealed class DependencyInjectorTests
     }
 
     /// <summary>
-    /// <see cref="DependencyInjector.Inject"/> возвращает ту же
+    /// <see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/> возвращает ту же
     /// <see cref="IServiceCollection"/>, что и получил (fluent API).
     /// </summary>
     [Fact]
@@ -113,7 +113,7 @@ public sealed class DependencyInjectorTests
     }
 
     /// <summary>
-    /// <see cref="DependencyInjector.Inject"/> при успешном выполнении
+    /// <see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/> при успешном выполнении
     /// логирует информационное сообщение.
     /// </summary>
     [Fact]

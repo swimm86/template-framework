@@ -20,6 +20,7 @@ public sealed class CallbackRepository<TEntity>(
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(id);
         onGetAsyncCalled?.Invoke(cancellationToken);
         return inner.GetAsync(id, options, cancellationToken);
     }
@@ -29,7 +30,10 @@ public sealed class CallbackRepository<TEntity>(
         QueryOptions<TEntity>? options = null,
         Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
-        => inner.GetAsync(id, options, selector, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return inner.GetAsync(id, options, selector, cancellationToken);
+    }
 
     public Task<List<TEntity>> GetRangeAsync(
         QueryOptions<TEntity>? options = null,

@@ -150,7 +150,7 @@ public sealed class LifecycleEntityRegistryTests
         var registry = new LifecycleEntityRegistry();
 
         // Act
-        Action act = () => registry.Track([null]!);
+        Action act = () => registry.Track([null!]);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -190,7 +190,7 @@ public sealed class LifecycleEntityRegistryTests
         registry.Track([tracked]);
 
         // Act
-        Action act = () => registry.Untrack(new IEntity[] { stranger });
+        Action act = () => registry.Untrack([stranger]);
 
         // Assert
         act.Should().NotThrow();
