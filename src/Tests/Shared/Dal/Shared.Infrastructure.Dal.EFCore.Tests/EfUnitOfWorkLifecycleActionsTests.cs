@@ -307,20 +307,21 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
     /// Подкласс <see cref="EfUnitOfWork{TDbContext}"/>, экспортирующий orchestrator
     /// для тонкой настройки в тестах.
     /// </summary>
-    private sealed class TestUnitOfWork(
-        TestLifecycleActionDbContext dbContext,
-        IServiceProvider serviceProvider,
-        DbSettingsBase settings,
-        ILifecycleActionOrchestrator orchestrator,
-        IBeforeSaveChangesService? beforeSaveChangesService = null)
-        : EfUnitOfWork<TestLifecycleActionDbContext>(
-            dbContext,
-            serviceProvider,
-            settings,
-            orchestrator,
-            beforeSaveChangesService)
+    private sealed class TestUnitOfWork
+        : EfUnitOfWork<TestLifecycleActionDbContext>
     {
-        public ILifecycleActionOrchestrator Orchestrator => orchestrator;
+        public TestUnitOfWork(
+            TestLifecycleActionDbContext dbContext,
+            IServiceProvider serviceProvider,
+            DbSettingsBase settings,
+            ILifecycleActionOrchestrator orchestrator,
+            IBeforeSaveChangesService? beforeSaveChangesService = null)
+            : base(dbContext, serviceProvider, settings, orchestrator, beforeSaveChangesService)
+        {
+            Orchestrator = orchestrator;
+        }
+
+        public ILifecycleActionOrchestrator Orchestrator { get; }
     }
 
     /// <summary>

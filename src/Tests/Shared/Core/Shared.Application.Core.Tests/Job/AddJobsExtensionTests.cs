@@ -10,7 +10,7 @@ using Shared.Application.Core.Job.Pipeline.Interfaces;
 using Shared.Application.Core.Job.Pipeline.Middlewares;
 using Shared.Application.Core.Job.Scheduler;
 
-namespace Shared.Application.Core.Tests;
+namespace Shared.Application.Core.Tests.Job;
 
 /// <summary>
 /// Тесты <c>AddJobs</c>: регистрирует все middleware, executor и options.
@@ -18,7 +18,7 @@ namespace Shared.Application.Core.Tests;
 public sealed class AddJobsExtensionTests
 {
     /// <summary>
-    /// <see cref="AddJobs"/> регистрирует JobSchedulerOptions с правильным списком джоб.
+    /// <see cref="ServiceCollectionExtensions.AddJobs(IServiceCollection, Action{JobSchedulerBuilder})"/> регистрирует JobSchedulerOptions с правильным списком джоб.
     /// </summary>
     [Fact]
     public void AddJobs_RegistersJobSchedulerOptions()
@@ -37,7 +37,7 @@ public sealed class AddJobsExtensionTests
     }
 
     /// <summary>
-    /// <see cref="AddJobs"/> регистрирует <see cref="IScheduledJobExecutor"/> как singleton.
+    /// <see cref="ServiceCollectionExtensions.AddJobs(IServiceCollection, Action{JobSchedulerBuilder})"/> регистрирует <see cref="IScheduledJobExecutor"/> как singleton.
     /// </summary>
     [Fact]
     public void AddJobs_RegistersExecutorAsSingleton()
@@ -55,7 +55,7 @@ public sealed class AddJobsExtensionTests
     }
 
     /// <summary>
-    /// <see cref="AddJobs"/> регистрирует три дефолтных middleware.
+    /// <see cref="ServiceCollectionExtensions.AddJobs(IServiceCollection, Action{JobSchedulerBuilder})"/> регистрирует три дефолтных middleware.
     /// </summary>
     [Fact]
     public void AddJobs_RegistersThreeDefaultMiddlewares()
@@ -76,7 +76,7 @@ public sealed class AddJobsExtensionTests
     }
 
     /// <summary>
-    /// <see cref="AddJobs"/> можно вызывать несколько раз — JobSchedulerOptions перезаписывается
+    /// <see cref="ServiceCollectionExtensions.AddJobs(IServiceCollection, Action{JobSchedulerBuilder})"/> можно вызывать несколько раз — JobSchedulerOptions перезаписывается
     /// на singleton (последний вызов побеждает), а middleware — TryAddEnumerable (накапливаются).
     /// </summary>
     [Fact]

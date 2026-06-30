@@ -62,12 +62,14 @@ public class ProxiedException
     /// </summary>
     /// <param name="problemDetails">Детали ошибки в формате <see cref="ProblemDetails"/>.</param>
     /// <param name="statusCode">HTTP-статус код ошибки.</param>
-    /// <param name="additionalData">Дополнительные данные для бэкенд-потребителя.</param>
+    /// <inheritdoc cref="AppException(string, Exception?, IReadOnlyDictionary{string, object}?)"/>
+    /// <param name="innerException"/><param name="additionalData"/>
     public ProxiedException(
         ProblemDetails problemDetails,
         int statusCode,
+        Exception? innerException = null,
         IReadOnlyDictionary<string, object>? additionalData = null)
-    : base(string.Empty, additionalData: additionalData)
+    : base(string.Empty, innerException: innerException, additionalData: additionalData)
     {
         ProblemDetails = problemDetails;
         StatusCode = statusCode;

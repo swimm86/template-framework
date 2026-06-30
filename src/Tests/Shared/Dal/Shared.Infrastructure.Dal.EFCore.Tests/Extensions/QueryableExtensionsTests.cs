@@ -138,7 +138,7 @@ public class QueryableExtensionsTests
         result.Should().HaveCount(1);
         result[0].Child.Should().NotBeNull("Child was included");
         result[0].Child!.GrandChild.Should().NotBeNull("GrandChild was ThenIncluded");
-        result[0].Child.GrandChild!.Name.Should().Be("GrandChild");
+        result[0].Child!.GrandChild!.Name.Should().Be("GrandChild");
     }
 
     /// <summary>

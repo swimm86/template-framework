@@ -19,7 +19,7 @@ public sealed class NotFoundExceptionTests
         // Arrange
 
         // Act
-        Action act = () => new NotFoundException();
+        Action act = () => new NotFoundException("message");
 
         // Assert
         act.Should().NotThrow();

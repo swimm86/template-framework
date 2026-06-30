@@ -14,34 +14,11 @@ namespace Shared.Domain.Core.Exceptions.Models;
 public class BusinessLogicException
     : AppException
 {
-    /// <summary>
-    /// Инициализация <see cref="BusinessLogicException"/>.
-    /// </summary>
-    public BusinessLogicException()
-    {
-    }
-
-    /// <summary>
-    /// Инициализация <see cref="BusinessLogicException"/> с сообщением.
-    /// </summary>
-    /// <param name="message"> Сообщение. </param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    /// <summary>Инициализирует новый экземпляр <see cref="BusinessLogicException"/>.</summary>
+    /// <inheritdoc cref="AppException(string, Exception?, IReadOnlyDictionary{string, object}?)"/>
     public BusinessLogicException(
         string message,
-        IReadOnlyDictionary<string, object>? additionalData = null)
-        : base(message, additionalData)
-    {
-    }
-
-    /// <summary>
-    /// Инициализация <see cref="BusinessLogicException"/> с сообщением и внутренней ошибкой.
-    /// </summary>
-    /// <param name="message"> Сообщение. </param>
-    /// <param name="innerException"> Внутренняя ошибка. </param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
-    public BusinessLogicException(
-        string message,
-        Exception innerException,
+        Exception? innerException = null,
         IReadOnlyDictionary<string, object>? additionalData = null)
         : base(message, innerException, additionalData)
     {

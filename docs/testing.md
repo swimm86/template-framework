@@ -99,6 +99,49 @@ internal sealed class FakeOrderRepository : IOrderRepository
 }
 ```
 
+### Fake-репозитории: `FakeRepository<T>` / `FakeGetterRepository<T>` / `FakeSetterRepository<T>`
+
+`Shared.Testing.Doubles.Repository` предоставляет три уровня fake-репозиториев, повторяющих ISP-разделение production-контракта:
+
+| Fake | Реализует | Когда использовать |
+|------|-----------|--------------------|
+| `FakeRepository<T>` | `IRepository<T>` | **По умолчанию.** Подходит для тестов command/query-handler'ов, построенных на `EntityRequestHandler.Repository` (а это все встроенные `Create/Update/Delete/Clone/Read*/ReadList*CommandHandler`) — они читают сущность и потом её модифицируют. |
+| `FakeGetterRepository<T>` | `IGetterRepository<T>` | Тесты кода, который **доказуемо** только читает: проекционные сервисы, аналитические query-handler'ы, валидационные pre-check'и, не использующие `AddAsync`/`RemoveAsync`. |
+| `FakeSetterRepository<T>` | `ISetterRepository<T>` | Тесты кода, который **доказуемо** только пишет: pure-write пакетные обработчики (миграции, batch-обновления без предварительного `GetByIdOrThrowAsync`), валидационные post-check'и, не использующие `GetAsync`. |
+
+> **Не используйте `FakeSetterRepository<T>` для тестов стандартных CRUD-command-handler'ов** — они делают `GetByIdOrThrowAsync` (read) перед `AddAsync`/`RemoveAsync` (write), и `FakeSetterRepository<T>` не предоставит read-методы. Для таких тестов — `FakeRepository<T>`.
+
+`FakeGetterRepository<T>` и `FakeSetterRepository<T>` делегируют внутреннему `FakeRepository<T>` через свойство `Inner` — это композиция, а не дублирование. Если тесту нужен полный контракт поверх узкого fake-а (например, `AddDirect` для seed'а данных внутри read-only fake'а), используйте `inner`-конструктор:
+
+```csharp
+// Read-only fake с собственным хранилищем
+var readOnly = new FakeGetterRepository<Person>();
+
+// Или поверх существующего FakeRepository<T> (разделяемое состояние)
+var full = new FakeRepository<Person>();
+var getter = new FakeGetterRepository<Person>(full); // читает из full
+var setter = new FakeSetterRepository<Person>(full); // пишет в full
+```
+
+Узкие fake'ы экспонируют только тот набор helper-свойств, который соответствует их контракту:
+
+| Helper | `FakeGetterRepository<T>` | `FakeSetterRepository<T>` |
+|--------|:--:|:--:|
+| `AddDirect`, `Items`, `KeySelector` | ✅ | ✅ |
+| `PayloadMapper`, `ExceptionToThrowOnGet` | ✅ | ❌ |
+| `ExceptionToThrowOnAdd`, `ExceptionToThrowOnRemove`, `ExceptionToThrowOnSaveChanges`, `RemoveCallCount` | ❌ | ✅ |
+
+`FakeUnitOfWork` предоставляет парные helper'ы для получения узких fake'ов из одного общего `FakeRepository<T>`:
+
+```csharp
+var uow = new FakeUnitOfWork();
+var getter = uow.GetOrCreateGetterRepository<Person>();
+var setter = uow.GetOrCreateSetterRepository<Person>();
+// оба работают над одним и тем же in-memory-хранилищем
+```
+
+Выбор между широким и узким fake'ом — про прозрачность теста: если handler объявлен на `IRepository<T>`, используйте `FakeRepository<T>` (это то, что handler реально получает из `IUnitOfWork`); если handler объявлен на узком интерфейсе — соответственно, узкий fake.
+
 ### Когда использовать Fakes vs NSubstitute:
 
 | Ситуация | Подход | Почему |

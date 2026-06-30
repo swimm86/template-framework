@@ -20,35 +20,19 @@ public abstract class AppException
     public IReadOnlyDictionary<string, object>? AdditionalData { get; init; }
 
     /// <summary>
-    /// Инициализация <see cref="AppException"/>.
+    /// Инициализирует новый экземпляр <see cref="AppException"/>.
     /// </summary>
     protected AppException()
     {
     }
 
-    /// <summary>
-    /// Инициализация <see cref="AppException"/> с сообщением.
-    /// </summary>
-    /// <param name="message">Сообщение об ошибке.</param>
-    /// <param name="additionalData">Дополнительные данные для потребителей API.</param>
-    protected AppException(
-        string message,
-        IReadOnlyDictionary<string, object>? additionalData = null)
-        : base(message)
-    {
-        ValidateAdditionalData(additionalData);
-        AdditionalData = additionalData;
-    }
-
-    /// <summary>
-    /// Инициализация <see cref="AppException"/> с сообщением и внутренней ошибкой.
-    /// </summary>
     /// <param name="message">Сообщение об ошибке.</param>
     /// <param name="innerException">Внутренняя ошибка, вызвавшая текущее исключение.</param>
     /// <param name="additionalData">Дополнительные данные для потребителей API.</param>
+    /// <inheritdoc cref="AppException"/>
     protected AppException(
         string message,
-        Exception innerException,
+        Exception? innerException = null,
         IReadOnlyDictionary<string, object>? additionalData = null)
         : base(message, innerException)
     {

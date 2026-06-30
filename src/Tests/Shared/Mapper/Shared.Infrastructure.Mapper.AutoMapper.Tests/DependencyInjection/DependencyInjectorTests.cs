@@ -13,7 +13,7 @@ namespace Shared.Infrastructure.Mapper.AutoMapper.Tests.DependencyInjection;
 public sealed class DependencyInjectorTests
 {
     /// <summary>
-    /// Проверяет, что метод <see cref="DependencyInjector.Inject"/> регистрирует <see cref="IMapper"/>
+    /// Проверяет, что метод <see cref="Shared.Application.Core.DependencyInjection.Base.DependencyInjectorBase.Inject(IServiceCollection)"/> регистрирует <see cref="IMapper"/>
     /// и <see cref="IConfigurationProvider"/> в коллекции сервисов.
     /// </summary>
     [Fact]

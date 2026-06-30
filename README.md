@@ -35,7 +35,7 @@
 
 | Паттерн | Описание | Документация |
 |---------|----------|--------------|
-| **Repository** | Централизованный доступ к данным через `IRepository<TEntity>` | [docs/repository.md](docs/repository.md) |
+| **Repository** | Централизованный доступ к данным через `IGetterRepository<TEntity>` / `ISetterRepository<TEntity>` / `IRepository<TEntity>` (ISP-разделение, единая `EfRepository<T>`-реализация) | [docs/repository.md](docs/repository.md) |
 | **Unit of Work** | Координация транзакций и действий перехвата | [docs/unit-of-work.md](docs/unit-of-work.md) |
 | **Specification** | Инкапсуляция бизнес-критериев выборки | [docs/specification.md](docs/specification.md) |
 | **CQRS** | Разделение операций чтения и записи | [docs/cqrs.md](docs/cqrs.md) |
@@ -118,7 +118,7 @@ src/
 ### Data Access
 | Компонент | Описание |
 |-----------|----------|
-| `Shared.Infrastructure.Dal.EFCore` | Базовая реализация репозиториев на EF Core, Unit of Work |
+| `Shared.Infrastructure.Dal.EFCore` | Базовая реализация репозиториев на EF Core (`EfRepository<T>` поверх `IGetterRepository<T>` / `ISetterRepository<T>` / `IRepository<T>`), Unit of Work |
 | `Shared.Infrastructure.Dal.EFCore.Postgres` | Расширения для работы с PostgreSQL |
 
 ### Инфраструктура
@@ -393,7 +393,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 
 | Документ | Описание | Связанные |
 |----------|----------|-----------|
-| [Repository](docs/repository.md) | IRepository<T>, базовые CRUD | [Unit of Work](docs/unit-of-work.md), [Specification](docs/specification.md), [EF Core](docs/efcore-internals.md) |
+| [Repository](docs/repository.md) | `IGetterRepository<T>` / `ISetterRepository<T>` / `IRepository<T>`, базовые CRUD | [Unit of Work](docs/unit-of-work.md), [Specification](docs/specification.md), [EF Core](docs/efcore-internals.md) |
 | [Unit of Work](docs/unit-of-work.md) | IUnitOfWork, транзакции | [Repository](docs/repository.md), [Lifecycle Actions](docs/lifecycle-actions.md) |
 | [Specification](docs/specification.md) | SpecificationBase, Include, Where | [Repository](docs/repository.md), [Filtering](docs/filtering-sorting-guide.md) |
 | [CQRS](docs/cqrs.md) | ICommand, IQuery, handlers | [Pipeline Behaviors](docs/pipeline-behaviors.md), [Exception Mapping](docs/exception-mapping.md), [FluentValidation](docs/fluent-validation-integration.md) |

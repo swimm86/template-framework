@@ -53,7 +53,7 @@ public sealed class AppExceptionMapperTests
     {
         // Arrange
         var mapper = new AppExceptionMapper(TestConfigurationBuilder.Empty());
-        var exception = new BusinessLogicException("msg", new Dictionary<string, object> { ["k"] = "v" });
+        var exception = new BusinessLogicException("msg", innerException: null, new Dictionary<string, object> { ["k"] = "v" });
 
         // Act
         var response = mapper.Handle(exception);

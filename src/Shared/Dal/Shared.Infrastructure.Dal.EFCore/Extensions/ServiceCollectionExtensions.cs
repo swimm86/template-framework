@@ -54,6 +54,15 @@ public static class ServiceCollectionExtensions
             })
             // Регистрируем базовый DbContext для использования в EfRepository<>
             .AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>())
+            // Все три интерфейса резолвятся в один scoped EfRepository<T> поверх общего DbContext.
+            // В рамках одного scope инжекция любого из трёх интерфейсов должна
+            // возвращать один экземпляр с тем же ChangeTracker — иначе reads и writes
+            // выполнялись бы в разных DbContext и потеряли бы транзакционную целостность.
+            // Не удаляйте ни одну из трёх регистраций: IRepository используется
+            // IUnitOfWork.GetRepository<T>() и базовым EntityRequestHandler.Repository,
+            // IGetterRepository/ISetterRepository — опциональные ISP-альтернативы.
+            .AddScoped(typeof(IGetterRepository<>), typeof(EfRepository<>))
+            .AddScoped(typeof(ISetterRepository<>), typeof(EfRepository<>))
             .AddScoped(typeof(IRepository<>), typeof(EfRepository<>))
             .AddScoped<IUnitOfWork, EfUnitOfWork<TContext>>()
             .AddScoped<IEnsureSchemaStrategy, RelationalEnsureSchemaStrategy<TContext>>();

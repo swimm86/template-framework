@@ -8,6 +8,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
+using Shared.Domain.Core.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Repository;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 using Shared.Testing.Doubles.Mapping;
@@ -1264,6 +1265,126 @@ public sealed class EfRepositoryTests
 
         // Assert
         count.Should().Be(0);
+    }
+
+    #endregion
+
+    #region Add/Remove edge cases
+
+    /// <summary>
+    /// <see cref="EfRepository{TEntity}.AddRangeAsync"/> пробрасывает userId и userName во все сущности,
+    /// если они реализуют <see cref="IWithCreated"/>.
+    /// </summary>
+    [Fact]
+    public async Task AddRangeAsync_PassesUserIdAndUserNameToAllEntities()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        var entities = new[]
+        {
+            CreateEntity(name: "a"),
+            CreateEntity(name: "b"),
+            CreateEntity(name: "c"),
+        };
+        var userId = Guid.NewGuid();
+
+        await repo.AddRangeAsync(entities, userId, "user", TestContext.Current.CancellationToken);
+
+        entities.Should().AllSatisfy(e => e.CreatedByUserId.Should().Be(userId));
+        entities.Should().AllSatisfy(e => e.CreatedByUserName.Should().Be("user"));
+    }
+
+    /// <summary>
+    /// <see cref="EfRepository{TEntity}.RemoveAsync(TEntity, bool, CancellationToken)"/>
+    /// (overload без userId) для IWithDeleted сущности выполняет soft delete и
+    /// записывает DeletedByUserId = null.
+    /// </summary>
+    [Fact]
+    public async Task RemoveAsync_OverloadWithoutUserId_PerformsSoftDeleteWithNullDeletedBy()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        var entity = CreateEntity();
+        context.Entities.Add(entity);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await repo.RemoveAsync(entity, hard: false, TestContext.Current.CancellationToken);
+
+        entity.IsDeleted.Should().BeTrue();
+        entity.DeletedByUserId.Should().BeNull();
+    }
+
+    /// <summary>
+    /// <see cref="EfRepository{TEntity}.RemovePermanentRangeAsync"/> всегда удаляет физически,
+    /// даже если сущность реализует IWithDeleted (не выполняет soft delete).
+    /// </summary>
+    [Fact]
+    public async Task RemovePermanentRangeAsync_IgnoresIWithDeleted_AndHardDeletes()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        var entity = CreateEntity();
+        context.Entities.Add(entity);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await repo.RemovePermanentRangeAsync(
+            [entity],
+            TestContext.Current.CancellationToken);
+
+        entity.IsDeleted.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// <see cref="EfRepository{TEntity}.AddAsync(TEntity, Guid?, string?, CancellationToken)"/>
+    /// с userId=null и userName=null для IWithCreated сущности: OnCreate вызывается с null-ами,
+    /// но DateCreated всё равно заполняется.
+    /// </summary>
+    [Fact]
+    public async Task AddAsync_WithNullUserIdAndUserName_StillCallsOnCreateWithNulls()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        var entity = CreateEntity();
+
+        await repo.AddAsync(
+            entity,
+            userId: null,
+            userName: null,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        entity.CreatedByUserId.Should().BeNull();
+        entity.CreatedByUserName.Should().BeNull();
+        entity.DateCreated.Should().NotBe(default(DateTime));
+    }
+
+    /// <summary>
+    /// <see cref="EfRepository{TEntity}.GetAsync(object, QueryOptions{TEntity}?, CancellationToken)"/>
+    /// с null id: контракт требует <see cref="ArgumentNullException"/> (ThrowIfNull).
+    /// </summary>
+    [Fact]
+    public async Task GetAsync_WithNullId_ThrowsArgumentNullException()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+
+        var act = () => repo.GetAsync(id: null!, cancellationToken: TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// <see cref="EfRepository{TEntity}.GetAsync{TOut}(object, QueryOptions{TEntity}?, Expression{Func{TEntity, TOut}}?, CancellationToken)"/>
+    /// с null id: контракт требует <see cref="ArgumentNullException"/> (ThrowIfNull).
+    /// </summary>
+    [Fact]
+    public async Task GetAsyncWithOut_WithNullId_ThrowsArgumentNullException()
+    {
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+
+        var act = () => repo.GetAsync<string>(id: null!, cancellationToken: TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<ArgumentNullException>();
     }
 
     #endregion

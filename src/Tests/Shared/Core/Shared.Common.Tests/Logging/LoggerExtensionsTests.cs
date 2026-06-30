@@ -11,7 +11,7 @@ using Shared.Testing.Doubles.Logging;
 namespace Shared.Common.Tests.Logging;
 
 /// <summary>
-/// Тесты для расширений <see cref="LoggerExtensions"/>.
+/// Тесты для расширений <see cref="Shared.Common.Logging.Extensions.LoggerExtensions"/>.
 /// </summary>
 public sealed class LoggerExtensionsTests
 {

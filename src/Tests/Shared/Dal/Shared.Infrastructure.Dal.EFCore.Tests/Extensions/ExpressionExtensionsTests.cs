@@ -5,7 +5,7 @@ using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 namespace Shared.Infrastructure.Dal.EFCore.Tests.Extensions;
 
 /// <summary>
-/// Тесты для <see cref="ExpressionExtensions.WrapWithCollate{TEntity}"/>.
+/// Тесты для <see cref="Shared.Infrastructure.Dal.EFCore.Extensions.ExpressionExtensions.WrapWithCollate{TEntity}"/>.
 /// Проверяет преобразование дерева выражений: обёртывание строковых свойств
 /// в вызов EF.Functions.Collate и сохранение не-строковых свойств без изменений.
 /// </summary>

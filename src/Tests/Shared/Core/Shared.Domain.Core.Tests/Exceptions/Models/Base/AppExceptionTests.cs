@@ -19,7 +19,7 @@ public sealed class AppExceptionTests
         var emptyData = new Dictionary<string, object>();
 
         // Act
-        Action act = () => { _ = new TestAppException("message", emptyData); };
+        Action act = () => { _ = new TestAppException("message", innerException: null, emptyData); };
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -39,7 +39,7 @@ public sealed class AppExceptionTests
         var data = new Dictionary<string, object> { { key, "value" } };
 
         // Act
-        Action act = () => _ = new TestAppException("message", data);
+        Action act = () => _ = new TestAppException("message", innerException: null, data);
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -56,7 +56,7 @@ public sealed class AppExceptionTests
         // Arrange
 
         // Act
-        Action act = () => _ = new TestAppException();
+        Action act = () => _ = new TestAppException("message");
 
         // Assert
         act.Should().NotThrow();
@@ -91,7 +91,7 @@ public sealed class AppExceptionTests
         var data = new Dictionary<string, object> { { "key", "value" } };
 
         // Act
-        var exception = new TestAppException("message", data);
+        var exception = new TestAppException("message", innerException: null, data);
 
         // Assert
         exception.AdditionalData.Should().NotBeNull();

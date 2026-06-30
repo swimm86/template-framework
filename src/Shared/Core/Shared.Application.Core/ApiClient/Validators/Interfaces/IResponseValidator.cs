@@ -22,15 +22,24 @@ public interface IResponseValidator
     /// </summary>
     /// <param name="httpResponse">HTTP-ответ для проверки.</param>
     /// <param name="clientName">Имя клиента для логирования.</param>
-    /// <param name="logUri">URI запроса для логирования (опционально).</param>
-    /// <param name="logContent">Содержимое запроса для логирования (опционально).</param>
+    /// <param name="logUri">
+    /// URI запроса, передаваемый реализации для целей диагностики. Применяется реализацией
+    /// в качестве резервного значения, если <see cref="HttpRequestMessage.RequestUri"/>
+    /// недоступен. Если параметр не задан и <see cref="HttpRequestMessage.RequestUri"/>
+    /// также недоступен, реализация определяет поведение самостоятельно.
+    /// </param>
+    /// <param name="logContent">
+    /// Содержимое исходящего запроса, передаваемое реализации для целей диагностики.
+    /// Решение об использовании значения принимается реализацией; параметр может быть
+    /// проигнорирован.
+    /// </param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Задача, представляющая асинхронную операцию.</returns>
     /// <exception cref="ProxiedException">
-    /// Выбрасывается при получении ошибки от upstream-сервиса.
-    /// </exception>
-    /// <exception cref="Exception">
-    /// Выбрасывается при непредвиденной ошибке HTTP.
+    /// Выбрасывается при получении любого неуспешного HTTP-ответа от upstream-сервиса,
+    /// в том числе при сбое построения деталей ошибки (деградированный
+    /// <see cref="Microsoft.AspNetCore.Mvc.ProblemDetails"/> с корневой причиной в
+    /// <see cref="Exception.InnerException"/>).
     /// </exception>
     Task ValidateAsync(
         HttpResponseMessage httpResponse,

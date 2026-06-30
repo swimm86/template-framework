@@ -76,6 +76,7 @@ public sealed class UnauthorizedExceptionMapperTests
         var mapper = new UnauthorizedExceptionMapper(TestConfigurationBuilder.Empty());
         var exception = new UnauthorizedException(
             new ClientRequestContext("svc-test", "/api/data"),
+            innerException: null,
             new Dictionary<string, object> { ["reason"] = "token expired" });
 
         // Act

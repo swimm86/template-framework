@@ -53,6 +53,7 @@ public sealed class BusinessLogicExceptionMapperTests
         var mapper = new BusinessLogicExceptionMapper(TestConfigurationBuilder.Empty());
         var exception = new BusinessLogicException(
             "msg",
+            innerException: null,
             new Dictionary<string, object> { ["field"] = "value" });
 
         // Act

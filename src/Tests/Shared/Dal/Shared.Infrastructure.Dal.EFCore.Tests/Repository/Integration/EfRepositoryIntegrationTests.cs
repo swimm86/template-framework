@@ -959,13 +959,13 @@ public sealed class EfRepositoryIntegrationTests
         context.Entities.Add(CreateEntity(name: "row-2"));
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        QueryOptions<TestEntityWithCreatedDeleted>? options = scenario == GetAsyncNullIdScenario.WithOptions
+        var options = scenario == GetAsyncNullIdScenario.WithOptions
             ? new QueryOptions<TestEntityWithCreatedDeleted>().AddFilter(e => e.Name == "any")
             : null;
 
         // Act + Assert
         var act = () => repo.GetAsync(
-            id: null,
+            id: null!,
             options: options,
             cancellationToken: TestContext.Current.CancellationToken);
         await act
@@ -1648,7 +1648,7 @@ public sealed class EfRepositoryIntegrationTests
     #region Missing ISpecification Overload Delegation Tests
 
     /// <summary>
-    /// Проверяет, что <see cref="IRepository{TEntity}.GetAsync(object, ISpecification{TEntity}, CancellationToken)"/>
+    /// Проверяет, что <see cref="IGetterRepository{TEntity}.GetAsync(object, ISpecification{TEntity}, CancellationToken)"/>
     /// делегирует к версии с <see cref="QueryOptions{TEntity}"/>.
     /// </summary>
     [Fact]
@@ -1674,7 +1674,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="IRepository{TEntity}.GetAsync{TOut}(object, ISpecification{TEntity}, Expression{Func{TEntity, TOut}}, CancellationToken)"/>
+    /// Проверяет, что <see cref="IGetterRepository{TEntity}.GetAsync{TOut}(object, ISpecification{TEntity}, Expression{Func{TEntity, TOut}}, CancellationToken)"/>
     /// делегирует к версии с <see cref="QueryOptions{TEntity}"/> и селектором.
     /// </summary>
     [Fact]
@@ -1703,7 +1703,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="IRepository{TEntity}.GetRangeAsync(ISpecification{TEntity}, int?, int?, CancellationToken)"/>
+    /// Проверяет, что <see cref="IGetterRepository{TEntity}.GetRangeAsync(ISpecification{TEntity}, int?, int?, CancellationToken)"/>
     /// делегирует к версии с <see cref="QueryOptions{TEntity}"/>.
     /// </summary>
     [Fact]
@@ -1731,7 +1731,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="IRepository{TEntity}.GetRangeAsync{TOut}(ISpecification{TEntity}, int?, int?, Expression{Func{TEntity, TOut}}, CancellationToken)"/>
+    /// Проверяет, что <see cref="IGetterRepository{TEntity}.GetRangeAsync{TOut}(ISpecification{TEntity}, int?, int?, Expression{Func{TEntity, TOut}}, CancellationToken)"/>
     /// делегирует к версии с <see cref="QueryOptions{TEntity}"/> и селектором.
     /// </summary>
     [Fact]
@@ -1760,8 +1760,8 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="IRepository{TEntity}.MaxAsync{TOut}(Expression{Func{TEntity, TOut}}, ISpecification{TEntity}, CancellationToken)"/>
-    /// и <see cref="IRepository{TEntity}.MinAsync{TOut}(Expression{Func{TEntity, TOut}}, ISpecification{TEntity}, CancellationToken)"/>
+    /// Проверяет, что <see cref="IGetterRepository{TEntity}.MaxAsync{TOut}(Expression{Func{TEntity, TOut}}, ISpecification{TEntity}, CancellationToken)"/>
+    /// и <see cref="IGetterRepository{TEntity}.MinAsync{TOut}(Expression{Func{TEntity, TOut}}, ISpecification{TEntity}, CancellationToken)"/>
     /// делегируют к версиям с <see cref="QueryOptions{TEntity}"/>.
     /// </summary>
     [Theory]
@@ -1790,7 +1790,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Проверяет, что <see cref="IRepository{TEntity}.GetGroupingAsync{TKey}"/> принимает
+    /// Проверяет, что <see cref="IGetterRepository{TEntity}.GetGroupingAsync{TKey}(Expression{Func{TEntity, TKey}}, QueryOptions{TEntity}, int?, int?, OrderDirectionType?, CancellationToken)"/> принимает
     /// спецификацию-построенную <see cref="QueryOptions{TEntity}"/> через явный вызов
     /// <c>specification.BuildOptions()</c> и делегирует корректно (спецификационного overload в
     /// <see cref="IRepository{TEntity}"/> для GetGroupingAsync нет — только options-форма).
@@ -1822,7 +1822,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Локализует баг: <see cref="IRepository{TEntity}.RemoveRangeAsync(ISpecification{TEntity}, bool, CancellationToken)"/>
+    /// Локализует баг: <see cref="ISetterRepository{TEntity}.RemoveRangeAsync(ISpecification{TEntity}, bool, CancellationToken)"/>
     /// с <c>hard=true</c> должен физически удалять сущности. Сейчас бросает
     /// <see cref="InvalidOperationException"/> "another instance with the same key is already being tracked",
     /// потому что internal-impl делегирует к <c>RemoveRangeAsync(QueryOptions, hard)</c> без
@@ -1856,7 +1856,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Локализует баг: <see cref="IRepository{TEntity}.RemoveRangeAsync(ISpecification{TEntity}, bool, CancellationToken)"/>
+    /// Локализует баг: <see cref="ISetterRepository{TEntity}.RemoveRangeAsync(ISpecification{TEntity}, bool, CancellationToken)"/>
     /// с <c>hard=false</c> должен сохранять soft-delete в БД. Сейчас мутации IsDeleted на
     /// detached-инстансах не отслеживаются ChangeTracker-ом, поэтому <c>SaveChangesAsync</c>
     /// не записывает их в БД (тот же баг, что и

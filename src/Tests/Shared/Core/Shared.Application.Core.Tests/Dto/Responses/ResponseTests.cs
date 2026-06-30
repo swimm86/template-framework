@@ -4,7 +4,7 @@ using Shared.Application.Core.Dto.Requests;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Common.Batch;
 
-namespace Shared.Application.Core.Tests;
+namespace Shared.Application.Core.Tests.Dto.Responses;
 
 /// <summary>
 /// Тесты для классов ответов: <see cref="Response"/>, <see cref="PageableResponse{T}"/>, <see cref="ErrorResponse"/>, <see cref="ResponseWithMessage"/>.
@@ -50,7 +50,7 @@ public sealed class ResponseTests
     }
 
     /// <summary>
-    /// <see cref="Response.StatusCode"/> по умолчанию равен <c>default</c> (0).
+    /// <see cref="ResponseBase.StatusCode"/> по умолчанию равен <c><see langword="default"/></c> (0).
     /// </summary>
     [Fact]
     public void Response_StatusCodeDefault()
