@@ -16,72 +16,48 @@ namespace Shared.Domain.Core.Exceptions.Models;
 public class NotFoundException
     : AppException
 {
-    /// <summary>
-    /// Инициализация <see cref="NotFoundException"/>.
-    /// </summary>
-    public NotFoundException()
-    {
-    }
-
-    /// <summary>
-    /// Инициализация <see cref="NotFoundException"/> с сообщением.
-    /// </summary>
-    /// <param name="message"> Сообщение. </param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    /// <summary>Инициализирует новый экземпляр <see cref="NotFoundException"/>.</summary>
+    /// <inheritdoc cref="AppException(string, Exception?, IReadOnlyDictionary{string, object}?)"/>
     public NotFoundException(
         string message,
+        Exception? innerException = null,
         IReadOnlyDictionary<string, object>? additionalData = null)
-        : base(message, additionalData)
+        : base(message, innerException, additionalData)
     {
     }
 
-    /// <summary>
-    /// Инициализация <see cref="NotFoundException"/> с сообщением.
-    /// </summary>
     /// <param name="entityType">Тип сущности, которая не была найдена.</param>
     /// <param name="key">Ключ.</param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    /// <inheritdoc cref="NotFoundException(string, Exception?, IReadOnlyDictionary{string, object}?)"/>
+    /// <param name="additionalData"/><param name="innerException"/>
     public NotFoundException(
         MemberInfo entityType,
         object key,
+        Exception? innerException = null,
         IReadOnlyDictionary<string, object>? additionalData = null)
         : base(
             $"Сущность " +
             $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
             $"не была найдена. Ключ: {key}",
+            innerException,
             additionalData)
     {
     }
 
-    /// <summary>
-    /// Инициализация <see cref="NotFoundException"/> с сообщением.
-    /// </summary>
-    /// <param name="entityType">Тип сущности, которая не была найдена.</param>
     /// <param name="keys">Ключи.</param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    /// <inheritdoc cref="NotFoundException(MemberInfo, object, Exception?, IReadOnlyDictionary{string, object}?)"/>
+    /// <param name="entityType"/><param name="additionalData"/><param name="innerException"/>
     public NotFoundException(
         MemberInfo entityType,
         object[] keys,
+        Exception? innerException = null,
         IReadOnlyDictionary<string, object>? additionalData = null)
         : base(
             $"Сущности " +
             $"\"{entityType.GetCustomAttribute<EntityNameAttribute>()?.Name ?? entityType.Name}\" " +
             $"не были найдены. Ключи: {string.Join(", ", keys)}",
+            innerException,
             additionalData)
-    {
-    }
-
-    /// <summary>
-    /// Инициализация <see cref="NotFoundException"/> с сообщением и внутренней ошибкой.
-    /// </summary>
-    /// <param name="message"> Сообщение. </param>
-    /// <param name="innerException"> Внутренняя ошибка. </param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
-    public NotFoundException(
-        string message,
-        Exception innerException,
-        IReadOnlyDictionary<string, object>? additionalData = null)
-        : base(message, innerException, additionalData)
     {
     }
 }

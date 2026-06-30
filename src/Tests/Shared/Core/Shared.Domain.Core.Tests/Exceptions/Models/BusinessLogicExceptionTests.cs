@@ -37,7 +37,7 @@ public sealed class BusinessLogicExceptionTests
         var data = new Dictionary<string, object> { { "code", 42 } };
 
         // Act
-        var exception = new BusinessLogicException("business error", data);
+        var exception = new BusinessLogicException("business error", innerException: null, data);
 
         // Assert
         exception.Message.Should().Be("business error");

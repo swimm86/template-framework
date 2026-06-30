@@ -24,12 +24,15 @@ public class UnauthorizedException
     /// Инициализирует новый экземпляр <see cref="UnauthorizedException"/>.
     /// </summary>
     /// <param name="context">Контекст запроса, содержащий данные о клиенте и домене.</param>
-    /// <param name="additionalData">Дополнительная информация для потребителей.</param>
+    /// <inheritdoc cref="AppException(string, Exception?, IReadOnlyDictionary{string, object}?)"/>
+    /// <param name="innerException"/><param name="additionalData"/>
     public UnauthorizedException(
         ClientRequestContext context,
-        Dictionary<string, object>? additionalData = null)
+        Exception? innerException = null,
+        IReadOnlyDictionary<string, object>? additionalData = null)
         : base(
             $"Запрос к клиенту '{context.ClientName}' по адресу '{context.AbsolutePath}' не аутентифицирован",
+            innerException,
             additionalData)
     {
         Context = context;

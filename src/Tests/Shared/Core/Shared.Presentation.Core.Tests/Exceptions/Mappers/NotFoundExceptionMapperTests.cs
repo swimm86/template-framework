@@ -91,6 +91,7 @@ public sealed class NotFoundExceptionMapperTests
         var mapper = new NotFoundExceptionMapper(TestConfigurationBuilder.Empty());
         var exception = new NotFoundException(
             "test",
+            innerException: null,
             new Dictionary<string, object> { ["key"] = "value" });
 
         // Act

@@ -139,7 +139,7 @@ public sealed class ProxiedExceptionMapperTests
     {
         // Arrange
         var pd = new ProblemDetails { Title = "Upstream Error" };
-        var ex = new ProxiedException(pd, 403, new Dictionary<string, object> { ["key"] = "val" });
+        var ex = new ProxiedException(pd, 403, innerException: null, new Dictionary<string, object> { ["key"] = "val" });
         var mapper = new ProxiedExceptionMapper(TestConfigurationBuilder.Empty());
 
         // Act
