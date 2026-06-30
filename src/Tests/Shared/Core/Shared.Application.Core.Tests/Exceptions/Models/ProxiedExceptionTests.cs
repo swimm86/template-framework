@@ -47,7 +47,7 @@ public sealed class ProxiedExceptionTests
         var problemDetails = new ProblemDetails { Title = "Test" };
         const int statusCode = 500;
 
-        var ex = new ProxiedException(problemDetails, statusCode, additionalData);
+        var ex = new ProxiedException(problemDetails, statusCode, innerException: null, additionalData);
 
         // Act
         var found = ex.TryGetAdditionalData<int>(key, out var value);
