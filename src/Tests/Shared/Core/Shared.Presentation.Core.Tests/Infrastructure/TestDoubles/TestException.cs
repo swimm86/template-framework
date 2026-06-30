@@ -5,7 +5,8 @@ namespace Shared.Presentation.Core.Tests.Infrastructure.TestDoubles;
 /// <summary>
 /// Исключение для тестов <c>ExceptionMapperBase&lt;TException&gt;</c>.
 /// </summary>
-internal sealed class TestException : Exception
+internal sealed class TestException
+    : Exception
 {
     /// <summary>
     /// Инициализация с сообщением.
@@ -27,7 +28,8 @@ internal sealed class TestException : Exception
 /// <summary>
 /// Исключение-наследник <see cref="AppException"/> для тестов.
 /// </summary>
-internal sealed class TestAppException : AppException
+internal sealed class TestAppException
+    : AppException
 {
     /// <summary>
     /// Инициализация с сообщением и дополнительными данными.
@@ -35,7 +37,7 @@ internal sealed class TestAppException : AppException
     public TestAppException(
         string message,
         IReadOnlyDictionary<string, object>? additionalData = null)
-        : base(message, additionalData)
+        : base(message, null, additionalData)
     {
     }
 }

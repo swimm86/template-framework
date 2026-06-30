@@ -7,8 +7,11 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient.Validators.Interfaces;
+using Shared.Application.Core.ApiClient.Validators.Settings;
+using Shared.Application.Core.Configuration.Extensions;
 using Shared.Application.Core.Dto.Responses;
 using Shared.Application.Core.Exceptions.Models;
 using Shared.Common.Extensions;
@@ -29,16 +32,43 @@ namespace Shared.Application.Core.ApiClient.Validators;
 /// Если в массиве <c>errors</c> найден элемент со статусом 500, заголовок и описание
 /// модифицируются для ясности.
 /// </para>
+/// <para>
+/// При сбое построения <see cref="ProblemDetails"/> (например, ошибка чтения тела ответа)
+/// выбрасывается <see cref="ProxiedException"/> с деградированными данными и корневой причиной
+/// в <see cref="Exception.InnerException"/>. Корневая причина определяется как
+/// <c>ex.InnerException ?? ex</c>, что исключает обёртки <see cref="System.Net.Http.HttpRequestException"/>
+/// от фреймворка и сохраняет исходный <see cref="System.IO.IOException"/> для цепочки
+/// <see cref="Exception.InnerException"/>, по которой проходит классификация транзиентных сбоев.
+/// </para>
+/// <para>
+/// Длина логируемого тела ответа ограничена настройкой
+/// <see cref="ProxiedResponseValidatorSettings.MaxLoggedBodyLength"/>.
+/// </para>
 /// </remarks>
 /// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
+/// <param name="configuration">
+/// <see cref="IConfiguration"/> для чтения <see cref="ProxiedResponseValidatorSettings"/>.
+/// </param>
 public sealed class ProxiedResponseValidator(
-    ILogger<ProxiedResponseValidator> logger)
+    ILogger<ProxiedResponseValidator> logger,
+    IConfiguration configuration)
     : IResponseValidator
 {
+    private const string UnknownPathPlaceholder = "unknown";
+    private const string DefaultProblemTitle = "Ошибка во время взаимодействия с внешним сервисом.";
+
     private static readonly string ErrorsPropertyName = nameof(ErrorResponse.Errors).ToCamelCase();
     private static readonly string DetailPropertyName = nameof(ProblemDetails.Detail).ToCamelCase();
     private static readonly string StatusPropertyName = nameof(ProblemDetails.Status).ToCamelCase();
     private static readonly string AdditionalDataPropertyName = nameof(IWithAdditionalData.AdditionalData).ToCamelCase();
+
+    private static readonly JsonSerializerOptions LogJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private readonly ProxiedResponseValidatorSettings _settings =
+        configuration.GetOptions<ProxiedResponseValidatorSettings>() ?? new();
 
     /// <inheritdoc />
     public async Task ValidateAsync(
@@ -48,83 +78,94 @@ public sealed class ProxiedResponseValidator(
         object? logContent = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(httpResponse);
+
         if (httpResponse.IsSuccessStatusCode)
         {
             return;
         }
 
-        var isThrown = false;
+        var absolutePath = ResolveAbsolutePath(httpResponse, logUri);
+        var statusCode = (int)httpResponse.StatusCode;
+
+        ProblemDetails? problemDetails = null;
+        Exception? innerException = null;
+        OperationCanceledException? canceledException = null;
+        IReadOnlyDictionary<string, object>? additionalData = null;
+
+        var requestInfo =
+            $"\tClientName={clientName}{Environment.NewLine}" +
+            $"\tPath={absolutePath}{Environment.NewLine}" +
+            $"\tStatusCode={statusCode}{Environment.NewLine}" +
+            $"\tRequestBody={SerializeForLog(logContent)}";
+
         try
         {
-            var absolutePath =
-                httpResponse.RequestMessage?.RequestUri?.AbsolutePath
-                ?? logUri
-                ?? string.Empty;
+            var responseMessage = await ReadBodyAsync(
+                httpResponse.Content,
+                cancellationToken);
 
-            var response = await httpResponse.Content
-                .ReadAsStringAsync(cancellationToken);
-            var problemDetails = JsonHelper.TryDeserialize<ProblemDetails>(response, out var deserializedProblemDetails)
-                ? deserializedProblemDetails
-                : new ProblemDetails
-                {
-                    Status = (int)httpResponse.StatusCode,
-                    Instance = absolutePath,
-                    Detail = response,
-                };
-
-            var additionalData = TakeAdditionalData(problemDetails!);
-            if (logUri != null && logContent != null)
-            {
-                logger.LogError(
-                    "Request to {RequestUri} failed: Status Code={StatusCode:D} with body {ResponseBody}",
-                    absolutePath,
-                    httpResponse.StatusCode,
-                    JsonSerializer.Serialize(logContent));
-            }
+            problemDetails = BuildProblemDetails(
+                responseMessage,
+                statusCode,
+                absolutePath,
+                out additionalData);
 
             SetProblemDetailsForServerError(problemDetails, absolutePath, clientName);
 
-            isThrown = true;
-            throw new ProxiedException(problemDetails, (int)httpResponse.StatusCode, additionalData);
+            logger.LogError(
+                "Request call failed.{nl}" +
+                "{RequestInfo}{nl2}" +
+                "\tResponse={Response}",
+                Environment.NewLine,
+                requestInfo,
+                Environment.NewLine,
+                responseMessage);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            isThrown = true;
-            throw;
-        }
-        finally
-        {
-            if (!isThrown)
-            {
-                throw await CreateExceptionAsync(httpResponse, clientName, cancellationToken);
-            }
-        }
-    }
-
-    private static async Task<Exception> CreateExceptionAsync(
-        HttpResponseMessage response,
-        string clientName,
-        CancellationToken cancellationToken)
-    {
-        if (response == null)
-        {
-            throw new ArgumentNullException(nameof(response), "HTTP response must not be null.");
-        }
-
-        try
-        {
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var errorMessage = $"Request to {clientName} failed: " +
-                               $"Status Code={response.StatusCode:D} ({response.ReasonPhrase}), " +
-                               $"Content=[{content ?? "null"}]";
-            return new Exception(errorMessage);
+            canceledException = ex;
         }
         catch (Exception ex)
         {
-            return new Exception(
-                $"Failed to read HTTP error body. Status Code={response.StatusCode:D} ({response.ReasonPhrase})",
-                ex);
+            innerException = ex.InnerException ?? ex;
+            additionalData = null;
+
+            logger.LogError(
+                innerException,
+                "Failed to process downstream error response.{nl}{RequestInfo}",
+                Environment.NewLine,
+                requestInfo);
+
+            problemDetails = new ProblemDetails
+            {
+                Status = statusCode,
+                Instance = absolutePath,
+                Title = DefaultProblemTitle,
+                Detail = GetDefaultProblemDetailsMessage(clientName, absolutePath),
+            };
         }
+
+        if (canceledException is not null)
+        {
+            throw canceledException;
+        }
+
+        throw new ProxiedException(
+            problemDetails ??
+            throw new InvalidOperationException(
+                $"{nameof(ProxiedResponseValidator)}: problemDetails was not initialized."),
+            statusCode,
+            innerException,
+            additionalData);
+    }
+
+    private static string SerializeForLog(object? logContent) =>
+        logContent is null ? "null" : JsonSerializer.Serialize(logContent, LogJsonOptions);
+
+    private static string GetDefaultProblemDetailsMessage(string clientName, string absolutePath)
+    {
+        return $"Не удалось корректно обработать запрос по адресу '{absolutePath}' для клиента '{clientName}'.";
     }
 
     private static Dictionary<string, object>? TakeAdditionalData(
@@ -150,6 +191,25 @@ public sealed class ProxiedResponseValidator(
 
             _ => null,
         };
+    }
+
+    private static ProblemDetails BuildProblemDetails(
+        string responseMessage,
+        int statusCode,
+        string absolutePath,
+        out IReadOnlyDictionary<string, object>? additionalData)
+    {
+        var problemDetails = JsonHelper.TryDeserialize<ProblemDetails>(responseMessage, out var deserializedProblemDetails)
+            ? deserializedProblemDetails
+            : new ProblemDetails
+            {
+                Status = statusCode,
+                Instance = absolutePath,
+                Detail = responseMessage,
+            };
+
+        additionalData = TakeAdditionalData(problemDetails);
+        return problemDetails;
     }
 
     private static void SetProblemDetailsForServerError(
@@ -186,11 +246,36 @@ public sealed class ProxiedResponseValidator(
             return;
         }
 
-        problemDetails.Title = "Ошибка во время взаимодействия с внешним сервисом.";
+        problemDetails.Title = DefaultProblemTitle;
         problemDetails.Detail =
-            $"Не удалось корректно обработать запрос по адресу '{absolutePath}' для клиента '{clientName}'." +
+            GetDefaultProblemDetailsMessage(clientName, absolutePath) +
             (string.IsNullOrWhiteSpace(errorDetails)
                 ? string.Empty
                 : $"{Environment.NewLine}Причина: {errorDetails}");
+    }
+
+    private static string ResolveAbsolutePath(HttpResponseMessage response, string? logUri)
+    {
+        var candidate =
+            response.RequestMessage?.RequestUri?.AbsolutePath ??
+            logUri ??
+            string.Empty;
+        return string.IsNullOrWhiteSpace(candidate) || candidate == "/"
+            ? UnknownPathPlaceholder
+            : candidate;
+    }
+
+    private async Task<string> ReadBodyAsync(
+        HttpContent content,
+        CancellationToken cancellationToken)
+    {
+        var body = await content.ReadAsStringAsync(cancellationToken);
+        if (body.Length <= _settings.MaxLoggedBodyLength)
+        {
+            return body;
+        }
+
+        return body[.._settings.MaxLoggedBodyLength]
+            + $"…[truncated, total {body.Length} chars]";
     }
 }
