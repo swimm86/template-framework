@@ -250,6 +250,8 @@ public class ProxiedException : AppException
 }
 ```
 
+Конструктор принимает `Exception? innerException = null` — корневую причину сбоя, возникшую в `ProxiedResponseValidator` при попытке прочитать/распарсить тело ответа. Сохранение корневой причины через `Exception.InnerException` необходимо для классификации транзиентных сбоев в retry-политиках (Polly), которые обходят `InnerException`-цепочку для определения типа сбоя (`IOException`, `HttpRequestException` и т.п.).
+
 ### ProxiedExceptionMapper
 
 **Файл:** `Shared.Presentation.Core/Exceptions/Mappers/ProxiedExceptionMapper.cs`
@@ -401,7 +403,7 @@ public record ExceptionMapperSettings(
 |---------|----------|
 | 1-2 уровня | 95% исключений |
 | 3-4 уровня | 99% исключений |
-| 5 уровней | Edge-cases: `AggregateException` + `ProxiedException` + вложенные `AppException` |
+| 5 уровней | Edge-cases: `AggregateException` + `ProxiedException` (degraded-путь с обёрнутым `IOException` через `HttpRequestException`) + вложенные `AppException` |
 
 Увеличение свыше 5 не даёт диагностической ценности, но растёт риск переполнения стека.
 

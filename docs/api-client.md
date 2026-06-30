@@ -265,38 +265,78 @@ public sealed class RelativeUriValidator : IUriValidator
 
 **Assembly:** `Shared.Application.Core.dll`
 **Namespace:** `Shared.Application.Core.ApiClient.Validators`
+**Исходник:** `src/Shared/Core/Shared.Application.Core/ApiClient/Validators/ProxiedResponseValidator.cs`
 
-Преобразует HTTP-ошибки в `ProxiedException`:
+Преобразует HTTP-ошибки в `ProxiedException` и сохраняет исходную причину сбоя (например, `IOException`) в `Exception.InnerException` для последующей классификации транзиентных ошибок в retry-политиках (Polly).
 
 ```csharp
-public sealed class ProxiedResponseValidator(ILogger<ProxiedResponseValidator> logger)
-    : IResponseValidator
-{
-    public async Task ValidateAsync(
-        HttpResponseMessage httpResponse,
-        string clientName,
-        string? logUri = null,
-        object? logContent = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (httpResponse.IsSuccessStatusCode) return;
-
-        // 1. Читает тело ответа как ProblemDetails
-        var problemDetails = JsonHelper.TryDeserialize<ProblemDetails>(response, out var pd)
-            ? pd
-            : new ProblemDetails { Status = (int)httpResponse.StatusCode, ... };
-
-        // 2. Извлекает additionalData из ProblemDetails.Extensions
-        var additionalData = TakeAdditionalData(problemDetails);
-
-        // 3. Если в errors есть 500 — модифицирует Title/Detail
-        SetProblemDetailsForServerError(problemDetails, absolutePath, clientName);
-
-        // 4. Бросает ProxiedException
-        throw new ProxiedException(problemDetails, (int)httpResponse.StatusCode, additionalData);
-    }
-}
+public sealed class ProxiedResponseValidator(
+    ILogger<ProxiedResponseValidator> logger,
+    IConfiguration configuration)
+    : IResponseValidator;
 ```
+
+#### Поток обработки
+
+1. Если ответ 2xx — выход без побочных эффектов.
+2. `ResolveAbsolutePath` выбирает путь: `RequestUri.AbsolutePath → logUri → "unknown"`.
+3. `ReadBodyAsync` читает тело ответа с обрезанием до `ProxiedResponseValidatorSettings.MaxLoggedBodyLength` (default `4096`).
+4. `BuildProblemDetails` парсит JSON в `ProblemDetails` (или строит stub); `TakeAdditionalData` извлекает `additionalData` из `Extensions` и удаляет ключ.
+5. `SetProblemDetailsForServerError` правит `Title`/`Detail`, если в `errors[]` есть элемент со `status=500`.
+6. При сбое на шагах 3–5 формируется **degraded** `ProblemDetails` (default title/детальное сообщение), а корневая причина сохраняется в `innerException = ex.InnerException ?? ex` — это снимает обёртку `HttpRequestException` и сохраняет исходный `IOException`/`JsonException`.
+7. `OperationCanceledException` пробрасывается as-is.
+8. Иначе — `throw new ProxiedException(problemDetails, statusCode, innerException, additionalData)`.
+
+#### Ключевое поведение
+
+| Аспект | Описание |
+|--------|----------|
+| **Корневая причина** | `innerException = ex.InnerException ?? ex` — снимает обёртку `HttpRequestException`, сохраняет исходный `IOException` для классификации Polly |
+| **URI Resolution** | `RequestUri.AbsolutePath → logUri → "unknown"` (см. §4.2.2) |
+| **Truncate тела ответа** | `ProxiedResponseValidatorSettings.MaxLoggedBodyLength` (см. §4.2.1); суффикс `…[truncated, total {N} chars]` |
+| **Логирование logContent** | `JsonNamingPolicy.CamelCase` для совпадения с wire-форматом ASP.NET Core JsonOptions |
+| **Cancellation** | `OperationCanceledException` пробрасывается без обёртки и без логирования |
+
+#### 4.2.1. ProxiedResponseValidatorSettings
+
+**Файл:** `Shared.Application.Core/ApiClient/Validators/Settings/ProxiedResponseValidatorSettings.cs`
+
+```csharp
+public record ProxiedResponseValidatorSettings(
+    int MaxLoggedBodyLength = 4096);
+```
+
+| Параметр | Default | Описание |
+|----------|---------|----------|
+| `MaxLoggedBodyLength` | `4096` | Максимальная длина тела ответа, попадающего в лог. При превышении тело обрезается суффиксом `…[truncated, total {N} chars]`. |
+
+Чтение настройки — через `configuration.GetOptions<ProxiedResponseValidatorSettings>()` (по корневому пути модуля, как `ExceptionMapperSettings`). Переопределение в `.env`:
+
+```env
+Shared__Application__Core__ProxiedResponseValidatorSettings__MaxLoggedBodyLength=16384
+```
+
+#### 4.2.2. URI Resolution и плейсхолдер `unknown`
+
+`ResolveAbsolutePath` выбирает путь в порядке приоритета:
+
+1. `httpResponse.RequestMessage?.RequestUri?.AbsolutePath`
+2. Параметр `logUri`
+3. Плейсхолдер `"unknown"` (если оба источника пусты или равны `/`)
+
+Это гарантирует непустое поле `Path=` в логе при диагностике.
+
+#### 4.2.3. Формат логирования
+
+| Поле | Формат | Источник |
+|------|--------|----------|
+| `ClientName` | строковое значение | параметр `clientName` |
+| `Path` | абсолютный путь или `unknown` | `ResolveAbsolutePath` |
+| `StatusCode` | int | `httpResponse.StatusCode` |
+| `RequestBody` | JSON в `camelCase` или литерал `null` | `JsonSerializer.Serialize(logContent, LogJsonOptions)` |
+| `Response` | обрезанное тело ответа | `ReadBodyAsync` |
+
+`logContent` сериализуется с `JsonNamingPolicy.CamelCase` для совпадения с wire-форматом ASP.NET Core JsonOptions.
 
 ---
 
@@ -553,6 +593,19 @@ public class ProxiedException : AppException
 }
 ```
 
+Конструктор принимает корневую причину сбоя (`innerException`) для прозрачной диагностики и retry-классификации:
+
+```csharp
+public ProxiedException(
+    ProblemDetails problemDetails,
+    int statusCode,
+    Exception? innerException = null,
+    IReadOnlyDictionary<string, object>? additionalData = null)
+    : base(string.Empty, innerException: innerException, additionalData: additionalData);
+```
+
+Когда `ProxiedResponseValidator` не может прочитать/распарсить тело ответа (`IOException`, `JsonException` и т.п.), `innerException` заполняется исходной ошибкой (`ex.InnerException ?? ex`) — это сохраняет `IOException` после снятия обёртки `HttpRequestException`, что необходимо для классификации транзиентных сбоев.
+
 ### 8.2. Обработка в handler/query
 
 `ProxiedException` — это подтип `AppException`. В проекте `Template` нет типа `Result<T>` — ошибки пробрасываются как исключения и обрабатываются единым `ExceptionHandler` из `Shared.Presentation.Core`. Если требуется извлечь `AdditionalData` для побочной логики (например, логирования), `ProxiedException` ловится в handler:
@@ -579,6 +632,10 @@ public async Task<PersonResponse> Handle(
             // Обработка специфичных данных
         }
 
+        // Доступ к корневой причине (например, IOException после снятия
+        // обёртки HttpRequestException) для retry-классификации:
+        // var rootCause = ex.InnerException; // IOException | JsonException | …
+
         throw;
     }
 }
@@ -591,40 +648,47 @@ public async Task<PersonResponse> Handle(
 ```
 [Upstream Service]                          [Downstream Service]
 ─────────────────                           ──────────────────
-                                           
+
 Controller бросает                         ProxiedResponseValidator
 AppException с AdditionalData:             читает тело ответа:
-                                           
+
   throw new BusinessLogicException(          var problemDetails =
-    "Person not found",                      ReadFromJsonAsync<ProblemDetails>();
+    "Person not found",                      BuildProblemDetails(response, ...);
     new Dictionary<string, object>
     {                                        var additionalData =
       ["personId"] = 42,                     TakeAdditionalData(problemDetails);
       ["tenantId"] = "abc"
     });                                      throw new ProxiedException(
-                                               problemDetails, statusCode, additionalData);
-                                            )
-                                           
-↓ HTTP 422 Response                         
-                                           
-  {                                         
-    "title": "Business Logic Error",        
-    "status": 422,                          
-    "detail": "Person not found",           
-    "additionalData": {    ← извлекается    
-      "personId": 42,      и удаляется      
-      "tenantId": "abc"    из Extensions    
-    }                                       
-  }                                         
-                                           
+                                               problemDetails,
+                                               statusCode,
+                                               innerException,    // root cause (IOException и т.п.)
+                                               additionalData);
+                                            }
+
+↓ HTTP 422 Response
+
+  {
+    "title": "Business Logic Error",
+    "status": 422,
+    "detail": "Person not found",
+    "additionalData": {    ← извлекается
+      "personId": 42,      и удаляется
+      "tenantId": "abc"    из Extensions
+    }
+  }
+
                                             ↓
                                             Downstream handler ловит:
-                                            
+
                                             catch (ProxiedException ex)
                                             {
                                               ex.TryGetAdditionalData<int>(
                                                 "personId", out var id);
                                               // id == 42
+
+                                              var root = ex.InnerException;
+                                              // null  — happy-путь (ProblemDetails распарсен)
+                                              // IOException — degraded-путь (тело не читается)
                                             }
 ```
 
