@@ -7,6 +7,7 @@
 using Shared.Application.Core.ApiClient;
 using Shared.Application.Core.ApiClient.Attributes;
 using Shared.Application.Core.ApiClient.Validators.Interfaces;
+using Shared.Application.Core.Dto.Responses;
 using Shared.Domain.Core.Utils.Interfaces;
 using Template.Bff.Application.HttpClients.Settings;
 using Template.Bff.Application.Interfaces.HttpClients;
@@ -39,5 +40,12 @@ public sealed class SetterClient(
             "persons/create",
             request,
             cancellationToken)!;
+    }
+
+    /// <inheritdoc />
+    public Task<Response> TestExceptionChainAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return PostAsync<Response>("test/exception-chain", cancellationToken)!;
     }
 }
