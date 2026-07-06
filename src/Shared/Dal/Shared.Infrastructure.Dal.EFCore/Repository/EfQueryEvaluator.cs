@@ -4,6 +4,7 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
@@ -35,8 +36,11 @@ public class EfQueryEvaluator(
             .Aggregate(queryable, (acc, func) => func(acc));
 
         // Применяем фильтры.
-        queryable = options.Filters
-            .Aggregate(queryable, (acc, x) => acc.Where(x));
+        var combinedFilter = options.Filters.CombineAllAndAlso();
+        if (combinedFilter is not null)
+        {
+            queryable = queryable.Where(combinedFilter);
+        }
 
         // Применяем Includes-ы.
         queryable = options.Includes

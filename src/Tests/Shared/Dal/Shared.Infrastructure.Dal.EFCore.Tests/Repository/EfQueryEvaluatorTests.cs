@@ -103,6 +103,75 @@ public sealed class EfQueryEvaluatorTests
         result.First().Name.Should().Be("alpha-1");
     }
 
+    /// <summary>
+    /// Проверяет, что Build с 4 фильтрами применяет все 4 условия (AND-семантика).
+    /// </summary>
+    [Fact]
+    public void Build_WithFourFilters_AppliesAllFilters()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var evaluator = CreateEvaluator();
+        context.Entities.Add(CreateEntity(name: "alpha-1-xx"));
+        context.Entities.Add(CreateEntity(name: "alpha-1-yy"));
+        context.Entities.Add(CreateEntity(name: "alpha-2-zz"));
+        context.Entities.Add(CreateEntity(name: "beta-1-ww"));
+        context.SaveChanges();
+
+        var options = new QueryOptions<TestEntityWithCreatedDeleted>();
+        options.AddFilter(e => e.Name.StartsWith("alpha"));
+        options.AddFilter(e => e.Name.Contains("1"));
+        options.AddFilter(e => e.Name.EndsWith("xx"));
+        options.AddFilter(e => e.Name.Length == 10);
+        var queryable = context.Entities.AsQueryable();
+
+        // Act
+        var result = evaluator.Build(queryable, options).ToList();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].Name.Should().Be("alpha-1-xx");
+    }
+
+    /// <summary>
+    /// Проверяет, что Build с произвольным числом фильтров (5, 7, 16)
+    /// применяет все фильтры — все условия должны выполниться.
+    /// </summary>
+    [Theory]
+    [InlineData(5)]
+    [InlineData(7)]
+    [InlineData(16)]
+    public void Build_WithVariousFilterCounts_AppliesAllFilters(int filterCount)
+    {
+        // Arrange
+        using var context = CreateContext();
+        var evaluator = CreateEvaluator();
+
+        var targetName = "match-this";
+        context.Entities.Add(CreateEntity(name: targetName));
+        for (var i = 0; i < filterCount - 1; i++)
+        {
+            context.Entities.Add(CreateEntity(name: $"noise-{i}"));
+        }
+        context.SaveChanges();
+
+        var options = new QueryOptions<TestEntityWithCreatedDeleted>();
+        options.AddFilter(e => e.Name == targetName);
+        for (var i = 0; i < filterCount - 1; i++)
+        {
+            var noise = $"noise-{i}";
+            options.AddFilter(e => e.Name != noise);
+        }
+        var queryable = context.Entities.AsQueryable();
+
+        // Act
+        var result = evaluator.Build(queryable, options).ToList();
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].Name.Should().Be(targetName);
+    }
+
     /// <summary>Проверяет что Build с WithTracking=false применяет AsNoTracking.</summary>
     [Fact]
     public void Build_WithTrackingFalse_AppliesAsNoTracking()
