@@ -14,7 +14,7 @@ namespace Shared.Application.Core.Cache;
 /// Сервис кэширования, ограниченный областью видимости запроса (scoped).
 /// </summary>
 /// <param name="logger">Экземпляр <see cref="ILogger{ScopedMemoryCache}"/> для работы с логированием.</param>
-public class ScopedMemoryCache(
+public sealed class ScopedMemoryCache(
     ILogger<ScopedMemoryCache> logger)
     : IScopedMemoryCache
 {

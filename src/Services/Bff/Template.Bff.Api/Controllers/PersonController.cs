@@ -22,8 +22,8 @@ namespace Template.Bff.Api.Controllers;
 /// </summary>
 public class PersonController(
     ISender sender,
-    ILogger<PersonController> logger)
-    : BffControllerBase(logger)
+    ILoggerFactory loggerFactory)
+    : BffControllerBase(loggerFactory)
 {
     /// <summary>
     /// Возвращает коллекцию сущностей "Персона".

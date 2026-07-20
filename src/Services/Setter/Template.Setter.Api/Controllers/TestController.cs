@@ -17,8 +17,8 @@ namespace Template.Setter.Api.Controllers;
 /// </summary>
 public sealed class TestController(
     ISender sender,
-    ILogger<TestController> logger)
-    : SetterControllerBase(logger)
+    ILoggerFactory loggerFactory)
+    : SetterControllerBase(loggerFactory)
 {
     /// <summary>
     /// Проксирует вызов <c>POST /test/exception-chain</c> на Getter для проверки проброса

@@ -14,9 +14,8 @@ namespace Template.Setter.Api.Controllers.Base;
 /// <summary>
 /// Базовый класс для Setter Controller-ов.
 /// </summary>
-/// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
 [AppName(Constants.AppName)]
 [ControllerType("setter")]
 public abstract class SetterControllerBase(
-    ILogger logger)
-    : ControllerBase(logger);
+    ILoggerFactory loggerFactory)
+    : ControllerBase(loggerFactory);

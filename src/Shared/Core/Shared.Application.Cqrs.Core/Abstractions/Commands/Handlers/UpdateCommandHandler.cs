@@ -36,7 +36,7 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
     IMapper mapper,
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<TEntity>> validators,
-    IUserProvider? userProvider)
+    IUserProvider? userProvider = null)
     : EntityRequestHandler<TCommand, TResponse, TEntity>(unitOfWork, loggerFactory)
     where TCommand : UpdateCommand<TRequest, TResponse>
     where TEntity : class, IEntity
@@ -94,6 +94,7 @@ public abstract class UpdateCommandHandler<TCommand, TRequest, TEntity, TPayload
         await ProcessEntityAsync(entity, command, cancellationToken);
         await ValidateAsync(entity, validators, cancellationToken);
 
+        // TODO: сделать единообразным с Create/Clone
         if (entity is IWithUpdated entityWithUpdated)
         {
             entityWithUpdated.SetUpdatedByUserId(userProvider?.UserId);

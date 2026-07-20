@@ -19,8 +19,8 @@ namespace Template.Setter.Api.Controllers;
 /// </summary>
 public sealed class PersonsController(
     ISender sender,
-    ILogger<PersonsController> logger)
-    : SetterControllerBase(logger)
+    ILoggerFactory loggerFactory)
+    : SetterControllerBase(loggerFactory)
 {
     /// <summary>
     /// Создаёт сущность "Персона".

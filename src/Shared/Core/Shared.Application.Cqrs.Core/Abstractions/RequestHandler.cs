@@ -16,14 +16,20 @@ namespace Shared.Application.Cqrs.Core.Abstractions;
 /// </summary>
 /// <typeparam name="TRequest">Тип обрабатываемого запроса.</typeparam>
 /// <typeparam name="TResponse">Тип возвращаемого значения.</typeparam>
-/// <param name="loggerFactory">Фабрика для создания логгеров.</param>
-public abstract class RequestHandler<TRequest, TResponse>(
-    ILoggerFactory loggerFactory)
+public abstract class RequestHandler<TRequest, TResponse>
     : IRequestHandler<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     /// <summary>Логгер для записи событий обработки запроса.</summary>
-    protected readonly ILogger Logger = loggerFactory.CreateLogger<RequestHandler<TRequest, TResponse>>();
+    protected readonly ILogger Logger;
+
+    /// <inheritdoc cref="RequestHandler{TRequest, TResponse}"/>
+    /// <param name="loggerFactory">Фабрика для создания логгеров.</param>
+    protected RequestHandler(
+        ILoggerFactory loggerFactory)
+    {
+        Logger = loggerFactory.CreateLogger(GetType());
+    }
 
     /// <inheritdoc />
     public abstract Task<TResponse> Handle(TRequest query, CancellationToken cancellationToken);

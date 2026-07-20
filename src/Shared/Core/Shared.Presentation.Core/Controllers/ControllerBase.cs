@@ -29,13 +29,23 @@ namespace Shared.Presentation.Core.Controllers;
 /// </list>
 /// </para>
 /// </remarks>
-/// <param name="logger">Логгер для записи событий выполнения запросов.</param>
 [ApiController]
 [Route("api/[appName]/[controllerType]/v1/[controller]")]
-public abstract class ControllerBase(
-    ILogger logger)
+public abstract class ControllerBase
     : Microsoft.AspNetCore.Mvc.ControllerBase
 {
+    /// <summary>
+    /// Логгер для записи событий выполнения запросов.
+    /// </summary>
+    protected readonly ILogger Logger;
+
+    /// <inheritdoc cref="ControllerBase"/>
+    /// <param name="loggerFactory">Фабрика логирования для записи событий выполнения запросов.</param>
+    protected ControllerBase(ILoggerFactory loggerFactory)
+    {
+        Logger = loggerFactory.CreateLogger(GetType());
+    }
+
     /// <summary>
     /// Асинхронно обрабатывает запрос и возвращает HTTP-ответ с соответствующим статус-кодом.
     /// </summary>
@@ -48,7 +58,7 @@ public abstract class ControllerBase(
         [CallerMemberName] string? methodName = null)
         where TResponse : Response
     {
-        return logger.LogTaskAsync(
+        return Logger.LogTaskAsync(
             async () =>
             {
                 var result = await processFunc();

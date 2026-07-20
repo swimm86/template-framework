@@ -26,7 +26,7 @@ namespace Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 public abstract class DeleteCommandHandler<TCommand, TEntity>(
     IUnitOfWork unitOfWork,
     ILoggerFactory loggerFactory,
-    IUserProvider? userProvider)
+    IUserProvider? userProvider = null)
     : EntityRequestHandler<TCommand, Response, TEntity>(unitOfWork, loggerFactory)
     where TCommand : DeleteCommand
     where TEntity : class, IEntity
