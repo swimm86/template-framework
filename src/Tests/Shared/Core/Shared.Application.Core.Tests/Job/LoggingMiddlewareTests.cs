@@ -26,7 +26,7 @@ public sealed class LoggingMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new LoggingMiddleware(new FakeLogger<LoggingMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             Action = (_, _) => Task.CompletedTask,
         };
@@ -49,7 +49,7 @@ public sealed class LoggingMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new LoggingMiddleware(new FakeLogger<LoggingMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None);
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken);
 
         ScheduledJobDelegate next = _ => throw new InvalidOperationException("boom");
 

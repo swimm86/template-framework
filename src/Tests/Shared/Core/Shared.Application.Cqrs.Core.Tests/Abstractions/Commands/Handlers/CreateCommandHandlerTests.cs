@@ -1,7 +1,9 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using Shared.Application.Cqrs.Core.Abstractions;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
+using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Doubles.Mapping;
 using Shared.Testing.Doubles.Repository;
 using Shared.Testing.Entities;
@@ -123,6 +125,35 @@ public sealed class CreateCommandHandlerTests
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Map failed");
+    }
+
+    #endregion
+
+    #region Logger Category Tests
+
+    /// <summary>
+    /// Категория логгера соответствует конкретному типу <see cref="TestCreateCommandHandler"/>,
+    /// а не абстрактному <see cref="RequestHandler{TRequest,TResponse}"/>.
+    /// </summary>
+    [Fact]
+    public async Task Handle_CreatesLoggerForConcreteType()
+    {
+        // Arrange
+        var factory = new CapturingLoggerFactory();
+        var mapper = new FakeMapper();
+        mapper.RegisterMap<object, TestEntity>(_ => new TestEntity { Id = Guid.NewGuid(), Name = "x" });
+        mapper.RegisterMap<TestEntity, object>(e => new { e.Id, e.Name });
+
+        var uow = new FakeUnitOfWork();
+        var sut = new TestCreateCommandHandler(
+            factory, mapper, uow, [], new FakeUserProvider());
+
+        // Act
+        await sut.Handle(new TestCreateCommand(new object()), TestContext.Current.CancellationToken);
+
+        // Assert
+        factory.Categories.Should().ContainSingle()
+            .Which.Should().Be(typeof(TestCreateCommandHandler).FullName);
     }
 
     #endregion
