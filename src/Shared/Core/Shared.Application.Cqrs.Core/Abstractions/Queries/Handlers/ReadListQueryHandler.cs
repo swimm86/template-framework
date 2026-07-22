@@ -65,7 +65,7 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
         var (skip, take) = PaginationHelper.CalculatePagination(query.PageNumber, query.PageSize);
 
         var repository = unitOfWork.GetRepository<TEntity>();
-        var dtoList = await GetPayloadAsync(repository, options, skip, take);
+        var dtoList = await GetPayloadAsync(repository, options, skip, take, cancellationToken);
         var totalCount = await repository.CountAsync(options, cancellationToken);
         await PostProcessAsync(dtoList, query);
         var pagesCount = PaginationHelper.GetTotalPages(totalCount, query.PageSize);
@@ -87,14 +87,16 @@ public abstract class ReadListQueryHandler<TQuery, TRequest, TFilter, TResponse,
     /// <param name="options">Параметры запроса к базе данных.</param>
     /// <param name="skip">Количество пропускаемых элементов.</param>
     /// <param name="take">Количество возвращаемых элементов.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Коллекция проекций сущностей.</returns>
     protected virtual async Task<ICollection<TPayload>> GetPayloadAsync(
         IRepository<TEntity> repository,
         QueryOptions<TEntity> options,
         int? skip,
-        int? take)
+        int? take,
+        CancellationToken cancellationToken = default)
     {
-        return await repository.GetRangeAsync<TPayload>(options, skip, take);
+        return await repository.GetRangeAsync<TPayload>(options, skip, take, cancellationToken: cancellationToken);
     }
 
     /// <summary>

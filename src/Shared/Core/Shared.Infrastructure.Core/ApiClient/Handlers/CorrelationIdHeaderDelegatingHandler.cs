@@ -1,9 +1,10 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="CorrelationIdHeaderDelegatingHandler.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.ApiClient.Handlers.Attributes;
@@ -21,6 +22,20 @@ public sealed class CorrelationIdHeaderDelegatingHandler(
     ILogger<CorrelationIdHeaderDelegatingHandler> logger)
     : DelegatingHandler
 {
+    /// <summary>
+    /// Устанавливает внутренний обработчик для целей тестирования.
+    /// Использует рефлексию для доступа к <see cref="DelegatingHandler.InnerHandler"/>,
+    /// который является protected.
+    /// Доступен только сборке тестов через <see cref="InternalsVisibleToAttribute"/>.
+    /// </summary>
+    /// <param name="innerHandler">Обработчик для проксирования запросов.</param>
+    internal void SetInnerHandlerForTesting(HttpMessageHandler innerHandler)
+    {
+        typeof(DelegatingHandler)
+            .GetProperty(nameof(InnerHandler), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            ?.SetValue(this, innerHandler);
+    }
+
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,

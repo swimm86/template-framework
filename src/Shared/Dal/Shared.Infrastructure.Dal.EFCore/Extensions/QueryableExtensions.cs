@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using System.Linq.Expressions;
+using System.Reflection;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 
@@ -16,6 +17,25 @@ namespace Shared.Infrastructure.Dal.EFCore.Extensions;
 public static class QueryableExtensions
 {
     /// <summary>
+    /// Метод Include из <see cref="EntityFrameworkQueryableExtensions"/>.
+    /// </summary>
+    private static readonly MethodInfo IncludeMethod = typeof(EntityFrameworkQueryableExtensions)
+        .GetMethods()
+        .First(m => m.Name == nameof(EntityFrameworkQueryableExtensions.Include) &&
+            m.GetParameters().Length == 2 &&
+            m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>));
+
+    /// <summary>
+    /// Методы ThenInclude из <see cref="EntityFrameworkQueryableExtensions"/>.
+    /// </summary>
+    private static readonly List<MethodInfo> ThenIncludeMethods = typeof(EntityFrameworkQueryableExtensions)
+        .GetMethods()
+        .Where(m => m.Name == nameof(EntityFrameworkQueryableExtensions.ThenInclude) &&
+                m.GetParameters().Length == 2 &&
+                m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>))
+        .ToList();
+
+    /// <summary>
     /// Собирает Include-ы для <see cref="IQueryable{T}"/>.
     /// </summary>
     /// <typeparam name="TEntity">Тип начальной сущности.</typeparam>
@@ -26,25 +46,10 @@ public static class QueryableExtensions
         this IQueryable<TEntity> queryable,
         IIncludable<TEntity> includable)
     {
-        var includeMethod = typeof(EntityFrameworkQueryableExtensions)
-            .GetMethods()
-            .First(m =>
-                m.Name == nameof(EntityFrameworkQueryableExtensions.Include) &&
-                m.GetParameters().Length == 2 &&
-                m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>));
-
-        var thenIncludeMethods = typeof(EntityFrameworkQueryableExtensions)
-            .GetMethods()
-            .Where(m =>
-                m.Name == nameof(EntityFrameworkQueryableExtensions.ThenInclude) &&
-                m.GetParameters().Length == 2 &&
-                m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>))
-            .ToList();
-
         var entityType = typeof(TEntity);
         var propertyType = includable.Expression.ReturnType;
 
-        var genericInclude = includeMethod.MakeGenericMethod(entityType, propertyType);
+        var genericInclude = IncludeMethod.MakeGenericMethod(entityType, propertyType);
 
         var result = genericInclude.Invoke(
             null,
@@ -56,8 +61,8 @@ public static class QueryableExtensions
         {
             // выбираем подходящий метод ThenInclude на основании, реализует ли тип IEnumerable<T>
             var thenIncludeMethod = propertyType.ImplementsIEnumerable()
-                ? thenIncludeMethods[0]
-                : thenIncludeMethods[1];
+                ? ThenIncludeMethods[0]
+                : ThenIncludeMethods[1];
 
             var returnType = child.Expression.ReturnType;
 

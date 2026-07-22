@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="ProxiedResponseValidator.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -208,8 +208,8 @@ public sealed class ProxiedResponseValidator(
                 Detail = responseMessage,
             };
 
-        additionalData = TakeAdditionalData(problemDetails);
-        return problemDetails;
+        additionalData = TakeAdditionalData(problemDetails!);
+        return problemDetails!;
     }
 
     private static void SetProblemDetailsForServerError(
