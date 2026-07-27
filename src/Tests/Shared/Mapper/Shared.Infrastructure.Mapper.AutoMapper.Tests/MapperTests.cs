@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="MapperTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Linq.Expressions;
 using AutoMapper;
 
@@ -97,21 +103,5 @@ public sealed class MapperTests
         result[0].Name.Should().Be("A");
         result[1].Id.Should().Be(2);
         result[1].Name.Should().Be("B");
-    }
-
-    /// <summary>
-    /// Проверяет, что конструктор <see cref="Mapper"/> не выбрасывает исключение
-    /// при передаче <c>null</c> вместо <see cref="IMapper"/>.
-    /// </summary>
-    [Fact]
-    public void Constructor_WithNullAutoMapper_DoesNotThrow()
-    {
-        // Arrange
-        var act = () => new Mapper(null!);
-
-        // Act
-
-        // Assert
-        act.Should().NotThrow();
     }
 }

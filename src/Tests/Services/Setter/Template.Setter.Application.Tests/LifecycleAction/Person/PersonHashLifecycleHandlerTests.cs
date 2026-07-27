@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="TemplateSetterAppPersonHandlerTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -87,7 +87,7 @@ public sealed class TemplateSetterAppPersonHandlerTests
         // Act
         await ((ILifecycleActionHandler<TemplateSetterDomainPerson>)handler).ExecuteAsync(
             [person],
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         // Assert
         person.Hash.Should().Equal(HashHelper.ComputeSha256("Alice", "alice@example.com"));
@@ -108,7 +108,7 @@ public sealed class TemplateSetterAppPersonHandlerTests
         // Act
         await ((ILifecycleActionHandler<TemplateSetterDomainPerson>)handler).ExecuteAsync(
             [alice, bob],
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         // Assert
         alice.Hash.Should().Equal(HashHelper.ComputeSha256("Alice", "alice@example.com"));
@@ -127,7 +127,7 @@ public sealed class TemplateSetterAppPersonHandlerTests
 
         // Act
         var act = () => ((ILifecycleActionHandler<TemplateSetterDomainPerson>)handler)
-            .ExecuteAsync([], CancellationToken.None);
+            .ExecuteAsync([], TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().NotThrowAsync();

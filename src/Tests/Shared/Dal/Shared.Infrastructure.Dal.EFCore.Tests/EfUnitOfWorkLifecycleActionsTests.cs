@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="EfUnitOfWorkLifecycleActionsTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -67,7 +67,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         before.ExecuteCallCount.Should().Be(1);
@@ -91,7 +91,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity2);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         before.ExecuteCallCount.Should().Be(1);
@@ -119,7 +119,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         before.ExecuteCallCount.Should().Be(0);
@@ -143,7 +143,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         before.ExecuteCallCount.Should().Be(0);
@@ -167,7 +167,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         before.ExecuteCallCount.Should().Be(0);
@@ -192,7 +192,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         uow.Orchestrator.DisableActions();
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false, resetLifecycleActionSettingsAfterSave: true);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false, resetLifecycleActionSettingsAfterSave: true);
 
         // Assert
         uow.Orchestrator.IsActionEnabled(new TestLifecycleActionEntity(), "any", LifecyclePhase.BeforeSave).Should().BeTrue();
@@ -212,7 +212,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         uow.Orchestrator.DisableActions();
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false, resetLifecycleActionSettingsAfterSave: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false, resetLifecycleActionSettingsAfterSave: false);
 
         // Assert
         uow.Orchestrator.IsActionEnabled(new TestLifecycleActionEntity(), "any", LifecyclePhase.BeforeSave).Should().BeFalse();
@@ -237,7 +237,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         uow.Orchestrator.DisablePhase(LifecyclePhase.BeforeSave);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         var probe = new TestLifecycleActionEntity();
@@ -266,8 +266,9 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity);
 
         // Act
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false));
+        await FluentActions.Awaiting(
+            () => uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false))
+            .Should().ThrowAsync<InvalidOperationException>();
 
         // Assert
         var probe = new TestLifecycleActionEntity();
@@ -293,7 +294,7 @@ public sealed class EfUnitOfWorkLifecycleActionsTests
         context.DomainEntities.Add(entity);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         before.LastEntities.Should().ContainSingle().Which.Should().BeSameAs(entity);

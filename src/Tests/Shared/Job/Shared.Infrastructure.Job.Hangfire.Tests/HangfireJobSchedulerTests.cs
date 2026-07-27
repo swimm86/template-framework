@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="HangfireJobSchedulerTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -7,19 +7,21 @@
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using NSubstitute;
 using Shared.Application.Core.Job.Enums;
 using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Scheduler;
+using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Job;
 using HangfireJob = Hangfire.Common.Job;
 
 namespace Shared.Infrastructure.Job.Hangfire.Tests;
 
 /// <summary>
-/// Тесты <see cref="HangfireJobScheduler"/> с моками <see cref="IRecurringJobManager"/>
+/// Тесты <see cref="HangfireJobScheduler"/> с substitutes <see cref="IRecurringJobManager"/>
 /// и <see cref="IBackgroundJobClient"/>: проверка соответствия расписания типа джобы и флагов
 /// вызовам Hangfire API.
 /// </summary>
@@ -36,8 +38,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task CallsRecurringJobManager_WhenCronScheduled()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition("cron-job", typeof(FakeScheduledJob), new JobSchedule.Cron(SampleCron));
@@ -46,14 +48,13 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "cron-job",
-                It.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter) && j.Method.Name == nameof(HangfireScheduledJobAdapter.RunScheduledJobAsync)),
-                SampleCron,
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
-        background.VerifyNoOtherCalls();
+        recurring.Received(1).AddOrUpdate(
+            "cron-job",
+            Arg.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter) && j.Method.Name == nameof(HangfireScheduledJobAdapter.RunScheduledJobAsync)),
+            SampleCron,
+            Arg.Any<RecurringJobOptions>());
+        background.DidNotReceive().Create(Arg.Any<HangfireJob>(), Arg.Any<IState>());
+        background.DidNotReceive().ChangeState(Arg.Any<string>(), Arg.Any<IState>(), Arg.Any<string>());
     }
 
     /// <summary>
@@ -65,8 +66,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task PassesTypeNameServiceKeyAndCancellationToken_WhenCronScheduled()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -79,13 +80,11 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                It.IsAny<string>(),
-                It.Is<HangfireJob>(j => VerifyBridgeArgs(j, typeof(FakeScheduledJob), "alpha")),
-                It.IsAny<string>(),
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            Arg.Any<string>(),
+            Arg.Is<HangfireJob>(j => VerifyBridgeArgs(j, typeof(FakeScheduledJob), "alpha")),
+            Arg.Any<string>(),
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -97,8 +96,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task CallsBackgroundCreateWithScheduledState_WhenOnStartup()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition("startup-job", typeof(FakeScheduledJob), new JobSchedule.OnStartup());
@@ -107,12 +106,12 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        background.Verify(
-            b => b.Create(
-                It.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter) && j.Method.Name == nameof(HangfireScheduledJobAdapter.RunScheduledJobAsync)),
-                It.Is<IState>(s => s is ScheduledState)),
-            Times.Once);
-        recurring.VerifyNoOtherCalls();
+        background.Received(1).Create(
+            Arg.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter) && j.Method.Name == nameof(HangfireScheduledJobAdapter.RunScheduledJobAsync)),
+            Arg.Is<IState>(s => s is ScheduledState));
+        recurring.DidNotReceive().AddOrUpdate(Arg.Any<string>(), Arg.Any<HangfireJob>(), Arg.Any<string>(), Arg.Any<RecurringJobOptions>());
+        recurring.DidNotReceive().Trigger(Arg.Any<string>());
+        recurring.DidNotReceive().RemoveIfExists(Arg.Any<string>());
     }
 
     /// <summary>
@@ -123,8 +122,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task PassesRetryOptions_WhenCronScheduled()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var retryOptions = new RetryOptions
@@ -142,16 +141,14 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                It.IsAny<string>(),
-                It.Is<HangfireJob>(j =>
-                    j.Args.Count == 4
-                    && j.Args[0] is string
-                    && ReferenceEquals(j.Args[2], retryOptions)),
-                It.IsAny<string>(),
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            Arg.Any<string>(),
+            Arg.Is<HangfireJob>(j =>
+                j.Args.Count == 4
+                && j.Args[0] is string
+                && ReferenceEquals(j.Args[2], retryOptions)),
+            Arg.Any<string>(),
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -162,8 +159,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task PassesNullRetryOptions_WhenRetryOptionsNotSpecified()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -175,13 +172,11 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                It.IsAny<string>(),
-                It.Is<HangfireJob>(j => j.Args.Count == 4 && j.Args[2] == null),
-                It.IsAny<string>(),
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            Arg.Any<string>(),
+            Arg.Is<HangfireJob>(j => j.Args.Count == 4 && j.Args[2] == null),
+            Arg.Any<string>(),
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -193,8 +188,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task BuildsExpectedCronAndKeySuffix_WhenDailyFlagSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -206,14 +201,13 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "flagged#Daily",
-                It.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter)),
-                "0 2 * * *",
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
-        background.VerifyNoOtherCalls();
+        recurring.Received(1).AddOrUpdate(
+            "flagged#Daily",
+            Arg.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter)),
+            "0 2 * * *",
+            Arg.Any<RecurringJobOptions>());
+        background.DidNotReceive().Create(Arg.Any<HangfireJob>(), Arg.Any<IState>());
+        background.DidNotReceive().ChangeState(Arg.Any<string>(), Arg.Any<IState>(), Arg.Any<string>());
     }
 
     /// <summary>
@@ -223,8 +217,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task BuildsStarCron_WhenEveryMinuteFlagSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -236,13 +230,11 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "minute#EveryMinute",
-                It.IsAny<HangfireJob>(),
-                "* * * * *",
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            "minute#EveryMinute",
+            Arg.Any<HangfireJob>(),
+            "* * * * *",
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -253,8 +245,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task BuildsMinuteHourCron_WhenEveryHourFlagSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -266,13 +258,11 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "hourly#EveryHour",
-                It.IsAny<HangfireJob>(),
-                "15 * * * *",
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            "hourly#EveryHour",
+            Arg.Any<HangfireJob>(),
+            "15 * * * *",
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -282,8 +272,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task BuildsWeeklyCron_WhenWeeklyFlagSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -295,13 +285,11 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "weekly#Weekly",
-                It.IsAny<HangfireJob>(),
-                "0 2 * * 1",
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            "weekly#Weekly",
+            Arg.Any<HangfireJob>(),
+            "0 2 * * 1",
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -311,8 +299,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task BuildsMonthlyCron_WhenMonthlyFlagSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -324,13 +312,11 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "monthly#Monthly",
-                It.IsAny<HangfireJob>(),
-                "0 2 1 * *",
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            "monthly#Monthly",
+            Arg.Any<HangfireJob>(),
+            "0 2 1 * *",
+            Arg.Any<RecurringJobOptions>());
     }
 
     /// <summary>
@@ -341,8 +327,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task CallsBackgroundCreate_WhenOnStartupFlagSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -354,12 +340,12 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        background.Verify(
-            b => b.Create(
-                It.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter)),
-                It.Is<IState>(s => s is ScheduledState)),
-            Times.Once);
-        recurring.VerifyNoOtherCalls();
+        background.Received(1).Create(
+            Arg.Is<HangfireJob>(j => j.Type == typeof(HangfireScheduledJobAdapter)),
+            Arg.Is<IState>(s => s is ScheduledState));
+        recurring.DidNotReceive().AddOrUpdate(Arg.Any<string>(), Arg.Any<HangfireJob>(), Arg.Any<string>(), Arg.Any<RecurringJobOptions>());
+        recurring.DidNotReceive().Trigger(Arg.Any<string>());
+        recurring.DidNotReceive().RemoveIfExists(Arg.Any<string>());
     }
 
     /// <summary>
@@ -370,8 +356,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task CallsBothRecurringAndBackgroundApis_WhenDailyAndOnStartupFlagsSet()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = NewClassDefinition(
@@ -383,16 +369,12 @@ public sealed class HangfireJobSchedulerTests
         await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        recurring.Verify(
-            r => r.AddOrUpdate(
-                "mixed#Daily",
-                It.IsAny<HangfireJob>(),
-                "0 2 * * *",
-                It.IsAny<RecurringJobOptions>()),
-            Times.Once);
-        background.Verify(
-            b => b.Create(It.IsAny<HangfireJob>(), It.IsAny<IState>()),
-            Times.Once);
+        recurring.Received(1).AddOrUpdate(
+            "mixed#Daily",
+            Arg.Any<HangfireJob>(),
+            "0 2 * * *",
+            Arg.Any<RecurringJobOptions>());
+        background.Received(1).Create(Arg.Any<HangfireJob>(), Arg.Any<IState>());
     }
 
     /// <summary>
@@ -404,8 +386,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task ThrowsNotSupported_WhenJobTypeIsLambda()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var definition = new JobDefinition(
@@ -421,8 +403,11 @@ public sealed class HangfireJobSchedulerTests
         // Assert
         await act.Should().ThrowAsync<NotSupportedException>()
             .WithMessage("*lambda*not supported*");
-        recurring.VerifyNoOtherCalls();
-        background.VerifyNoOtherCalls();
+        recurring.DidNotReceive().AddOrUpdate(Arg.Any<string>(), Arg.Any<HangfireJob>(), Arg.Any<string>(), Arg.Any<RecurringJobOptions>());
+        recurring.DidNotReceive().Trigger(Arg.Any<string>());
+        recurring.DidNotReceive().RemoveIfExists(Arg.Any<string>());
+        background.DidNotReceive().Create(Arg.Any<HangfireJob>(), Arg.Any<IState>());
+        background.DidNotReceive().ChangeState(Arg.Any<string>(), Arg.Any<IState>(), Arg.Any<string>());
     }
 
     /// <summary>
@@ -432,8 +417,8 @@ public sealed class HangfireJobSchedulerTests
     public async Task ThrowsArgumentNull_WhenDefinitionIsNull()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         // Act
@@ -464,18 +449,18 @@ public sealed class HangfireJobSchedulerTests
     public async Task ScheduleAsync_PropagatesException_WhenRecurringApiThrows()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var storageDown = new InvalidOperationException("Hangfire storage is down");
         recurring
-            .Setup(r => r.AddOrUpdate(
-                It.IsAny<string>(),
-                It.IsAny<HangfireJob>(),
-                It.IsAny<string>(),
-                It.IsAny<RecurringJobOptions>()))
-            .Throws(storageDown);
+            .When(r => r.AddOrUpdate(
+                Arg.Any<string>(),
+                Arg.Any<HangfireJob>(),
+                Arg.Any<string>(),
+                Arg.Any<RecurringJobOptions>()))
+            .Do(_ => throw storageDown);
 
         var definition = NewClassDefinition(
             "broken-recurring",
@@ -500,14 +485,14 @@ public sealed class HangfireJobSchedulerTests
     public async Task ScheduleAsync_PropagatesException_WhenBackgroundCreateThrows()
     {
         // Arrange
-        var recurring = new Mock<IRecurringJobManager>();
-        var background = new Mock<IBackgroundJobClient>();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
         var scheduler = CreateScheduler(recurring, background);
 
         var clientDown = new InvalidOperationException("BackgroundJobClient broken");
         background
-            .Setup(b => b.Create(It.IsAny<HangfireJob>(), It.IsAny<IState>()))
-            .Throws(clientDown);
+            .Create(Arg.Any<HangfireJob>(), Arg.Any<IState>())
+            .Returns(_ => throw clientDown);
 
         var definition = NewClassDefinition(
             "broken-startup",
@@ -521,24 +506,102 @@ public sealed class HangfireJobSchedulerTests
     }
 
     /// <summary>
-    /// Защитная проверка <c>JobType.AssemblyQualifiedName</c> существует в production-коде,
-    /// но недостижима в чистом .NET: ни один реальный <see cref="Type"/>, реализующий
-    /// <see cref="IScheduledJob"/>, не имеет <c>AssemblyQualifiedName == null</c> (это свойство
-    /// равно <c>null</c> только у generic-параметров вроде <c>T</c>, которые не могут быть
-    /// загружены как <see cref="IScheduledJob"/>-реализации). Поэтому мы проверяем только
-    /// инвариант «тип-реализация IScheduledJob всегда имеет AssemblyQualifiedName» —
-    /// контракт сохраняется, защитный код остаётся в качестве документации.
+    /// Классовая джоба, чей <see cref="Type.AssemblyQualifiedName"/> равен <c>null</c>
+    /// (например, открытый generic-параметр): <see cref="HangfireJobScheduler"/>
+    /// бросает <see cref="InvalidOperationException"/> с упоминанием
+    /// <c>AssemblyQualifiedName</c> — зеркалит
+    /// <c>QuartzJobSchedulerTests.ScheduleAsync_JobTypeWithoutAssemblyQualifiedName_Throws</c>.
     /// </summary>
     [Fact]
-    public void IsScheduledJobImplementation_AlwaysHasAssemblyQualifiedName()
+    public async Task ThrowsInvalidOperation_WhenJobTypeHasNoAssemblyQualifiedName()
     {
-        typeof(FakeScheduledJob).AssemblyQualifiedName.Should().NotBeNull();
+        // Arrange
+        var openGenericParam = typeof(GenericHolder<>).GetGenericArguments()[0];
+        openGenericParam.AssemblyQualifiedName.Should().BeNull(
+            "тест полагается на то, что у generic-параметра T нет AssemblyQualifiedName");
+
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
+        var scheduler = CreateScheduler(recurring, background);
+
+        var definition = new JobDefinition(
+            JobKey: "noAqn",
+            Action: null,
+            Schedule: new JobSchedule.Cron(SampleCron),
+            JobType: openGenericParam);
+
+        // Act
+        var act = () => scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*AssemblyQualifiedName*");
+        recurring.DidNotReceive().AddOrUpdate(Arg.Any<string>(), Arg.Any<HangfireJob>(), Arg.Any<string>(), Arg.Any<RecurringJobOptions>());
+        background.DidNotReceive().Create(Arg.Any<HangfireJob>(), Arg.Any<IState>());
+    }
+
+    /// <summary>
+    /// Неизвестный подтип <see cref="JobSchedule"/> выбрасывает
+    /// <see cref="ArgumentOutOfRangeException"/> — зеркалит
+    /// <c>QuartzJobSchedulerTests.ScheduleAsync_UnknownJobSchedule_Throws</c>.
+    /// </summary>
+    [Fact]
+    public async Task ThrowsArgumentOutOfRange_WhenJobScheduleIsUnknown()
+    {
+        // Arrange
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
+        var scheduler = CreateScheduler(recurring, background);
+
+        var definition = new JobDefinition(
+            JobKey: "unknownSchedule",
+            Action: null,
+            Schedule: new UnknownJobSchedule(),
+            JobType: typeof(FakeScheduledJob));
+
+        // Act
+        var act = () => scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        recurring.DidNotReceive().AddOrUpdate(Arg.Any<string>(), Arg.Any<HangfireJob>(), Arg.Any<string>(), Arg.Any<RecurringJobOptions>());
+        background.DidNotReceive().Create(Arg.Any<HangfireJob>(), Arg.Any<IState>());
+    }
+
+    /// <summary>
+    /// <see cref="HangfireJobScheduler"/> логирует информационное сообщение с
+    /// <c>JobKey</c> при регистрации cron-джобы — зеркалит
+    /// <c>QuartzJobSchedulerTests.ScheduleAsync_LogsInformation</c>.
+    /// </summary>
+    [Fact]
+    public async Task LogsInformation_WhenCronScheduled()
+    {
+        // Arrange
+        var logger = new FakeLogger();
+        var recurring = Substitute.For<IRecurringJobManager>();
+        var background = Substitute.For<IBackgroundJobClient>();
+        var scheduler = new HangfireJobScheduler(
+            recurring,
+            background,
+            new FakeLogger<HangfireJobScheduler>(logger));
+
+        var definition = NewClassDefinition(
+            "logged",
+            typeof(FakeScheduledJob),
+            new JobSchedule.Cron(SampleCron));
+
+        // Act
+        await scheduler.ScheduleAsync(definition, TestContext.Current.CancellationToken);
+
+        // Assert
+        logger.Entries.Should().ContainSingle(e => e.Level == LogLevel.Information);
+        logger.Entries.Single().Message.Should().Contain("logged");
     }
 
     private static HangfireJobScheduler CreateScheduler(
-        Mock<IRecurringJobManager> recurring,
-        Mock<IBackgroundJobClient> background) =>
-        new(recurring.Object, background.Object, NullLogger<HangfireJobScheduler>.Instance);
+        IRecurringJobManager recurring,
+        IBackgroundJobClient background) =>
+        new(recurring, background, NullLogger<HangfireJobScheduler>.Instance);
 
     private static JobDefinition NewClassDefinition(
         string jobKey,
@@ -569,4 +632,17 @@ public sealed class HangfireJobSchedulerTests
             && (job.Args[2] == null || typeof(RetryOptions).IsAssignableFrom(job.Args[2]?.GetType() ?? typeof(object)))
             && job.Args[3] is CancellationToken;
     }
+
+    /// <summary>
+    /// Открытый generic-тип, чей параметр <c>T</c> имеет <c>AssemblyQualifiedName == null</c>.
+    /// </summary>
+    private sealed class GenericHolder<T>
+    {
+    }
+
+    /// <summary>
+    /// «Неизвестный» подтип <see cref="JobSchedule"/> — производный record для проверки
+    /// ветки <c>default</c> в <see cref="HangfireJobScheduler"/>.
+    /// </summary>
+    private sealed record UnknownJobSchedule : JobSchedule;
 }

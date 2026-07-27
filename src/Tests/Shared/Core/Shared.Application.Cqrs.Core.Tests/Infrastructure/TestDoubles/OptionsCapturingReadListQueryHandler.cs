@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="OptionsCapturingReadListQueryHandler.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.Extensions.Logging;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
@@ -20,9 +26,10 @@ public class OptionsCapturingReadListQueryHandler : TestReadListQueryHandler
         IRepository<TestEntity> repository,
         QueryOptions<TestEntity> options,
         int? skip,
-        int? take)
+        int? take,
+        CancellationToken cancellationToken = default)
     {
         LastOptions = options;
-        return await base.GetPayloadAsync(repository, options, skip, take);
+        return await base.GetPayloadAsync(repository, options, skip, take, cancellationToken);
     }
 }

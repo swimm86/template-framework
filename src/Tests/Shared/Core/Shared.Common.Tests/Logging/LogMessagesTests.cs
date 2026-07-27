@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LogMessagesTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -53,16 +53,11 @@ public sealed class LogMessagesTests
     }
 
     /// <summary>
-    /// Шаблон Elapsed содержит плейсхолдер времени и "ms".
+    /// Шаблон Elapsed точно соответствует документированному формату.
     /// </summary>
     [Fact]
-    public void Elapsed_ContainsTimePlaceholder()
+    public void Elapsed_EqualsDocumentedTemplate()
     {
-        // Act
-        var result = LogMessages.Elapsed;
-
-        // Assert
-        result.Should().Contain("{time}");
-        result.Should().Contain("ms");
+        LogMessages.Elapsed.Should().Be("{process} processed time: {time}ms.");
     }
 }

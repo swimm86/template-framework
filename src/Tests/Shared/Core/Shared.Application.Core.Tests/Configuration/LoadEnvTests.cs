@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="LoadEnvTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.Extensions.Configuration;
 using Shared.Application.Core.Configuration.Extensions;
 
@@ -287,5 +293,165 @@ public sealed class LoadEnvTests
         config["App:Connection"].Should().Be("dev-conn", "переопределено в .env.development");
         config["App:Shared"].Should().Be("dev-shared", "переопределено в .env.development");
         config["App:NewKey"].Should().Be("dev-only", "только в .env.development");
+    }
+
+    /// <summary>
+    /// <para>
+    /// Документирует поведение hot-reload: после изменения <c>.env</c>-файла
+    /// на диске уже построенный <see cref="IConfiguration"/> сохраняет
+    /// исходные значения без авто-reload.
+    /// </para>
+    /// <para>
+    /// <c>AddDotNetEnv</c> не подписывается на изменения файла, поэтому
+    /// модификация файла после <c>Build()</c> никак не отражается на
+    /// ранее собранной конфигурации.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void LoadEnvFromPath_AfterFileModified_DoesNotReloadAutomatically()
+    {
+        // Arrange
+        var envPath = Path.Combine(_tempDirectory, ".env");
+        File.WriteAllText(envPath, "X__Key=initial");
+        var builder = new ConfigurationBuilder();
+        builder.LoadEnvFromPath(_tempDirectory, "Development");
+        var config = builder.Build();
+
+        // Sanity: исходное значение прочитано
+        config["X:Key"].Should().Be("initial");
+
+        // Act — изменяем файл на диске после Build()
+        File.WriteAllText(envPath, "X__Key=modified");
+
+        // Assert — собранный IConfiguration не подхватывает изменения без явного Reload()
+        config["X:Key"].Should().Be("initial");
+    }
+
+    /// <summary>
+    /// При множественных вызовах <c>LoadEnvFromPath</c> на одном builder-е
+    /// значения последнего вызова перекрывают значения предыдущего
+    /// (порядок провайдеров в <see cref="IConfigurationBuilder"/> задаёт приоритет).
+    /// </summary>
+    [Fact]
+    public void LoadEnvFromPath_MultipleCalls_LastCallWins()
+    {
+        // Arrange
+        var envPath = Path.Combine(_tempDirectory, ".env");
+        File.WriteAllText(envPath, "X__Key=first");
+        var builder = new ConfigurationBuilder();
+
+        // Act — первый вызов загружает значение "first"
+        builder.LoadEnvFromPath(_tempDirectory, "Development");
+
+        // Меняем файл и вызываем второй раз — должен загрузить "second"
+        File.WriteAllText(envPath, "X__Key=second");
+        builder.LoadEnvFromPath(_tempDirectory, "Development");
+
+        var config = builder.Build();
+
+        // Assert
+        config["X:Key"].Should().Be("second");
+    }
+
+    /// <summary>
+    /// Параллельная загрузка одного и того же <c>.env</c>-файла в десяти
+    /// независимых builder-ах возвращает идентичные значения.
+    /// </summary>
+    /// <returns>A <see cref="Task"/> representing the asynchronous test operation.</returns>
+    [Fact]
+    public async Task LoadEnvFromPath_ConcurrentCalls_AreThreadSafe()
+    {
+        // Arrange
+        File.WriteAllText(
+            Path.Combine(_tempDirectory, ".env"),
+            "X__Key=value");
+
+        // Act — 10 параллельных сборок конфигурации из одного файла
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => Task.Run(() => new ConfigurationBuilder()
+                .LoadEnvFromPath(_tempDirectory, "Development")
+                .Build()))
+            .ToList();
+        var configs = await Task.WhenAll(tasks);
+
+        // Assert — все конфигурации содержат одинаковое значение
+        configs.Should().HaveCount(10)
+            .And.AllSatisfy(c => c["X:Key"].Should().Be("value"));
+    }
+
+    /// <summary>
+    /// Если <c>.env</c>-файл удалён между вызовами, второй вызов не находит
+    /// файл и не загружает значений.
+    /// </summary>
+    [Fact]
+    public void LoadEnvFromPath_FileDeletedBetweenCalls_SecondCallReturnsEmpty()
+    {
+        // Arrange — создаём файл и загружаем из него значение
+        var envPath = Path.Combine(_tempDirectory, ".env");
+        File.WriteAllText(envPath, "X__Key=present");
+        var firstBuilder = new ConfigurationBuilder();
+        firstBuilder.LoadEnvFromPath(_tempDirectory, "Development");
+        var firstConfig = firstBuilder.Build();
+        firstConfig["X:Key"].Should().Be("present");
+
+        // Act — удаляем файл и грузим заново в новый builder
+        File.Delete(envPath);
+        var secondBuilder = new ConfigurationBuilder();
+        secondBuilder.LoadEnvFromPath(_tempDirectory, "Development");
+        var secondConfig = secondBuilder.Build();
+
+        // Assert — второй вызов не находит файл и не загружает ключ
+        secondConfig["X:Key"].Should().BeNull();
+    }
+
+    /// <summary>
+    /// <c>.env</c>-файл с тысячей записей корректно читается целиком:
+    /// первый и последний ключи доступны через итоговую конфигурацию.
+    /// </summary>
+    [Fact]
+    public void LoadEnvFromPath_LargeFile_AllValuesRead()
+    {
+        // Arrange — 1000 пар ключ=значение одной строкой через string.Join
+        var content = string.Join(
+            Environment.NewLine,
+            Enumerable.Range(0, 1000).Select(i => $"X__Key{i}=value{i}"));
+
+        File.WriteAllText(
+            Path.Combine(_tempDirectory, ".env"),
+            content);
+
+        // Act
+        var config = new ConfigurationBuilder()
+            .LoadEnvFromPath(_tempDirectory, "Development")
+            .Build();
+
+        // Assert — первый и последний ключи из файла присутствуют
+        config["X:Key0"].Should().Be("value0");
+        config["X:Key999"].Should().Be("value999");
+    }
+
+    /// <summary>
+    /// Значения с Unicode (кириллица, китайские иероглифы, эмодзи) корректно
+    /// читаются из <c>.env</c>-файла.
+    /// </summary>
+    [Fact]
+    public void LoadEnvFromPath_FileWithUnicode_ValuesRead()
+    {
+        // Arrange
+        File.WriteAllText(
+            Path.Combine(_tempDirectory, ".env"),
+            "X__Russian=привет" + Environment.NewLine +
+            "X__Chinese=你好" + Environment.NewLine +
+            "X__Emoji=🚀");
+
+        // Act
+        var config = new ConfigurationBuilder()
+            .LoadEnvFromPath(_tempDirectory, "Development")
+            .Build();
+
+        // Assert — Unicode-значения сохранены без искажений
+        config["X:Russian"].Should().Be("привет");
+        config["X:Chinese"].Should().Be("你好");
+        config["X:Emoji"].Should().Be("🚀");
     }
 }

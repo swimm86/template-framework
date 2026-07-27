@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="HangfireJobSchedulerBootstrapperTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -6,9 +6,9 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Application.Core.Job.Scheduler.Interfaces;
+using Shared.Testing.Doubles.Job;
 using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Job;
 
@@ -47,16 +47,14 @@ public sealed class HangfireJobSchedulerBootstrapperTests
     public async Task StartAsync_EmptyDefinitions_DoesNotCallScheduler()
     {
         // Arrange
-        var scheduler = new Mock<IJobScheduler>();
-        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler.Object);
+        var scheduler = new FakeJobScheduler();
+        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler);
 
         // Act
-        await bootstrapper.StartAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        scheduler.Verify(
-            s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        scheduler.ScheduleAsyncCallCount.Should().Be(0);
     }
 
     /// <summary>
@@ -75,24 +73,19 @@ public sealed class HangfireJobSchedulerBootstrapperTests
         };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var bootstrapper = NewBootstrapper(options, scheduler.Object);
+        var scheduler = new FakeJobScheduler();
+        var bootstrapper = NewBootstrapper(options, scheduler);
 
         // Act
-        await bootstrapper.StartAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         foreach (var def in definitions)
         {
-            scheduler.Verify(
-                s => s.ScheduleAsync(
-                    It.Is<JobDefinition>(d => d.JobKey == def.JobKey),
-                    It.IsAny<CancellationToken>()),
-                Times.Once);
+            scheduler.ScheduleAsyncInvocations
+                .Where(inv => inv.Definition.JobKey == def.JobKey)
+                .Should().ContainSingle(
+                    $"для JobKey={def.JobKey} ожидается ровно один вызов ScheduleAsync");
         }
     }
 
@@ -105,12 +98,12 @@ public sealed class HangfireJobSchedulerBootstrapperTests
     public async Task StartStopAsync_RoundTrip_DoesNotThrow()
     {
         // Arrange
-        var scheduler = new Mock<IJobScheduler>();
-        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler.Object);
+        var scheduler = new FakeJobScheduler();
+        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler);
 
         // Act / Assert
-        await bootstrapper.StartAsync(CancellationToken.None);
-        await bootstrapper.StopAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
+        await bootstrapper.StopAsync(TestContext.Current.CancellationToken);
     }
 
     /// <summary>
@@ -127,20 +120,16 @@ public sealed class HangfireJobSchedulerBootstrapperTests
         using var cts = new CancellationTokenSource();
         var expectedToken = cts.Token;
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var bootstrapper = NewBootstrapper(options, scheduler.Object);
+        var scheduler = new FakeJobScheduler();
+        var bootstrapper = NewBootstrapper(options, scheduler);
 
         // Act
         await bootstrapper.StartAsync(expectedToken);
 
         // Assert
-        scheduler.Verify(
-            s => s.ScheduleAsync(It.IsAny<JobDefinition>(), expectedToken),
-            Times.Once);
+        scheduler.ScheduleAsyncInvocations
+            .Should().ContainSingle()
+            .Which.Token.Should().Be(expectedToken);
     }
 
     /// <summary>
@@ -154,15 +143,14 @@ public sealed class HangfireJobSchedulerBootstrapperTests
         var definitions = new[] { NewDefinition("failing-job") };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("scheduler boom"));
-
-        var bootstrapper = NewBootstrapper(options, scheduler.Object);
+        var scheduler = new FakeJobScheduler
+        {
+            ExceptionToThrowOnScheduleAsync = new InvalidOperationException("scheduler boom"),
+        };
+        var bootstrapper = NewBootstrapper(options, scheduler);
 
         // Act
-        var act = () => bootstrapper.StartAsync(CancellationToken.None);
+        var act = () => bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -186,31 +174,23 @@ public sealed class HangfireJobSchedulerBootstrapperTests
         };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(
-                It.Is<JobDefinition>(d => d.JobKey == "failing-job"),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("boom"));
-        scheduler
-            .Setup(s => s.ScheduleAsync(
-                It.Is<JobDefinition>(d => d.JobKey != "failing-job"),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var bootstrapper = NewBootstrapper(options, scheduler.Object);
+        var scheduler = new FakeJobScheduler
+        {
+            ExceptionForJobKey = key =>
+                key == "failing-job"
+                    ? new InvalidOperationException("boom")
+                    : null,
+        };
+        var bootstrapper = NewBootstrapper(options, scheduler);
 
         // Act
-        var act = () => bootstrapper.StartAsync(CancellationToken.None);
+        var act = () => bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
-        scheduler.Verify(
-            s => s.ScheduleAsync(
-                It.Is<JobDefinition>(d => d.JobKey == "never-job"),
-                It.IsAny<CancellationToken>()),
-            Times.Never,
-            "исключение на 2-й джобе должно остановить цикл — 3-я джоба не должна планироваться");
+        scheduler.ScheduleAsyncInvocations
+            .Should().NotContain(inv => inv.Definition.JobKey == "never-job",
+                "исключение на 2-й джобе должно остановить цикл — 3-я джоба не должна планироваться");
     }
 
     /// <summary>
@@ -225,18 +205,14 @@ public sealed class HangfireJobSchedulerBootstrapperTests
         var definitions = new[] { NewDefinition("a"), NewDefinition("b") };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
+        var scheduler = new FakeJobScheduler();
         var bootstrapper = new HangfireJobSchedulerBootstrapper(
             options,
-            scheduler.Object,
+            scheduler,
             new FakeLogger<HangfireJobSchedulerBootstrapper>(logger));
 
         // Act
-        await bootstrapper.StartAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         logger.Entries.Should().Contain(e =>

@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LifecycleActionHandlerExceptionTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -33,14 +33,14 @@ public sealed class LifecycleActionHandlerExceptionTests
     /// Handler, который бросает исключение при вызове.
     /// </summary>
     [Shared.Application.Core.DependencyInjection.Attributes.ManualConfiguration]
-    private sealed class FailingHandler
+    private sealed class FailingHandler(int order = 0)
         : ILifecycleActionHandler<TestEntity>
     {
         public LifecyclePhase Phase => LifecyclePhase.BeforeSave;
 
         public string Key => "failing";
 
-        public int Order => 0;
+        public int Order => order;
 
         Type ILifecycleActionHandler.EntityType => typeof(TestEntity);
 
@@ -134,7 +134,7 @@ public sealed class LifecycleActionHandlerExceptionTests
         orchestrator.AddEntities([new TestEntity { Id = Guid.NewGuid() }]);
 
         // Act
-        var act = () => orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        var act = () => orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -168,7 +168,7 @@ public sealed class LifecycleActionHandlerExceptionTests
         orchestrator.AddEntities([new TestEntity { Id = Guid.NewGuid() }]);
 
         // Act
-        var act = () => orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        var act = () => orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -188,19 +188,19 @@ public sealed class LifecycleActionHandlerExceptionTests
         var orchestrator = new LifecycleActionOrchestrator(
         [
             new RecordingHandler("first", order: 0, callLog),
-            new FailingHandler(),
+            new FailingHandler(order: 1),
         ],
             new LifecycleEntityRegistry(),
             new LifecycleActionGate());
         orchestrator.AddEntities([new TestEntity { Id = Guid.NewGuid() }]);
 
         // Act
-        var act = () => orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        var act = () => orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
         callLog.Should().Equal(["first"],
-            "первый handler с Order=0 выполнился до того, как FailingHandler бросил исключение");
+            "первый handler с Order=0 выполнился до того, как FailingHandler с Order=1 бросил исключение");
     }
 
     /// <summary>
@@ -217,7 +217,7 @@ public sealed class LifecycleActionHandlerExceptionTests
             new LifecycleActionGate());
 
         // Act / Assert
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
     }
 
     /// <summary>

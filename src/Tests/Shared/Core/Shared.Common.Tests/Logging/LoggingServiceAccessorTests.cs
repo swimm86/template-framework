@@ -1,10 +1,11 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LoggingServiceAccessorTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Shared.Common.Logging;
 using Xunit;
 
@@ -85,4 +86,5 @@ public sealed class LoggingServiceAccessorTests
         logger2.Should().NotBeNull();
         logger2.Should().NotBeSameAs(logger1);
     }
+
 }

@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LifecycleActionOrchestratorTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -99,7 +99,7 @@ public sealed class LifecycleActionOrchestratorTests
 
         // Act
         orchestrator.AddEntities([entity]);
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().ContainSingle();
@@ -121,7 +121,7 @@ public sealed class LifecycleActionOrchestratorTests
         // Act
         orchestrator.AddEntities([entity]);
         orchestrator.RemoveEntities([entity]);
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();
@@ -142,7 +142,7 @@ public sealed class LifecycleActionOrchestratorTests
         // Act
         orchestrator.AddEntities([entity]);
         orchestrator.AddEntities([entity]);
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().ContainSingle();
@@ -477,7 +477,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.AddEntities([new TestEntity()]);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         before.Calls.Should().HaveCount(1);
@@ -500,7 +500,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.AddEntities([new TestEntity()]);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         sequence.Should().Equal("zero", "first", "second");
@@ -518,7 +518,7 @@ public sealed class LifecycleActionOrchestratorTests
         var orchestrator = BuildOrchestrator([handler]);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();
@@ -537,7 +537,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.DisableActions();
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();
@@ -556,7 +556,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.DisablePhase(LifecyclePhase.BeforeSave);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();
@@ -575,7 +575,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.DisableActions(["k"]);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();
@@ -597,7 +597,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.DisableActionForEntity("h", excluded);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().ContainSingle();
@@ -618,7 +618,7 @@ public sealed class LifecycleActionOrchestratorTests
         orchestrator.AddEntities([new OtherEntity()]);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();

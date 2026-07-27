@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="QuartzJobSchedulerBootstrapperTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -6,11 +6,12 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using NSubstitute;
 using Quartz;
 using Shared.Application.Core.Job.Scheduler;
 using Shared.Application.Core.Job.Scheduler.Interfaces;
 using Shared.Infrastructure.Job.Quartz.Tests.Fakes;
+using Shared.Testing.Doubles.Job;
 using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Job;
 
@@ -51,17 +52,15 @@ public sealed class QuartzJobSchedulerBootstrapperTests
     public async Task StartAsync_EmptyDefinitions_DoesNotCallScheduler()
     {
         // Arrange
-        var scheduler = new Mock<IJobScheduler>();
+        var scheduler = new FakeJobScheduler();
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler, factory);
 
         // Act
-        await bootstrapper.StartAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        scheduler.Verify(
-            s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        scheduler.ScheduleAsyncCallCount.Should().Be(0);
     }
 
     /// <summary>
@@ -80,25 +79,20 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
+        var scheduler = new FakeJobScheduler();
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(options, scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(options, scheduler, factory);
 
         // Act
-        await bootstrapper.StartAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         foreach (var def in definitions)
         {
-            scheduler.Verify(
-                s => s.ScheduleAsync(
-                    It.Is<JobDefinition>(d => d.JobKey == def.JobKey),
-                    It.IsAny<CancellationToken>()),
-                Times.Once);
+            scheduler.ScheduleAsyncInvocations
+                .Where(inv => inv.Definition.JobKey == def.JobKey)
+                .Should().ContainSingle(
+                    $"для JobKey={def.JobKey} ожидается ровно один вызов ScheduleAsync");
         }
     }
 
@@ -111,13 +105,13 @@ public sealed class QuartzJobSchedulerBootstrapperTests
     public async Task StartStopAsync_RoundTrip_DoesNotThrow()
     {
         // Arrange
-        var scheduler = new Mock<IJobScheduler>();
+        var scheduler = new FakeJobScheduler();
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler, factory);
 
         // Act / Assert
-        await bootstrapper.StartAsync(CancellationToken.None);
-        await bootstrapper.StopAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
+        await bootstrapper.StopAsync(TestContext.Current.CancellationToken);
     }
 
     /// <summary>
@@ -136,21 +130,17 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         using var cts = new CancellationTokenSource();
         var expectedToken = cts.Token;
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
+        var scheduler = new FakeJobScheduler();
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(options, scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(options, scheduler, factory);
 
         // Act
         await bootstrapper.StartAsync(expectedToken);
 
         // Assert
-        scheduler.Verify(
-            s => s.ScheduleAsync(It.IsAny<JobDefinition>(), expectedToken),
-            Times.Once);
+        scheduler.ScheduleAsyncInvocations
+            .Should().ContainSingle()
+            .Which.Token.Should().Be(expectedToken);
         factory.GetSchedulerCalls.Should().Contain(expectedToken);
     }
 
@@ -170,17 +160,15 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         using var cts = new CancellationTokenSource();
         var expectedToken = cts.Token;
 
-        var scheduler = new Mock<IJobScheduler>();
+        var scheduler = new FakeJobScheduler();
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(new JobSchedulerOptions(), scheduler, factory);
 
         // Act
         await bootstrapper.StopAsync(expectedToken);
 
         // Assert
-        factory.SchedulerMock.Verify(
-            s => s.Shutdown(true, expectedToken),
-            Times.Once);
+        await factory.Scheduler.Received(1).Shutdown(true, expectedToken);
     }
 
     /// <summary>
@@ -194,16 +182,15 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         var definitions = new[] { NewDefinition("failing-job") };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("scheduler boom"));
-
+        var scheduler = new FakeJobScheduler
+        {
+            ExceptionToThrowOnScheduleAsync = new InvalidOperationException("scheduler boom"),
+        };
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(options, scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(options, scheduler, factory);
 
         // Act
-        var act = () => bootstrapper.StartAsync(CancellationToken.None);
+        var act = () => bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
@@ -229,36 +216,25 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(
-                It.Is<JobDefinition>(d => d.JobKey == "failing-job"),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("boom"));
-        scheduler
-            .Setup(s => s.ScheduleAsync(
-                It.Is<JobDefinition>(d => d.JobKey != "failing-job"),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
+        var scheduler = new FakeJobScheduler
+        {
+            ExceptionForJobKey = key =>
+                key == "failing-job"
+                    ? new InvalidOperationException("boom")
+                    : null,
+        };
         var factory = new FakeSchedulerFactory();
-        var bootstrapper = NewBootstrapper(options, scheduler.Object, factory);
+        var bootstrapper = NewBootstrapper(options, scheduler, factory);
 
         // Act
-        var act = () => bootstrapper.StartAsync(CancellationToken.None);
+        var act = () => bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
-        scheduler.Verify(
-            s => s.ScheduleAsync(
-                It.Is<JobDefinition>(d => d.JobKey == "never-job"),
-                It.IsAny<CancellationToken>()),
-            Times.Never,
-            "исключение на 2-й джобе должно остановить цикл — 3-я джоба не должна планироваться");
-        factory.SchedulerMock.Verify(
-            s => s.Start(It.IsAny<CancellationToken>()),
-            Times.Never,
-            "Quartz-планировщик не должен стартовать, если хотя бы одна джоба не зарегистрировалась");
+        scheduler.ScheduleAsyncInvocations
+            .Should().NotContain(inv => inv.Definition.JobKey == "never-job",
+                "исключение на 2-й джобе должно остановить цикл — 3-я джоба не должна планироваться");
+        await factory.Scheduler.DidNotReceive().Start(Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -279,20 +255,16 @@ public sealed class QuartzJobSchedulerBootstrapperTests
         var definitions = new[] { NewDefinition("a"), NewDefinition("b") };
         var options = new JobSchedulerOptions { Definitions = definitions };
 
-        var scheduler = new Mock<IJobScheduler>();
-        scheduler
-            .Setup(s => s.ScheduleAsync(It.IsAny<JobDefinition>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
+        var scheduler = new FakeJobScheduler();
         var factory = new FakeSchedulerFactory();
         var bootstrapper = new QuartzJobSchedulerBootstrapper(
             options,
-            scheduler.Object,
+            scheduler,
             factory,
             new FakeLogger<QuartzJobSchedulerBootstrapper>(logger));
 
         // Act
-        await bootstrapper.StartAsync(CancellationToken.None);
+        await bootstrapper.StartAsync(TestContext.Current.CancellationToken);
 
         // Assert
         logger.Entries.Should().Contain(e =>

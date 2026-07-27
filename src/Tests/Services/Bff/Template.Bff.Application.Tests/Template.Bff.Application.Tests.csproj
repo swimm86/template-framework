@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\Tests\Shared\Shared.Testing\Shared.Testing.csproj" />
     <ProjectReference Include="..\..\..\..\Services\Bff\Template.Bff.Application\Template.Bff.Application.csproj" />
+    <ProjectReference Include="..\..\..\..\Services\Common\Template.Infrastructure.Dal\Template.Infrastructure.Dal.csproj" />
   </ItemGroup>
 
   <ItemGroup>

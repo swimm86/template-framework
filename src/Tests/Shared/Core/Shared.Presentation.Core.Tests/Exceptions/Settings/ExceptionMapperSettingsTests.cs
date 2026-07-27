@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ExceptionMapperSettingsTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Presentation.Core.Exceptions.Settings;
 
 namespace Shared.Presentation.Core.Tests.Exceptions.Settings;

@@ -1,11 +1,11 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="QuartzJobSchedulerTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Quartz;
 using Shared.Application.Core.Job.Enums;
 using Shared.Application.Core.Job.Pipeline;
@@ -36,19 +36,14 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Cron(expression));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var call = mock.Invocations
-            .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
-            .Select(i => new ScheduleJobCall(
-                (IJobDetail)i.Arguments[0],
-                (ITrigger)i.Arguments[1],
-                (CancellationToken)i.Arguments[2]))
+        var call = ExtractScheduleCalls(factory)
             .Should().ContainSingle().Subject;
 
         call.Job.Key.Name.Should().Be("cronJob");
@@ -71,7 +66,7 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.OnStartup());
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
         var before = DateTimeOffset.UtcNow;
 
@@ -79,10 +74,7 @@ public sealed class QuartzJobSchedulerTests
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var trigger = mock.Invocations
-            .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
-            .Select(i => (ITrigger)i.Arguments[1])
-            .Should().ContainSingle().Subject;
+        var trigger = ExtractSingleTrigger(factory);
 
         trigger.StartTimeUtc.Should().BeOnOrAfter(before.AddSeconds(-1));
         trigger.StartTimeUtc.Should().BeOnOrBefore(DateTimeOffset.UtcNow.AddSeconds(1));
@@ -101,14 +93,14 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Flags(JobTriggerFlags.Daily, TimeSpan.FromHours(2)));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var trigger = ExtractSingleTrigger(mock);
+        var trigger = ExtractSingleTrigger(factory);
         var calendar = trigger.Should().BeAssignableTo<ICalendarIntervalTrigger>().Subject;
 
         calendar.RepeatInterval.Should().Be(1);
@@ -134,14 +126,14 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Flags(JobTriggerFlags.EveryMinute, TimeSpan.Zero));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var calendar = ExtractSingleTrigger(mock)
+        var calendar = ExtractSingleTrigger(factory)
             .Should().BeAssignableTo<ICalendarIntervalTrigger>().Subject;
         calendar.RepeatInterval.Should().Be(1);
         calendar.RepeatIntervalUnit.Should().Be(IntervalUnit.Minute);
@@ -159,14 +151,14 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Flags(JobTriggerFlags.EveryHour, TimeSpan.Zero));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var calendar = ExtractSingleTrigger(mock)
+        var calendar = ExtractSingleTrigger(factory)
             .Should().BeAssignableTo<ICalendarIntervalTrigger>().Subject;
         calendar.RepeatInterval.Should().Be(1);
         calendar.RepeatIntervalUnit.Should().Be(IntervalUnit.Hour);
@@ -184,14 +176,14 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Flags(JobTriggerFlags.Weekly, TimeSpan.FromHours(9)));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var calendar = ExtractSingleTrigger(mock)
+        var calendar = ExtractSingleTrigger(factory)
             .Should().BeAssignableTo<ICalendarIntervalTrigger>().Subject;
         calendar.RepeatInterval.Should().Be(1);
         calendar.RepeatIntervalUnit.Should().Be(IntervalUnit.Week);
@@ -209,14 +201,14 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Flags(JobTriggerFlags.Monthly, TimeSpan.FromHours(8)));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var calendar = ExtractSingleTrigger(mock)
+        var calendar = ExtractSingleTrigger(factory)
             .Should().BeAssignableTo<ICalendarIntervalTrigger>().Subject;
         calendar.RepeatInterval.Should().Be(1);
         calendar.RepeatIntervalUnit.Should().Be(IntervalUnit.Month);
@@ -235,7 +227,7 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Flags(JobTriggerFlags.OnStartup, TimeSpan.Zero));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
         var before = DateTimeOffset.UtcNow;
 
@@ -243,7 +235,7 @@ public sealed class QuartzJobSchedulerTests
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var trigger = ExtractSingleTrigger(mock);
+        var trigger = ExtractSingleTrigger(factory);
         trigger.StartTimeUtc.Should().BeOnOrAfter(before.AddSeconds(-1));
         trigger.StartTimeUtc.Should().BeOnOrBefore(DateTimeOffset.UtcNow.AddSeconds(1));
     }
@@ -264,17 +256,16 @@ public sealed class QuartzJobSchedulerTests
                 JobTriggerFlags.Daily | JobTriggerFlags.OnStartup,
                 TimeSpan.FromHours(3)));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        mock.Invocations
-            .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
+        ExtractScheduleCalls(factory)
             .Should().ContainSingle("OnStartup в комбинации с Daily — допустимо (только один schedule-флаг)");
-        var calendar = ExtractSingleTrigger(mock)
+        var calendar = ExtractSingleTrigger(factory)
             .Should().BeAssignableTo<ICalendarIntervalTrigger>().Subject;
         calendar.RepeatIntervalUnit.Should().Be(IntervalUnit.Day);
     }
@@ -296,7 +287,7 @@ public sealed class QuartzJobSchedulerTests
                 JobTriggerFlags.Daily | JobTriggerFlags.Weekly,
                 TimeSpan.FromHours(3)));
 
-        var (factory, _) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
@@ -322,14 +313,14 @@ public sealed class QuartzJobSchedulerTests
             Schedule: new JobSchedule.Cron("0 0 * * * ?"),
             JobType: typeof(FakeScheduledJob));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var data = ExtractSingleJob(mock).JobDataMap;
+        var data = ExtractSingleJob(factory).JobDataMap;
         data.Should().ContainKey(Constants.JobTypeKey);
         data[Constants.JobTypeKey].Should().Be(typeof(FakeScheduledJob).AssemblyQualifiedName);
         data.Should().NotContainKey(Constants.ActionDataKey);
@@ -350,14 +341,14 @@ public sealed class QuartzJobSchedulerTests
             JobType: typeof(FakeScheduledJob),
             ServiceKey: "primary");
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var data = ExtractSingleJob(mock).JobDataMap;
+        var data = ExtractSingleJob(factory).JobDataMap;
         data[Constants.JobTypeKey].Should().Be(typeof(FakeScheduledJob).AssemblyQualifiedName);
         data[Constants.ServiceKeyKey].Should().Be("primary");
     }
@@ -377,14 +368,14 @@ public sealed class QuartzJobSchedulerTests
             Action: action,
             Schedule: new JobSchedule.Cron("0 0 * * * ?"));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var data = ExtractSingleJob(mock).JobDataMap;
+        var data = ExtractSingleJob(factory).JobDataMap;
         data.Should().NotContainKey(Constants.JobTypeKey);
         data[Constants.ActionDataKey].Should().BeSameAs(action);
     }
@@ -410,14 +401,14 @@ public sealed class QuartzJobSchedulerTests
             JobType: typeof(FakeScheduledJob),
             RetryOptions: retryOptions);
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var data = ExtractSingleJob(mock).JobDataMap;
+        var data = ExtractSingleJob(factory).JobDataMap;
         data.Should().ContainKey(Constants.RetryOptionsKey);
         data[Constants.RetryOptionsKey].Should().BeSameAs(retryOptions);
     }
@@ -437,14 +428,14 @@ public sealed class QuartzJobSchedulerTests
             Schedule: new JobSchedule.Cron("0 0 * * * ?"),
             JobType: typeof(FakeScheduledJob));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
         await sut.ScheduleAsync(definition, TestContext.Current.CancellationToken);
 
         // Assert
-        var data = ExtractSingleJob(mock).JobDataMap;
+        var data = ExtractSingleJob(factory).JobDataMap;
         data.Should().NotContainKey(Constants.RetryOptionsKey);
     }
 
@@ -466,7 +457,7 @@ public sealed class QuartzJobSchedulerTests
             Schedule: new JobSchedule.Cron("0 0 * * * ?"),
             JobType: openGenericParam);
 
-        var (factory, _) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
@@ -484,7 +475,7 @@ public sealed class QuartzJobSchedulerTests
     public async Task ScheduleAsync_NullDefinition_Throws()
     {
         // Arrange
-        var (factory, _) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
@@ -507,7 +498,7 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new UnknownJobSchedule());
 
-        var (factory, _) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
 
         // Act
@@ -526,7 +517,7 @@ public sealed class QuartzJobSchedulerTests
     {
         // Arrange
         var logger = new FakeLogger();
-        var (factory, _) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = new QuartzJobScheduler(factory, new FakeLogger<QuartzJobScheduler>(logger));
 
         var definition = new JobDefinition(
@@ -557,7 +548,7 @@ public sealed class QuartzJobSchedulerTests
             Action: (_, _) => Task.CompletedTask,
             Schedule: new JobSchedule.Cron("0 0 * * * ?"));
 
-        var (factory, mock) = NewFactoryWithSchedulerMock();
+        var factory = NewFactory();
         var sut = NewScheduler(factory);
         using var cts = new CancellationTokenSource();
 
@@ -566,42 +557,45 @@ public sealed class QuartzJobSchedulerTests
 
         // Assert
         factory.GetSchedulerCalls.Should().ContainSingle().Which.Should().Be(cts.Token);
-        var scheduleCall = mock.Invocations
-            .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
-            .Should().ContainSingle().Subject;
-        scheduleCall.Arguments[2].Should().Be(cts.Token);
+        ExtractScheduleCalls(factory)
+            .Should().ContainSingle();
+        ExtractSingleToken(factory).Should().Be(cts.Token);
     }
 
     private static QuartzJobScheduler NewScheduler(ISchedulerFactory factory) =>
         new(factory, new FakeLogger<QuartzJobScheduler>(new FakeLogger()));
 
-    private static (FakeSchedulerFactory Factory, Mock<IScheduler> Mock) NewFactoryWithSchedulerMock()
+    private static FakeSchedulerFactory NewFactory() => new();
+
+    /// <summary>
+    /// Возвращает все зафиксированные NSubstitute-вызовы <see cref="IScheduler.ScheduleJob(IJobDetail, ITrigger, CancellationToken)"/>.
+    /// </summary>
+    private static IEnumerable<ScheduleJobCall> ExtractScheduleCalls(FakeSchedulerFactory factory)
     {
-        var factory = new FakeSchedulerFactory();
-        factory.SchedulerMock
-            .Setup(s => s.ScheduleJob(
-                It.IsAny<IJobDetail>(),
-                It.IsAny<ITrigger>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(DateTimeOffset.UtcNow));
-        return (factory, factory.SchedulerMock);
+        return factory.Scheduler
+            .ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob))
+            .Select(c =>
+            {
+                var args = c.GetArguments();
+                return new ScheduleJobCall(
+                    (IJobDetail)args[0]!,
+                    (ITrigger)args[1]!,
+                    (CancellationToken)args[2]!);
+            });
     }
 
-    private static ITrigger ExtractSingleTrigger(Mock<IScheduler> mock)
-    {
-        var call = mock.Invocations
-            .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
-            .Should().ContainSingle().Subject;
-        return (ITrigger)call.Arguments[1];
-    }
+    private static ITrigger ExtractSingleTrigger(FakeSchedulerFactory factory) =>
+        ExtractSingleScheduleCall(factory).Trigger;
 
-    private static IJobDetail ExtractSingleJob(Mock<IScheduler> mock)
-    {
-        var call = mock.Invocations
-            .Where(i => i.Method.Name == nameof(IScheduler.ScheduleJob))
-            .Should().ContainSingle().Subject;
-        return (IJobDetail)call.Arguments[0];
-    }
+    private static IJobDetail ExtractSingleJob(FakeSchedulerFactory factory) =>
+        ExtractSingleScheduleCall(factory).Job;
+
+    private static CancellationToken ExtractSingleToken(FakeSchedulerFactory factory) =>
+        ExtractSingleScheduleCall(factory).Token;
+
+    private static ScheduleJobCall ExtractSingleScheduleCall(FakeSchedulerFactory factory) =>
+        ExtractScheduleCalls(factory).Should().ContainSingle().Subject;
 
     /// <summary>
     /// Открытый generic-тип, чей параметр <c>T</c> имеет <c>AssemblyQualifiedName == null</c>.
@@ -619,7 +613,7 @@ public sealed class QuartzJobSchedulerTests
     /// <summary>
     /// Аргументы вызова <see cref="IScheduler.ScheduleJob(IJobDetail, ITrigger, CancellationToken)"/>.
     /// Используется только в одном тесте для удобства; в остальных извлекаем напрямую
-    /// из <c>mock.Invocations</c>.
+    /// из <c>scheduler.ReceivedCalls()</c>.
     /// </summary>
     private sealed record ScheduleJobCall(IJobDetail Job, ITrigger Trigger, CancellationToken Token);
 }

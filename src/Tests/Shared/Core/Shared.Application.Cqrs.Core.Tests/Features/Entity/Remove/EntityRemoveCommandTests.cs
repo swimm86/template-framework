@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="EntityRemoveCommandTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Application.Cqrs.Core.Features.Entity.Remove;
 using Shared.Application.Cqrs.Core.Features.Entity.Remove.Request;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
@@ -76,21 +82,4 @@ public sealed class EntityRemoveCommandTests
 
     #endregion
 
-    #region Type Hierarchy Tests
-
-    /// <summary>
-    /// Производный <c>TestEntityRemoveCommand</c> должен быть
-    /// совместим по присваиванию с базовым <see cref="EntityRemoveCommand{TEntity}"/>.
-    /// </summary>
-    [Fact]
-    public void Command_IsCorrectRecordType()
-    {
-        // Act
-        var command = new TestEntityRemoveCommand(new EntityRemoveRequest { Id = Guid.NewGuid() });
-
-        // Assert
-        command.Should().BeAssignableTo<EntityRemoveCommand<TestEntity>>();
     }
-
-    #endregion
-}

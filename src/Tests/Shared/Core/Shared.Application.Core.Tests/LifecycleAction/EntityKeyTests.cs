@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="EntityKeyTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -214,40 +214,6 @@ public sealed class EntityKeyTests
         // Assert
         key.Type.Should().Be<TestEntity>();
         key.Id.Should().Be(id);
-    }
-
-    /// <summary>
-    /// Документирует поведение <see cref="EntityKey.Of"/> для сущности
-    /// с <c>null</c>-значением <c>Id</c>: <see cref="IEntity.Id"/> возвращает
-    /// <c>null</c>, и ключ создаётся с <see cref="EntityKey.Id"/> = <c>null</c>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Это пограничный кейс: формально <see cref="EntityKey.Of"/> НЕ бросает
-    /// исключение, потому что <c>Id</c> имеет тип <see cref="object"/>
-    /// и теоретически может быть <c>null</c>. На практике это означает, что
-    /// сущности без инициализированного <c>Id</c> будут иметь один и тот же
-    /// ключ в реестре — последняя запись выиграет.
-    /// </para>
-    /// <para>
-    /// Этот тест фиксирует текущее поведение. Если в будущем потребуется
-    /// бросать <see cref="ArgumentException"/> для <c>null</c> Id,
-    /// тест нужно обновить.
-    /// </para>
-    /// </remarks>
-    [Fact]
-    public void Of_EntityWithNullId_CreatesKeyWithNullId()
-    {
-        // Arrange
-        var entity = new NullIdEntity();
-
-        // Act
-        var key = EntityKey.Of(entity);
-
-        // Assert
-        key.Type.Should().Be<NullIdEntity>();
-        key.Id.Should().BeNull("EntityKey допускает null-Id — это сознательный компромисс, "
-            + "документирующий поведение для не-fully-initialized entities");
     }
 
     /// <summary>

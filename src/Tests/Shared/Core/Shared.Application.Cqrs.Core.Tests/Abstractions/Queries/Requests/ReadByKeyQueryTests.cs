@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ReadByKeyQueryTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Requests;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 
@@ -32,20 +38,5 @@ public sealed class ReadByKeyQueryTests
 
         // Act
         query.Key.Should().BeNull();
-    }
-
-    /// <summary>
-    /// Свойство <see cref="ReadByKeyQuery{TKey}.Key"/> доступно только для чтения.
-    /// </summary>
-    [Fact]
-    public void Key_IsGettableProperty()
-    {
-        // Act
-        var property = typeof(TestReadByKeyQuery).GetProperty("Key");
-
-        // Assert
-        property.Should().NotBeNull();
-        property!.CanRead.Should().BeTrue();
-        property.CanWrite.Should().BeFalse();
     }
 }

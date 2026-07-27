@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="CreateCommandHandlerTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Shared.Application.Cqrs.Core.Abstractions;

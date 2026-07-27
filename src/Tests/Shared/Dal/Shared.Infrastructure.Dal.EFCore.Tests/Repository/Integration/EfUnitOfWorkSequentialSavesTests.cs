@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="EfUnitOfWorkSequentialSavesTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -34,23 +34,22 @@ public sealed class EfUnitOfWorkSequentialSavesTests
     : SqliteUnitOfWorkIntegrationTestBase
 {
     /// <summary>
-    /// UoW с публичным доступом к <c>CurrentDbTransaction</c> для проверки,
-    /// что транзакция пересоздаётся после каждого коммита.
+    /// Фабрика UoW для интеграционных тестов: создаёт экземпляр
+    /// <see cref="EfUnitOfWork{TDbContext}"/> с реальной транзакцией SQLite.
     /// </summary>
-    private sealed class TestUnitOfWork(
-        IntegrationTestUnitOfWorkDbContext dbContext,
-        IServiceProvider serviceProvider,
-        EfDbSettingsBase<IntegrationTestUnitOfWorkDbContext> settings)
-        : EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
-            dbContext,
-            serviceProvider,
+    private static EfUnitOfWork<IntegrationTestUnitOfWorkDbContext> CreateUnitOfWork(
+        IntegrationTestUnitOfWorkDbContext context,
+        bool transactionsEnabled = true)
+    {
+        var settings = new IntegrationTestEfDbSettings(transactionsEnabled);
+        return new EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
+            context,
+            new EmptyServiceProvider(),
             settings,
             new LifecycleActionOrchestrator(
                 [],
                 new LifecycleEntityRegistry(),
-                new LifecycleActionGate()))
-    {
-        public object? CurrentTransaction => CurrentDbTransaction;
+                new LifecycleActionGate()));
     }
 
     /// <summary>
@@ -63,8 +62,7 @@ public sealed class EfUnitOfWorkSequentialSavesTests
     {
         // Arrange
         await using var context = CreateContext();
-        var settings = new IntegrationTestEfDbSettings(transactionsEnabled: true);
-        var uow = new TestUnitOfWork(context, new EmptyServiceProvider(), settings);
+        var uow = CreateUnitOfWork(context, transactionsEnabled: true);
 
         // Act 1
         context.Entities.Add(new TestEntityWithCreatedDeleted
@@ -72,12 +70,13 @@ public sealed class EfUnitOfWorkSequentialSavesTests
             Id = Guid.NewGuid(),
             Name = "first-commit",
         });
-        var firstResult = await uow.SaveChangesAsync(CancellationToken.None);
+        var firstResult = await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Assert 1: транзакция пересоздана в finally-блоке
+        // Assert 1: транзакция пересоздана в finally-блоке — повторный commit не бросает
         firstResult.Should().Be(1);
-        uow.CurrentTransaction.Should().NotBeNull(
-            "после Commit в finally-блоке должна стартовать свежая транзакция");
+        var actCommit = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actCommit.Should().NotThrowAsync(
+            "после Commit в finally-блоке должна стартоваться свежая транзакция");
 
         // Act 2
         context.Entities.Add(new TestEntityWithCreatedDeleted
@@ -85,7 +84,7 @@ public sealed class EfUnitOfWorkSequentialSavesTests
             Id = Guid.NewGuid(),
             Name = "second-commit",
         });
-        var secondResult = await uow.SaveChangesAsync(CancellationToken.None);
+        var secondResult = await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert 2: обе entity в БД
         secondResult.Should().Be(1);
@@ -106,8 +105,7 @@ public sealed class EfUnitOfWorkSequentialSavesTests
     {
         // Arrange
         await using var context = CreateContext();
-        var settings = new IntegrationTestEfDbSettings(transactionsEnabled: true);
-        var uow = new TestUnitOfWork(context, new EmptyServiceProvider(), settings);
+        var uow = CreateUnitOfWork(context, transactionsEnabled: true);
 
         // Act
         for (var i = 0; i < 3; i++)
@@ -117,9 +115,10 @@ public sealed class EfUnitOfWorkSequentialSavesTests
                 Id = Guid.NewGuid(),
                 Name = $"batch-{i}",
             });
-            await uow.SaveChangesAsync(CancellationToken.None);
+            await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            uow.CurrentTransaction.Should().NotBeNull(
+        var actCommit = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+            await actCommit.Should().NotThrowAsync(
                 $"после коммита #{i + 1} транзакция должна быть пересоздана");
         }
 
@@ -147,10 +146,14 @@ public sealed class EfUnitOfWorkSequentialSavesTests
         {
             ThrowOnCallIndex = 1,
         };
-        var uow = new FlakyEfUnitOfWork(
+        var uow = new EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
             context,
             new EmptyServiceProvider(),
             settings,
+            new LifecycleActionOrchestrator(
+                [],
+                new LifecycleEntityRegistry(),
+                new LifecycleActionGate()),
             flakyService);
 
         // Act 1: первый коммит
@@ -159,16 +162,17 @@ public sealed class EfUnitOfWorkSequentialSavesTests
             Id = Guid.NewGuid(),
             Name = "v1",
         });
-        await uow.SaveChangesAsync(CancellationToken.None);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act 2: UPDATE той же entity, BeforeSave бросает — rollback
         var tracked = await context.Entities.FirstAsync(TestContext.Current.CancellationToken);
         tracked.Name = "v2-doomed";
-        var act2 = () => uow.SaveChangesAsync(CancellationToken.None);
-        await Assert.ThrowsAsync<InvalidOperationException>(act2);
+        var act2 = () => uow.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await act2.Should().ThrowAsync<InvalidOperationException>();
 
-        // После rollback транзакция пересоздана
-        uow.CurrentTransaction.Should().NotBeNull();
+        // После rollback транзакция пересоздана — повторный commit не бросает
+        var actAfterRollback = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actAfterRollback.Should().NotThrowAsync();
 
         var trackedAfterRollback = context.ChangeTracker
             .Entries<TestEntityWithCreatedDeleted>()
@@ -182,36 +186,15 @@ public sealed class EfUnitOfWorkSequentialSavesTests
             Id = Guid.NewGuid(),
             Name = "after-failure",
         });
-        var thirdResult = await uow.SaveChangesAsync(CancellationToken.None);
+        var thirdResult = await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         thirdResult.Should().Be(1, "после rollback UoW готов к новой операции без ручного ClearTracking");
-        uow.CurrentTransaction.Should().NotBeNull();
+        var actAfterThird = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actAfterThird.Should().NotThrowAsync();
     }
 
     #region Helpers
-
-    /// <summary>
-    /// Subclass <see cref="EfUnitOfWork{TDbContext}"/> с <c>IBeforeSaveChangesService</c>
-    /// для сценария commit → rollback → commit.
-    /// </summary>
-    private sealed class FlakyEfUnitOfWork(
-        IntegrationTestUnitOfWorkDbContext dbContext,
-        IServiceProvider serviceProvider,
-        EfDbSettingsBase<IntegrationTestUnitOfWorkDbContext> settings,
-        IBeforeSaveChangesService beforeSaveChangesService)
-        : EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
-            dbContext,
-            serviceProvider,
-            settings,
-            new LifecycleActionOrchestrator(
-                [],
-                new LifecycleEntityRegistry(),
-                new LifecycleActionGate()),
-            beforeSaveChangesService)
-    {
-        public object? CurrentTransaction => CurrentDbTransaction;
-    }
 
     private sealed class IntegrationTestEfDbSettings
         : EfDbSettingsBase<IntegrationTestUnitOfWorkDbContext>

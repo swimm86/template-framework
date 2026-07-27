@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="PersonHashLifecycleHandlerIntegrationTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -24,6 +24,7 @@ namespace Template.Setter.Application.Tests.LifecycleAction.Person;
 /// в фазе <c>BeforeSave</c> и обновляет <see cref="TemplateSetterDomainPerson.Hash"/>
 /// до того, как EF Core выполнит <c>SaveChangesAsync</c>.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class PersonHashLifecycleHandlerIntegrationTests
 {
     /// <summary>

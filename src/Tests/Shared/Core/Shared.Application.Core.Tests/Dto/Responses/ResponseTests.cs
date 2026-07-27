@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ResponseTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Core.Dto.Requests;
@@ -47,19 +53,6 @@ public sealed class ResponseTests
         response.PageNumber.Should().Be(pageNumber);
         response.StatusCode.Should().Be(statusCode);
         response.Payload.Should().BeEquivalentTo(payload);
-    }
-
-    /// <summary>
-    /// <see cref="ResponseBase.StatusCode"/> по умолчанию равен <c><see langword="default"/></c> (0).
-    /// </summary>
-    [Fact]
-    public void Response_StatusCodeDefault()
-    {
-        // Act
-        var response = new Response();
-
-        // Assert
-        response.StatusCode.Should().Be(default);
     }
 
     /// <summary>

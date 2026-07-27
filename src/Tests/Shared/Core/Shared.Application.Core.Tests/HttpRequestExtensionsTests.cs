@@ -1,4 +1,10 @@
-﻿using Shared.Application.Core.Batch.Http.Extensions;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="HttpRequestExtensionsTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Shared.Application.Core.Batch.Http.Extensions;
 using Shared.Application.Core.Batch.Http.RetryPolicy;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
 using Shared.Application.Core.Dto.Responses;

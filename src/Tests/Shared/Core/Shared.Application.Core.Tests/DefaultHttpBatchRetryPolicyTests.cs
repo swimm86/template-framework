@@ -1,4 +1,10 @@
-﻿using System.Net;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="DefaultHttpBatchRetryPolicyTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using System.Net;
 using Shared.Application.Core.Batch.Http.RetryPolicy;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Extensions;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
@@ -8,7 +14,7 @@ namespace Shared.Application.Core.Tests;
 /// <summary>
 /// Тесты <see cref="RetryConfiguration.Validate"/> и выполнения повторов в <see cref="DefaultHttpBatchRetryPolicy"/>.
 /// </summary>
-public sealed class PageableBatchRetryOptionsTests
+public sealed class DefaultHttpBatchRetryPolicyTests
 {
     /// <summary>
     /// Некорректные опции и ожидаемое имя параметра в исключении.
@@ -366,6 +372,183 @@ public sealed class PageableBatchRetryOptionsTests
     }
 
     /// <summary>
+    /// Исключение с постоянной HTTP-ошибкой во внутренней цепочке не приводит к повтору.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_PermanentException_DoesNotRetry()
+    {
+        var attempt = 0;
+        var policy = CreatePolicy(maxAttempts: 5);
+        var exception = new HttpRequestException(
+            "outer",
+            new HttpRequestException("bad request", null, HttpStatusCode.BadRequest));
+
+        var act = () => policy.ExecuteAsync<int>(
+            _ =>
+            {
+                Interlocked.Increment(ref attempt);
+                throw exception;
+            },
+            TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+        attempt.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Последовательные транзиентные ошибки приводят к выполнению всех разрешённых попыток.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_MultipleTransientExceptions_RetriesUpToMaxAttempts()
+    {
+        const int maxAttempts = 5;
+        var attempt = 0;
+        var policy = CreatePolicy(maxAttempts);
+
+        var act = () => policy.ExecuteAsync<int>(
+            _ =>
+            {
+                Interlocked.Increment(ref attempt);
+                throw new IOException("transient");
+            },
+            TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<IOException>();
+        attempt.Should().Be(maxAttempts);
+    }
+
+    /// <summary>
+    /// Постоянная ошибка после транзиентных ошибок прекращает выполнение повторов.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_MixedExceptions_StopsOnPermanent()
+    {
+        var attempt = 0;
+        var policy = CreatePolicy(maxAttempts: 5);
+
+        var act = () => policy.ExecuteAsync<int>(
+            _ =>
+            {
+                var currentAttempt = Interlocked.Increment(ref attempt);
+                if (currentAttempt <= 2)
+                {
+                    throw new IOException("transient");
+                }
+
+                throw new ArgumentException("permanent");
+            },
+            TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<ArgumentException>();
+        attempt.Should().Be(3);
+    }
+
+    /// <summary>
+    /// HTTP-статус 500 считается транзиентным и приводит к повторной попытке.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_HttpStatusCode500_Retries()
+    {
+        var attempt = 0;
+        var policy = CreatePolicy(maxAttempts: 3);
+
+        var result = await policy.ExecuteAsync(
+            _ => Interlocked.Increment(ref attempt) == 1
+                ? Task.FromException<int>(new HttpRequestException(
+                    "server error",
+                    null,
+                    HttpStatusCode.InternalServerError))
+                : Task.FromResult(42),
+            TestContext.Current.CancellationToken);
+
+        result.Should().Be(42);
+        attempt.Should().Be(2);
+    }
+
+    /// <summary>
+    /// HTTP-статус 404 не считается транзиентным и не приводит к повторной попытке.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_HttpStatusCode404_DoesNotRetry()
+    {
+        var attempt = 0;
+        var policy = CreatePolicy(maxAttempts: 3);
+
+        var act = () => policy.ExecuteAsync<int>(
+            _ =>
+            {
+                Interlocked.Increment(ref attempt);
+                throw new HttpRequestException("not found", null, HttpStatusCode.NotFound);
+            },
+            TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+        attempt.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Отмена во время задержки перед повтором немедленно прекращает выполнение политики.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_CancellationDuringRetry_ThrowsImmediately()
+    {
+        var attempt = 0;
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(TimeSpan.FromMilliseconds(50));
+        var policy = CreatePolicy(maxAttempts: 3, initialDelay: TimeSpan.FromSeconds(30));
+
+        var act = () => policy.ExecuteAsync<int>(
+            _ =>
+            {
+                Interlocked.Increment(ref attempt);
+                throw new IOException("transient");
+            },
+            cancellationTokenSource.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        attempt.Should().Be(1);
+    }
+
+    /// <summary>
+    /// Транзиентная HTTP-ошибка во внутренней цепочке приводит к повторной попытке.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_NestedException_AnalyzesInner()
+    {
+        var attempt = 0;
+        var policy = CreatePolicy(maxAttempts: 3);
+
+        var result = await policy.ExecuteAsync(
+            _ => Interlocked.Increment(ref attempt) == 1
+                ? Task.FromException<int>(new ArgumentException(
+                    "outer",
+                    new HttpRequestException(
+                        "server error",
+                        null,
+                        HttpStatusCode.InternalServerError)))
+                : Task.FromResult(42),
+            TestContext.Current.CancellationToken);
+
+        result.Should().Be(42);
+        attempt.Should().Be(2);
+    }
+
+    /// <summary>
+    /// HTTP-исключение без статус-кода обрабатывается без <see cref="NullReferenceException"/>.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_NullResponseException_DoesNotThrowNullRef()
+    {
+        var policy = CreatePolicy(maxAttempts: 2);
+
+        var act = () => policy.ExecuteAsync<int>(
+            _ => throw new HttpRequestException("response unavailable", null, statusCode: null),
+            TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    /// <summary>
     /// Расчёт паузы между попытками: экспоненциальный рост от <paramref name="initialMs"/> и ограничение сверху <paramref name="capMs"/>.
     /// </summary>
     /// <param name="failedAttempt">Номер неудачной попытки (1-based сценарий backoff).</param>
@@ -582,5 +765,22 @@ public sealed class PageableBatchRetryOptionsTests
 
         // Assert
         hint.Should().Be(TimeSpan.FromSeconds(expectedSeconds));
+    }
+
+    private static DefaultHttpBatchRetryPolicy CreatePolicy(
+        int maxAttempts,
+        TimeSpan? initialDelay = null)
+    {
+        return new DefaultHttpBatchRetryPolicy(
+            new RetryConfiguration
+            {
+                Backoff = new BackoffConfiguration
+                {
+                    MaxAttempts = maxAttempts,
+                    InitialDelay = initialDelay ?? TimeSpan.Zero,
+                    MaxDelay = initialDelay ?? TimeSpan.Zero,
+                    UseBackoffJitter = false,
+                },
+            });
     }
 }

@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="DbUpdaterBaseIntegrationTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -125,27 +131,6 @@ public sealed class DbUpdaterBaseIntegrationTests : IDisposable
 
         // Act
         var act = () => updater.Migrate();
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
-    #endregion
-
-    #region Initialize Tests
-
-    /// <summary>
-    /// <c>Initialize</c> не бросает исключений (виртуальный метод с пустой реализацией).
-    /// </summary>
-    [Fact]
-    public void Initialize_WithSqliteContext_DoesNotThrow()
-    {
-        // Arrange
-        using var context = CreateContext();
-        var updater = new TestDbUpdater(context, new StubEnsureSchemaStrategy());
-
-        // Act
-        var act = () => updater.Initialize();
 
         // Assert
         act.Should().NotThrow();

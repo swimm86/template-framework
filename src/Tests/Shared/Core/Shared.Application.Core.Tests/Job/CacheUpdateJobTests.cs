@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="CacheUpdateJobTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -67,7 +67,7 @@ public sealed class CacheUpdateJobTests
 
         // Act
         var first = await job.GetCacheDataAsync();
-        await job.ExecuteAsync(CancellationToken.None);
+        await job.ExecuteAsync(TestContext.Current.CancellationToken);
         var second = await job.GetCacheDataAsync();
 
         // Assert
@@ -109,7 +109,7 @@ public sealed class CacheUpdateJobTests
         var job = new TestCacheUpdateJob("cached");
 
         // Act
-        await job.ExecuteAsync(CancellationToken.None);
+        await job.ExecuteAsync(TestContext.Current.CancellationToken);
         var result = await job.GetCacheDataAsync();
 
         // Assert
@@ -129,9 +129,9 @@ public sealed class CacheUpdateJobTests
         var job = new IncrementalTestCacheUpdateJob();
 
         // Act
-        await job.ExecuteAsync(CancellationToken.None);
-        await job.ExecuteAsync(CancellationToken.None);
-        await job.ExecuteAsync(CancellationToken.None);
+        await job.ExecuteAsync(TestContext.Current.CancellationToken);
+        await job.ExecuteAsync(TestContext.Current.CancellationToken);
+        await job.ExecuteAsync(TestContext.Current.CancellationToken);
         var result = await job.GetCacheDataAsync();
 
         // Assert

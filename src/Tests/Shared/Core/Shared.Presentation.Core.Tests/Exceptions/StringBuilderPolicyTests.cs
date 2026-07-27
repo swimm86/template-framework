@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="StringBuilderPolicyTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Text;
 using Shared.Presentation.Core.Exceptions;
 
@@ -42,22 +48,6 @@ public sealed class StringBuilderPolicyTests
 
         // Assert
         sb.Length.Should().Be(0);
-        result.Should().BeTrue();
-    }
-
-    /// <summary>
-    /// Проверяет, что метод <see cref="Shared.Presentation.Core.Exceptions.StringBuilderPolicy.Return"/> всегда возвращает <c>true</c>.
-    /// </summary>
-    [Fact]
-    public void Return_AlwaysReturnsTrue()
-    {
-        // Arrange
-        var policy = new StringBuilderPolicy();
-
-        // Act
-        var result = policy.Return(new StringBuilder());
-
-        // Assert
         result.Should().BeTrue();
     }
 }

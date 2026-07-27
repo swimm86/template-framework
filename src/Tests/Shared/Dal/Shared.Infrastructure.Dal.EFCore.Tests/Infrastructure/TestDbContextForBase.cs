@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="TestDbContextForBase.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Shared.Application.Core.DependencyInjection.Attributes;
@@ -7,7 +13,8 @@ namespace Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
 
 [ManualConfiguration]
 public class TestDbContextForBase(
-    DbContextOptions<TestDbContextForBase> options, IHostEnvironment environment)
+    DbContextOptions<TestDbContextForBase> options,
+    IHostEnvironment environment)
     : DbContextBase(options, environment)
 {
     public DbSet<TestEfEntity> TestEntities => Set<TestEfEntity>();

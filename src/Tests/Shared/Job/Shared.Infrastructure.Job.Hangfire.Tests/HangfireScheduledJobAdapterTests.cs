@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="HangfireScheduledJobAdapterTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -6,11 +6,11 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using Shared.Application.Core.Job.Interfaces;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
 using Shared.Testing.Doubles.DependencyInjection;
+using Shared.Testing.Doubles.Job;
 using Shared.Testing.Job;
 
 namespace Shared.Infrastructure.Job.Hangfire.Tests;
@@ -48,16 +48,11 @@ public sealed class HangfireScheduledJobAdapterTests
         await using var disposable = provider as IAsyncDisposable;
         var keyed = provider as MockKeyedServiceProvider;
 
-        var executor = new Mock<IScheduledJobExecutor>();
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
+        var executor = new FakeScheduledJobExecutor();
 
         var adapter = new HangfireScheduledJobAdapter(
             provider,
-            executor.Object,
+            executor,
             NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
@@ -68,7 +63,8 @@ public sealed class HangfireScheduledJobAdapterTests
             CancellationToken.None);
 
         // Assert
-        executor.Verify(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()), Times.Once);
+        executor.ExecuteAsyncCallCount.Should().Be(1);
+        var captured = executor.LastContext;
         captured.Should().NotBeNull();
         captured!.JobType.Should().Be<FakeScheduledJob>();
         captured.ServiceKey.Should().Be(serviceKey);
@@ -105,22 +101,22 @@ public sealed class HangfireScheduledJobAdapterTests
         var sp = setupServices switch
         {
             "register-string" => BuildServiceProviderWithString(),
-            _ => new Mock<IServiceProvider>().Object,
+            _ => new ServiceCollection().BuildServiceProvider(),
         };
 
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var adapter = new HangfireScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
-        var act = () => adapter.RunScheduledJobAsync(jobTypeName, serviceKey: null, retryOptions: null, CancellationToken.None);
+        var act = () => adapter.RunScheduledJobAsync(jobTypeName, serviceKey: null, retryOptions: null, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage($"*{expectedMessageFragment}*");
-        executor.VerifyNoOtherCalls();
+        executor.ExecuteAsyncCallCount.Should().Be(0);
     }
 
     /// <summary>
@@ -136,19 +132,19 @@ public sealed class HangfireScheduledJobAdapterTests
         await using var sp = services.BuildServiceProvider();
 
         var boom = new InvalidOperationException("boom from executor");
-        var executor = new Mock<IScheduledJobExecutor>();
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .ThrowsAsync(boom);
+        var executor = new FakeScheduledJobExecutor
+        {
+            ExceptionToThrowOnExecuteAsync = boom,
+        };
 
-        var adapter = new HangfireScheduledJobAdapter(sp, executor.Object, NullLogger<HangfireScheduledJobAdapter>.Instance);
+        var adapter = new HangfireScheduledJobAdapter(sp, executor, NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
         var act = () => adapter.RunScheduledJobAsync(
             typeof(FakeScheduledJob).AssemblyQualifiedName!,
             serviceKey: null,
             retryOptions: null,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         // Assert
         var thrown = await act.Should().ThrowAsync<InvalidOperationException>();
@@ -170,14 +166,9 @@ public sealed class HangfireScheduledJobAdapterTests
         using var cts = new CancellationTokenSource();
         var expectedToken = cts.Token;
 
-        ScheduledJobContext? captured = null;
-        var executor = new Mock<IScheduledJobExecutor>();
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
+        var executor = new FakeScheduledJobExecutor();
 
-        var adapter = new HangfireScheduledJobAdapter(sp, executor.Object, NullLogger<HangfireScheduledJobAdapter>.Instance);
+        var adapter = new HangfireScheduledJobAdapter(sp, executor, NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
         await adapter.RunScheduledJobAsync(
@@ -187,8 +178,8 @@ public sealed class HangfireScheduledJobAdapterTests
             expectedToken);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.CancellationToken.Should().Be(expectedToken);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.CancellationToken.Should().Be(expectedToken);
     }
 
     /// <summary>
@@ -209,25 +200,20 @@ public sealed class HangfireScheduledJobAdapterTests
             Delay = TimeSpan.FromMinutes(2),
         };
 
-        ScheduledJobContext? captured = null;
-        var executor = new Mock<IScheduledJobExecutor>();
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
+        var executor = new FakeScheduledJobExecutor();
 
-        var adapter = new HangfireScheduledJobAdapter(sp, executor.Object, NullLogger<HangfireScheduledJobAdapter>.Instance);
+        var adapter = new HangfireScheduledJobAdapter(sp, executor, NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
         await adapter.RunScheduledJobAsync(
             typeof(FakeScheduledJob).AssemblyQualifiedName!,
             serviceKey: null,
             retryOptions: retryOptions,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.RetryOptions.Should().BeSameAs(retryOptions);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.RetryOptions.Should().BeSameAs(retryOptions);
     }
 
     /// <summary>
@@ -249,16 +235,11 @@ public sealed class HangfireScheduledJobAdapterTests
         services.AddSingleton<FakeScheduledJob>();
         await using var sp = services.BuildServiceProvider();
 
-        ScheduledJobContext? captured = null;
-        var executor = new Mock<IScheduledJobExecutor>();
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
+        var executor = new FakeScheduledJobExecutor();
 
         var adapter = new HangfireScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<HangfireScheduledJobAdapter>.Instance);
 
         // Act
@@ -266,11 +247,11 @@ public sealed class HangfireScheduledJobAdapterTests
             typeof(FakeScheduledJob).AssemblyQualifiedName!,
             serviceKey: null,
             retryOptions: null,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.RetryOptions.Should().BeNull("retryOptions: null должен давать RetryOptions = null в контексте");
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.RetryOptions.Should().BeNull("retryOptions: null должен давать RetryOptions = null в контексте");
     }
 
     /// <summary>
@@ -293,10 +274,9 @@ public sealed class HangfireScheduledJobAdapterTests
     private static IKeyedServiceProvider BuildKeyedServiceProvider<TJob>(string serviceKey)
         where TJob : class
     {
-        var job = new Mock<IScheduledJob>();
-        job.Setup(j => j.ExecuteAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        var job = new FakeScheduledJob();
         var keyed = new MockKeyedServiceProvider();
-        keyed.Register(typeof(TJob), serviceKey, job.Object);
+        keyed.Register(typeof(TJob), serviceKey, job);
         return keyed;
     }
 }

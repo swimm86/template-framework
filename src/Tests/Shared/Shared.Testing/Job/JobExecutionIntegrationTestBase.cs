@@ -1,9 +1,10 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="JobExecutionIntegrationTestBase.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
+using System.Diagnostics;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -52,7 +53,7 @@ public abstract class JobExecutionIntegrationTestBase
     /// Таймаут ожидания срабатывания <c>OnStartup</c> джобы.
     /// Подобран с запасом: реальный Hangfire-сервер стартует дольше Quartz.
     /// </summary>
-    protected static readonly TimeSpan DefaultExecutionTimeout = TimeSpan.FromSeconds(30);
+    protected static readonly TimeSpan DefaultExecutionTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// Выполняет регистрацию адаптера (Quartz или Hangfire) в коллекции сервисов.
@@ -62,14 +63,46 @@ public abstract class JobExecutionIntegrationTestBase
     protected abstract void RegisterAdapter(IServiceCollection services, ILoggerFactory loggerFactory);
 
     /// <summary>
+    /// Ожидает завершения <paramref name="jobTask"/> в пределах <paramref name="timeout"/>.
+    /// Если задача не завершилась — выбрасывается <see cref="TimeoutException"/>;
+    /// если <paramref name="cancellationToken"/> отменён — <see cref="OperationCanceledException"/>.
+    /// </summary>
+    /// <param name="jobTask">Задача, отслеживающая выполнение джобы.</param>
+    /// <param name="timeout">Максимальное время ожидания.</param>
+    /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены ожидания.</param>
+    /// <returns>Задача, завершённая успешным выполнением джобы.</returns>
+    /// <exception cref="TimeoutException">Выбрасывается, если <paramref name="jobTask"/> не завершилась за <paramref name="timeout"/>.</exception>
+    /// <exception cref="OperationCanceledException">Выбрасывается, если <paramref name="cancellationToken"/> отменён до завершения <paramref name="jobTask"/>.</exception>
+    protected static async Task WaitForJobWithTimeoutAsync(Task jobTask, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        var winner = await Task.WhenAny(jobTask, Task.Delay(timeout, cancellationToken));
+
+        if (winner == jobTask)
+        {
+            await jobTask;
+            return;
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        throw new TimeoutException(
+            $"Job did not complete within {timeout.TotalSeconds:N1} sec.");
+    }
+
+    /// <summary>
     /// End-to-end: после старта bootstrapper-а <see cref="IScheduledJob.ExecuteAsync"/>
     /// реально вызывается в поднятом планировщике.
     /// <para>
     /// Поднимаем <see cref="IHost"/> (вместе со всеми <see cref="IHostedService"/>,
     /// которые адаптер успел зарегистрировать) и ждём
-    /// <see cref="SignalJob.ExecuteCalled"/>. Если <c>Task.WhenAny</c> вернёт
-    /// задачу-таймаут — тест падает с осмысленным сообщением через
-    /// <see cref="DefaultExecutionTimeout"/>, а не зависает.
+    /// <see cref="SignalJob.ExecuteCalled"/> через <see cref="WaitForJobWithTimeoutAsync"/>.
+    /// Если джоба не выполнилась за <see cref="DefaultExecutionTimeout"/> — тест падает
+    /// с осмысленным сообщением, а не зависает. При медленном CI это поведение защищает
+    /// от 30-секундных блокировок: тест завершается за <see cref="DefaultExecutionTimeout"/>
+    /// даже при регрессии вида «адаптер не подключён к DI».
     /// </para>
     /// </summary>
     [Fact]
@@ -80,28 +113,118 @@ public abstract class JobExecutionIntegrationTestBase
         using var host = BuildHost();
 
         // Act
-        await host.StartAsync(CancellationToken.None);
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             var signalJob = host.Services.GetRequiredService<SignalJob>();
-            var completed = await Task.WhenAny(
-                signalJob.ExecuteCalled,
-                Task.Delay(DefaultExecutionTimeout));
 
-            // Assert
-            completed
-                .Should()
-                .BeSameAs(
-                    signalJob.ExecuteCalled,
-                    "OnStartup job должен сработать после старта bootstrapper-а; " +
-                    $"если тест упал по таймауту {DefaultExecutionTimeout.TotalSeconds:N0}s — " +
-                    "вероятно, адаптер не подключён к DI (см. регрессию 2026-06-04)");
+            await WaitForJobWithTimeoutAsync(
+                signalJob.ExecuteCalled,
+                DefaultExecutionTimeout,
+                TestContext.Current.CancellationToken);
         }
         finally
         {
             await host.StopAsync();
         }
+    }
+
+    /// <summary>
+    /// <see cref="WaitForJobWithTimeoutAsync"/> выбрасывает <see cref="TimeoutException"/>,
+    /// если джоба не завершилась в пределах таймаута.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task JobNotExecutedWithinTimeout_ThrowsTimeoutException()
+    {
+        // Arrange
+        var neverCompletes = new TaskCompletionSource().Task;
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        var act = () => WaitForJobWithTimeoutAsync(
+            neverCompletes,
+            TimeSpan.FromMilliseconds(100),
+            cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<TimeoutException>();
+    }
+
+    /// <summary>
+    /// <see cref="WaitForJobWithTimeoutAsync"/> возвращает управление без исключения,
+    /// если джоба завершилась до истечения таймаута.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task JobExecutedWithinTimeout_CompletesNormally()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        await WaitForJobWithTimeoutAsync(
+            Task.CompletedTask,
+            TimeSpan.FromSeconds(1),
+            cts.Token);
+
+        // Assert — отсутствие исключения подтверждает успешное выполнение.
+    }
+
+    /// <summary>
+    /// Несколько параллельных вызовов <see cref="WaitForJobWithTimeoutAsync"/>
+    /// с независимыми задачами завершаются без исключений и не делят между собой
+    /// разделяемого состояния.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task ConcurrentJobs_AllCompleteWithinTimeout()
+    {
+        // Arrange
+        var job1 = Task.CompletedTask;
+        var job2 = Task.CompletedTask;
+        var job3 = Task.CompletedTask;
+        using var cts = new CancellationTokenSource();
+
+        // Act
+        await Task.WhenAll(
+            WaitForJobWithTimeoutAsync(job1, TimeSpan.FromSeconds(1), cts.Token),
+            WaitForJobWithTimeoutAsync(job2, TimeSpan.FromSeconds(1), cts.Token),
+            WaitForJobWithTimeoutAsync(job3, TimeSpan.FromSeconds(1), cts.Token));
+
+        // Assert — отсутствие исключения подтверждает успешное параллельное выполнение.
+    }
+
+    /// <summary>
+    /// <see cref="WaitForJobWithTimeoutAsync"/> не блокирует поток дольше таймаута:
+    /// после срабатывания таймаута тест завершается за адекватное время,
+    /// а не «зависает» до конца CI-runner-а.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task TimeoutTriggered_DoesNotHangForever()
+    {
+        // Arrange
+        var neverCompletes = new TaskCompletionSource().Task;
+        using var cts = new CancellationTokenSource();
+        var stopwatch = Stopwatch.StartNew();
+        var configuredTimeout = TimeSpan.FromMilliseconds(100);
+        const double toleranceMultiplier = 2;
+
+        // Act
+        var act = () => WaitForJobWithTimeoutAsync(
+            neverCompletes,
+            configuredTimeout,
+            cts.Token);
+
+        await act.Should().ThrowAsync<TimeoutException>();
+
+        // Assert
+        stopwatch.Stop();
+        stopwatch.Elapsed.Should().BeLessThan(
+            configuredTimeout * toleranceMultiplier,
+            "хелпер должен пробудиться почти сразу по таймауту, а не висеть дальше");
     }
 
     private IHost BuildHost() =>

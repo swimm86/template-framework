@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="CorrelationIdMiddlewareTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -33,7 +33,7 @@ public sealed class CorrelationIdMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new CorrelationIdMiddleware(new FakeLogger<CorrelationIdMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             Action = (_, _) =>
             {
@@ -64,7 +64,7 @@ public sealed class CorrelationIdMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new CorrelationIdMiddleware(new FakeLogger<CorrelationIdMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             Action = (_, _) => Task.CompletedTask,
         };
