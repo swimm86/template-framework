@@ -5,7 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
     <DisableFody>true</DisableFody>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,27 +16,26 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
     <!--
-      xunit.extensibility.core нужен только для атрибутов [Fact]/[Trait] в
-      JobExecutionIntegrationTestBase. xunit.v3 не подходит: он требует
-      &lt;OutputType&gt;Exe&lt;/OutputType&gt; (только для тестовых проектов).
-      PrivateAssets=all гарантирует, что зависимость не утечёт в потребителей
-      (тестовые проекты имеют свою прямую ссылку на xunit.v3, который
-      транзитивно тянет тот же xunit.v3.extensibility.core с тем же assembly identity).
+      xunit.v3.extensibility.core нужен только для атрибутов [Fact]/[Trait] в
+      базовых классах тестов, используемых через PartialKeyword / Scenario.
+      PrivateAssets=all изолирует зависимость от потребителей — у тестовых проектов своя прямая
+      ссылка на xunit.v3, который транзитивно тянет extensibility.core.
     -->
     <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <!--
-      FluentAssertions нужен для .Should().BeSameAs(...) в
-      JobExecutionIntegrationTestBase. Та же изоляция PrivateAssets=all, что и
-      для xunit: Shared.Testing — это библиотека тестовых утилит, поэтому
-      test-framework зависимости здесь уместны, но не должны «утекать» в
-      потребителей (у всех тестовых проектов своя прямая ссылка).
-    -->
-    <PackageReference Include="FluentAssertions" Version="7.2.2">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="7.2.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,6 +45,8 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Using Include="FluentAssertions" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>
