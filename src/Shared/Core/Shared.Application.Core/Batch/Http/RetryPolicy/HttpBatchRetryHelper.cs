@@ -155,32 +155,48 @@ internal static class HttpBatchRetryHelper
             return false;
         }
 
+        HttpRequestException? deepestWithStatus = null;
+        HttpRequestException? outermostHre = null;
+        var hasOtherTransient = false;
+
         for (var cur = ex; cur != null; cur = cur.InnerException)
         {
             switch (cur)
             {
                 case HttpRequestException hre:
-                    return IsTransientHttpRequestException(hre);
+                    outermostHre ??= hre;
+                    if (hre.StatusCode.HasValue)
+                    {
+                        deepestWithStatus = hre;
+                    }
+
+                    break;
                 case IOException:
                 case SocketException:
                 case TimeoutException:
-                    return true;
+                    hasOtherTransient = true;
+                    break;
                 case TaskCanceledException tce:
-                    return IsTransientTaskCanceledException(tce, cancellationToken);
+                    if (IsTransientTaskCanceledException(tce, cancellationToken))
+                    {
+                        hasOtherTransient = true;
+                    }
+
+                    break;
             }
         }
 
-        return false;
-    }
+        if (deepestWithStatus is not null)
+        {
+            return IsTransientHttpStatusCode(deepestWithStatus.StatusCode!.Value);
+        }
 
-    private static bool IsTransientHttpRequestException(HttpRequestException ex)
-    {
-        if (!ex.StatusCode.HasValue)
+        if (outermostHre is not null)
         {
             return true;
         }
 
-        return IsTransientHttpStatusCode(ex.StatusCode.Value);
+        return hasOtherTransient;
     }
 
     private static bool IsTransientHttpStatusCode(HttpStatusCode statusCode)
