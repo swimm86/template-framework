@@ -267,13 +267,15 @@ public class EfRepository<TEntity>(
         QueryOptions<TEntity> options,
         params (LambdaExpression propertyExpression, LambdaExpression valueExpression)[] updateData)
     {
+        updateData.ForEach(x => ArgumentNullException.ThrowIfNull(x.valueExpression, nameof(x.valueExpression)));
+
         var query = evaluator.Build(DbSet, options);
         var parameter = Expression.Parameter(typeof(SetPropertyCalls<TEntity>), "x");
         Expression setPropertyCalls = parameter;
 
-        foreach (var (propertyExpr, valueExpr) in updateData)
+        foreach (var (propertyExpression, valueExpression) in updateData)
         {
-            var propertyType = propertyExpr.ReturnType;
+            var propertyType = propertyExpression.ReturnType;
             var setPropertyMethod = typeof(SetPropertyCalls<TEntity>).GetMethods()
                 .FirstOrDefault(m => m is { Name: nameof(SetPropertyCalls<TEntity>.SetProperty), IsGenericMethod: true })
                 ?.MakeGenericMethod(propertyType)!;
@@ -281,8 +283,8 @@ public class EfRepository<TEntity>(
             setPropertyCalls = Expression.Call(
                 setPropertyCalls,
                 setPropertyMethod,
-                propertyExpr,
-                valueExpr);
+                propertyExpression,
+                valueExpression);
         }
 
         var updateExpression = Expression.Lambda<Func<SetPropertyCalls<TEntity>, SetPropertyCalls<TEntity>>>(setPropertyCalls, parameter);
@@ -298,6 +300,11 @@ public class EfRepository<TEntity>(
     {
         if (!hard && entity is IWithDeleted deletable)
         {
+            if (dbContext.Entry(entity).State == EntityState.Detached)
+            {
+                DbSet.Attach(entity);
+            }
+
             deletable.SetIsDeleted();
             deletable.OnDelete(userId);
         }
