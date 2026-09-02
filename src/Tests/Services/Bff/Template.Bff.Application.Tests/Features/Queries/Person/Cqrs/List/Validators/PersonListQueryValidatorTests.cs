@@ -10,6 +10,7 @@ using Template.Getter.Application.Abstractions.Features.Person.List.Validators;
 using PersonListFilter = Template.Getter.Application.Abstractions.Features.Person.List.Request.PersonListFilter;
 using PersonListQueryValidator = Template.Bff.Application.Features.Queries.Person.Cqrs.List.Validators.PersonListQueryValidator;
 using PersonListRequest = Template.Bff.Application.Features.Queries.Person.Cqrs.List.Requests.PersonListRequest;
+using Shared.Application.Core.Dto.Requests.Validators;
 
 namespace Template.Bff.Application.Tests.Features.Queries.Person.Cqrs.List.Validators;
 
@@ -140,7 +141,7 @@ public sealed class PersonListQueryValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(error =>
             error.PropertyName == $"{nameof(PersonListQuery.Request)}.{nameof(PersonListRequest.PageNumber)}" &&
-            error.ErrorMessage == "Номер страницы должен быть не менее 1.");
+            error.ErrorMessage == PageableRequestValidator<PersonListRequest>.PageNumberMustBePositive);
     }
 
     /// <summary>
@@ -160,7 +161,7 @@ public sealed class PersonListQueryValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(error =>
             error.PropertyName == $"{nameof(PersonListQuery.Request)}.{nameof(PersonListRequest.PageNumber)}" &&
-            error.ErrorMessage == "Номер страницы должен быть не менее 1.");
+            error.ErrorMessage == PageableRequestValidator<PersonListRequest>.PageNumberMustBePositive);
     }
 
     /// <summary>
@@ -263,7 +264,7 @@ public sealed class PersonListQueryValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(error =>
             error.PropertyName == $"{nameof(PersonListQuery.Request)}.{nameof(PersonListRequest.PageSize)}" &&
-            error.ErrorMessage == "Размер страницы должен быть больше 0.");
+            error.ErrorMessage == PageableRequestValidator<PersonListRequest>.PageSizeMustBePositive);
     }
 
     private static PersonListQueryValidator CreateValidator()

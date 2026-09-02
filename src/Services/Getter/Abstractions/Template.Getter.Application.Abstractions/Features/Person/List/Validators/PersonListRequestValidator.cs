@@ -5,6 +5,7 @@
 // ----------------------------------------------------------------------------------------------
 
 using FluentValidation;
+using Shared.Application.Core.Dto.Requests.Validators;
 using Template.Getter.Application.Abstractions.Features.Person.List.Request;
 
 namespace Template.Getter.Application.Abstractions.Features.Person.List.Validators;
@@ -13,7 +14,7 @@ namespace Template.Getter.Application.Abstractions.Features.Person.List.Validato
 /// Валидатор запроса '<see cref="PersonListRequest"/>'.
 /// </summary>
 public class PersonListRequestValidator
-    : AbstractValidator<PersonListRequest>
+    : PageableRequestValidator<PersonListRequest>
 {
     /// <summary>
     /// Инициализирует новый экземпляр <see cref="PersonListRequestValidator"/>.
@@ -28,13 +29,7 @@ public class PersonListRequestValidator
             .IsInEnum()
             .WithMessage("Недопустимый паттерн доступа к данным.");
 
-        RuleFor(x => x.PageNumber)
-            .GreaterThanOrEqualTo(1)
-            .WithMessage("Номер страницы должен быть не менее 1.");
-
         RuleFor(x => x.PageSize)
-            .GreaterThan(0)
-            .WithMessage("Размер страницы должен быть больше 0.")
             .LessThanOrEqualTo(1000)
             .WithMessage("Размер страницы не должен превышать 1000.");
 
