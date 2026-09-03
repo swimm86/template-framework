@@ -30,7 +30,7 @@ internal sealed class ExceptionMapperResolver
         if (_map.GetValueOrDefault(typeof(Exception)) == null)
         {
             throw new InvalidOperationException(
-                $"{nameof(DefaultExceptionMapper)} ({nameof(IExceptionMapper<Exception>)}) не зарегистрирован");
+                $"{nameof(DefaultExceptionMapper)} ({nameof(IExceptionMapper<Exception>)}) is not registered.");
         }
     }
 
@@ -46,8 +46,8 @@ internal sealed class ExceptionMapperResolver
         }
 
         throw new InvalidOperationException(
-            $"Не зарегистрирован маппер для типа {exception.GetType().Name}. " +
-            $"Убедитесь, что зарегистрирован {nameof(DefaultExceptionMapper)} ({nameof(IExceptionMapper<Exception>)}).");
+            $"No exception mapper is registered for type {exception.GetType().Name}. " +
+            $"Ensure that {nameof(DefaultExceptionMapper)} ({nameof(IExceptionMapper<Exception>)}) is registered.");
     }
 
     private static Dictionary<Type, IExceptionMapper> CreateMap(
@@ -59,8 +59,8 @@ internal sealed class ExceptionMapperResolver
             if (!result.TryAdd(mapper.HandledType, mapper))
             {
                 throw new InvalidOperationException(
-                    $"Для типа {mapper.HandledType.Name} зарегистрировано несколько мапперов: " +
-                    $"{result[mapper.HandledType].GetType().Name} и {mapper.GetType().Name}.");
+                    $"Multiple exception mappers are registered for type {mapper.HandledType.Name}: " +
+                    $"{result[mapper.HandledType].GetType().Name} and {mapper.GetType().Name}.");
             }
         }
 

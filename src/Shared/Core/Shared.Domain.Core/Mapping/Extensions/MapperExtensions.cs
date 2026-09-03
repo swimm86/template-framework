@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Linq.Expressions;
 using Shared.Domain.Core.Mapping.Interfaces;
 
 namespace Shared.Domain.Core.Mapping.Extensions;
@@ -15,12 +14,12 @@ namespace Shared.Domain.Core.Mapping.Extensions;
 public static class MapperExtensions
 {
     /// <summary>
-    /// Маппинг исходного типа <typeparamref name="TSource"/> в целевой тип <typeparamref name="TResult"/>.
+    /// Преобразование (mapping) исходного типа <typeparamref name="TSource"/> в целевой тип <typeparamref name="TResult"/>.
     /// </summary>
-    /// <typeparam name="TSource">Исходный тип для маппинга.</typeparam>
-    /// <typeparam name="TResult">Целевой тип результата маппинга.</typeparam>
+    /// <typeparam name="TSource">Исходный тип для преобразования (mapping).</typeparam>
+    /// <typeparam name="TResult">Целевой тип результата преобразования (mapping).</typeparam>
     /// <param name="source">Экземпляр исходного типа <typeparamref name="TSource"/>.</param>
-    /// <param name="mapper">Сервис маппинга объектов.</param>
+    /// <param name="mapper">Сервис преобразования (mapping) объектов.</param>
     /// <returns>Экземпляр целевого типа <typeparamref name="TResult"/>.</returns>
     public static TResult Map<TSource, TResult>(this TSource source, IMapper mapper)
     {
@@ -32,27 +31,25 @@ public static class MapperExtensions
     /// </summary>
     /// <typeparam name="TResult">Целевой тип, в который будет выполнена проекция элементов.</typeparam>
     /// <param name="source">Коллекция в виде <see cref="IQueryable"/>, из которой будут проектироваться элементы.</param>
-    /// <param name="mapper">Сервис маппинга объектов.</param>
+    /// <param name="mapper">Сервис преобразования (mapping) объектов.</param>
     /// <param name="parameters">Необязательные параметры, используемые при проекции.</param>
-    /// <param name="membersToExpand">Список выражений, определяющих свойства для раскрытия в проекции.</param>
     /// <returns>Коллекция проекций элементов в виде <see cref="IQueryable"/> целевого типа <typeparamref name="TResult"/>.</returns>
     public static IQueryable<TResult> ProjectTo<TResult>(
         this IQueryable source,
         IMapper mapper,
-        object? parameters = null,
-        params Expression<Func<TResult, object>>[] membersToExpand)
+        object? parameters = null)
     {
-        return mapper.ProjectTo(source, parameters, membersToExpand);
+        return mapper.ProjectTo<TResult>(source, parameters);
     }
 
     /// <summary>
-    /// Маппинг параметров из экземпляра исходного типа <typeparamref name="TSource"/> в экземпляр целевого типа <typeparamref name="TResult"/>.
+    /// Преобразование (mapping) параметров из экземпляра исходного типа <typeparamref name="TSource"/> в экземпляр целевого типа <typeparamref name="TResult"/>.
     /// </summary>
-    /// <typeparam name="TSource">Тип исходного экземпляра для маппинга.</typeparam>
-    /// <typeparam name="TResult">Тип целевого экземпляра для маппинга.</typeparam>
+    /// <typeparam name="TSource">Тип исходного экземпляра для преобразования (mapping).</typeparam>
+    /// <typeparam name="TResult">Тип целевого экземпляра для преобразования (mapping).</typeparam>
     /// <param name="source">Экземпляр исходного типа <typeparamref name="TSource"/>.</param>
     /// <param name="result">Экземпляр целевого типа <typeparamref name="TResult"/>.</param>
-    /// <param name="mapper">Сервис маппинга объектов.</param>
+    /// <param name="mapper">Сервис преобразования (mapping) объектов.</param>
     public static void Map<TSource, TResult>(this TSource source, TResult result, IMapper mapper)
     {
         mapper.Map(source, result);

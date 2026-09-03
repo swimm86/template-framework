@@ -1,44 +1,49 @@
-﻿// ----------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------
 // <copyright file="Mapper.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Linq.Expressions;
-using AutoMapper.QueryableExtensions;
 using Shared.Domain.Core.Mapping.Interfaces;
+using Shared.Infrastructure.Mapper.Core.Scope;
 
 namespace Shared.Infrastructure.Mapper.AutoMapper;
 
 /// <summary>
-/// Маппер.
+/// Преобразователь (mapper) на основе AutoMapper.
 /// </summary>
-public class Mapper(
-    global::AutoMapper.IMapper mapper)
+internal sealed class Mapper
     : IMapper
 {
-    /// <inheritdoc />
-    public TDestination Map<TSource, TDestination>(TSource source)
+    private readonly global::AutoMapper.IMapper _inner;
+
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="Mapper"/>.
+    /// </summary>
+    /// <param name="inner">Внутренний AutoMapper-преобразователь (mapper).</param>
+    public Mapper(global::AutoMapper.IMapper inner)
     {
-        return mapper.Map<TSource, TDestination>(source);
+        _inner = inner;
     }
 
     /// <inheritdoc />
-    public IQueryable<TDestination> ProjectTo<TDestination>(
-        IQueryable source,
-        object? parameters = null,
-        params Expression<Func<TDestination, object>>[] membersToExpand)
+    public TDestination Map<TSource, TDestination>(TSource source)
     {
-        var sourceType = source.GetType();
-        return sourceType is { IsGenericType: true, GenericTypeArguments.Length: 1 } &&
-               typeof(TDestination) == sourceType.GenericTypeArguments[0]
-            ? (source as IQueryable<TDestination>)!
-            : source.ProjectTo(mapper.ConfigurationProvider, parameters, membersToExpand);
+        using var scope = new MapperContextScope(this);
+        return _inner.Map<TSource, TDestination>(source);
+    }
+
+    /// <inheritdoc />
+    public IQueryable<TDestination> ProjectTo<TDestination>(IQueryable source, object? parameters = null)
+    {
+        using var scope = new MapperContextScope(this);
+        return _inner.ProjectTo<TDestination>(source, parameters);
     }
 
     /// <inheritdoc />
     public void Map<TSource, TResult>(TSource source, TResult result)
     {
-        mapper.Map(source, result);
+        using var scope = new MapperContextScope(this);
+        _inner.Map(source, result);
     }
 }
