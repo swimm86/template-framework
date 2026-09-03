@@ -31,7 +31,7 @@ Shared.Domain.Core/
 ├── Converters/              ← IObjectToStringConverter, DefaultObjectToStringConverter
 ├── Dal/                     ← Хелперы доступа к данным (фильтры, include-цепочки)
 ├── Extensions/              ← Расширения базовых типов и коллекций
-├── Mapping/                 ← IMapper, ProfileExtensions.ConfigureCollection
+├── Mapping/                 ← IMapper, MappingProfileBase, ITypeConverter, ResolutionContext, MappingProfileExtensions.ConfigureCollection
 └── Utils/                   ← PropertyUtil, выражения и кэшированные геттеры/сеттеры
 
 Shared.Application.Core/

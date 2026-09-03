@@ -185,7 +185,9 @@ Template Method Pattern: открытый `Inject()` — логирование 
 | Presentation.Core | `Shared.Presentation.Core` | Swagger, FluentValidation, ExceptionHandling, EndpointsApiExplorer |
 | Dal.EFCore.Postgres | `Shared.Infrastructure.Dal.EFCore.Postgres` | Npgsql legacy timestamp, `IDbContextOptionsBuilderInitializer`, DbContext'ы, `IQueryEvaluator` → `EfQueryEvaluator`, `IGetterRepository<>` / `ISetterRepository<>` / `IRepository<>` → `EfRepository<>`, `IUnitOfWork` |
 | Logging | `Shared.Infrastructure.Logging` | NLog |
-| Mapper | `Shared.Infrastructure.Mapper.AutoMapper` | AutoMapper profiles, `IMapper` → `Mapper` |
+| Mapper.Core | `Shared.Infrastructure.Mapper.Core` | Общий DI-базовый класс `DependencyInjectorBase<TConfig, TMapper>`, `NullMapper`, `MapperContextScope` |
+| Mapper (AutoMapper) | `Shared.Infrastructure.Mapper.AutoMapper` | Реализация поверх AutoMapper 14.0.0: `IMapper` → `Mapper`, сканирование `IMappingProfile`, `Profile[]` |
+| Mapper (Mapster) | `Shared.Infrastructure.Mapper.Mapster` | Реализация поверх Mapster: `IMapper` → `Mapper`, сканирование `IMappingProfile`, `TypeAdapterConfig` |
 | Job.Quartz | `Shared.Infrastructure.Job.Quartz` | Quartz hosted service (`WaitForJobsToComplete = true`) |
 
 ### Подробности по слоям
@@ -274,20 +276,77 @@ protected override IServiceCollection Process(IServiceCollection serviceCollecti
 }
 ```
 
-#### Mapper (AutoMapper)
+#### Mapper.Core (общая инфраструктура)
+
+В новой архитектуре регистрация маппинга живёт в **двух местах**:
+
+1. **Базовый класс** `Shared.Infrastructure.Mapper.Core/DependencyInjection/DependencyInjectorBase.cs`:
+   ```csharp
+   internal abstract class DependencyInjectorBase<TConfig, TMapper>(ILoggerFactory loggerFactory)
+       : DependencyInjectorBase(loggerFactory)
+       where TConfig : class
+       where TMapper : class, IMapper
+   {
+       protected override IServiceCollection Process(IServiceCollection serviceCollection)
+       {
+           var profiles = GetMappingProfiles();
+           var config = BuildConfig(profiles);
+           return RegisterConfig(serviceCollection, config)
+               .AddSingleton<IMapper, TMapper>();
+       }
+       // BuildConfig / RegisterConfig — abstract, реализуются в провайдеро-специфичном инжекторе.
+   }
+   ```
+   Сканирует `AppDomain`-сборки на не-abstract, не-interface типы с пустым public ctor, реализующие `IMappingProfile`.
+
+#### Mapper (AutoMapper) — конкретный провайдер
 
 ```csharp
-protected override IServiceCollection Process(IServiceCollection serviceCollection)
+internal sealed class DependencyInjector(ILoggerFactory loggerFactory)
+    : DependencyInjectorBase<Profile[], Mapper>(loggerFactory)
 {
-    var profileType = typeof(Profile);
-    var mapperProfilesTypes = AppDomain.CurrentDomain.GetAssemblies()
-        .SelectMany(a => a.GetTypes())
-        .Where(type => profileType.IsAssignableFrom(type) && !type.IsAbstract).ToArray();
-    return serviceCollection
-        .AddAutoMapper(mapperProfilesTypes)
-        .AddSingleton<IMapper, Mapper>();
+    protected override Profile[] BuildConfig(IReadOnlyCollection<IMappingProfile> profiles)
+    {
+        var builder = new AutoMapperProfileBuilder();
+        return profiles.Select(builder.Build).ToArray();
+    }
+
+    protected override IServiceCollection RegisterConfig(
+        IServiceCollection serviceCollection,
+        Profile[] config)
+    {
+        return serviceCollection.AddAutoMapper(cfg => cfg.AddProfiles(config));
+    }
 }
 ```
+
+#### Mapper (Mapster) — альтернативный провайдер
+
+```csharp
+internal sealed class DependencyInjector(ILoggerFactory loggerFactory)
+    : DependencyInjectorBase<TypeAdapterConfig, Mapper>(loggerFactory)
+{
+    protected override TypeAdapterConfig BuildConfig(IReadOnlyCollection<IMappingProfile> profiles)
+    {
+        var builder = new MapsterProfileBuilder();
+        var config = new TypeAdapterConfig();
+        foreach (var profile in profiles)
+        {
+            config.Apply(builder.Build(profile));
+        }
+        return config;
+    }
+
+    protected override IServiceCollection RegisterConfig(
+        IServiceCollection serviceCollection,
+        TypeAdapterConfig config)
+    {
+        return serviceCollection.AddSingleton(config);
+    }
+}
+```
+
+> В `Program.cs` подключается только **один** провайдер (`AutoMapper` или `Mapster`). Подключение обоих приведёт к конфликту регистрации `IMapper` в DI.
 
 #### Job.Quartz
 

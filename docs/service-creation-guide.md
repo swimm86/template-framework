@@ -21,10 +21,9 @@
 ```
 src/Services/Common/
 ├── Template.Domain/              # Ядро: сущности, интерфейсы
-├── Template.Application/         # Use cases: CQRS-запросы/команды, DTO, валидация
+├── Template.Application/         # Use cases: CQRS-запросы/команды, DTO, валидация, Mapping-профили
 ├── Template.Infrastructure/      # Внешние интеграции: API-клиенты
 ├── Template.Infrastructure.Dal/  # БД: DbContext, конфигурации, репозитории
-├── Template.Infrastructure.Mapping/ # AutoMapper-профили
 └── Template.Presentation/        # Контроллеры, CORS, Swagger-настройки (общий)
 ```
 
@@ -63,9 +62,6 @@ dotnet new classlib -n ProductService.Infrastructure -o src/Services/Product/Pro
 # Infrastructure.Dal — библиотека классов
 dotnet new classlib -n ProductService.Infrastructure.Dal -o src/Services/Product/ProductService.Infrastructure.Dal
 
-# Infrastructure.Mapping — библиотека классов
-dotnet new classlib -n ProductService.Infrastructure.Mapping -o src/Services/Product/ProductService.Infrastructure.Mapping
-
 # Presentation — библиотека классов (общий для нескольких HTTP-сервисов в Template).
 # В Template этот слой расположен в src/Services/Common/Template.Presentation/ и переиспользуется
 # Bff/Getter/Setter. Если вы делаете изолированный сервис — можете держать Presentation в нём.
@@ -81,9 +77,9 @@ dotnet new web -n ProductService.Api -o src/Services/Product/ProductService.Api
 Зависимости направлены **внутрь** — от Api к Domain:
 
 ```
-Api ──► Presentation ──► Infrastructure.Mapping ──► Infrastructure ──► Application ──► Domain
-                    │                              │
-                    └──► Infrastructure.Dal ──────┘
+Api ──► Presentation ──► Infrastructure ──► Application ──► Domain
+                                                  │
+                                                  └─ Mapping-профили (MappingProfileBase)
 ```
 
 #### Domain.csproj
@@ -121,6 +117,7 @@ Api ──► Presentation ──► Infrastructure.Mapping ──► Infrastruc
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Application.Cqrs.Core\Shared.Application.Cqrs.Core.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
     <ProjectReference Include="..\ProductService.Domain\ProductService.Domain.csproj" />
   </ItemGroup>
   <!-- StyleCop как в Domain -->
@@ -164,22 +161,6 @@ Api ──► Presentation ──► Infrastructure.Mapping ──► Infrastruc
 </Project>
 ```
 
-#### Infrastructure.Mapping.csproj
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
-    <ProjectReference Include="..\ProductService.Infrastructure\ProductService.Infrastructure.csproj" />
-  </ItemGroup>
-</Project>
-```
-
 #### Presentation.csproj
 
 ```xml
@@ -192,7 +173,6 @@ Api ──► Presentation ──► Infrastructure.Mapping ──► Infrastruc
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Presentation.Core\Shared.Presentation.Core.csproj" />
-    <ProjectReference Include="..\ProductService.Infrastructure.Mapping\ProductService.Infrastructure.Mapping.csproj" />
     <ProjectReference Include="..\ProductService.Infrastructure\ProductService.Infrastructure.csproj" />
   </ItemGroup>
   <!-- StyleDoc как в Domain -->
@@ -535,6 +515,7 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Commands;
 /// </summary>
 public sealed class CreateProductCommandHandler(
     ILoggerFactory loggerFactory,
+    // IMapper — из Shared.Domain.Core.Mapping.Interfaces
     IMapper mapper,
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<Product>> validators,
@@ -815,34 +796,41 @@ public class DependencyInjector(
 
 ---
 
-## Step 5: Infrastructure.Mapping слой
+## Step 5: Application.Mapping слой
 
-**Расположение:** `ProductService.Infrastructure.Mapping/`
+**Расположение:** `ProductService.Application/Mapping/`
 
-### AutoMapper-профиль
+### Mapping-профиль (провайдеро-независимый)
 
 ```csharp
-using AutoMapper;
+using Shared.Domain.Core.Mapping;
+using ProductService.Application.Abstractions.Dto.Product.Requests;
+using ProductService.Domain.Entities;
 
-namespace ProductService.Infrastructure.Mapping;
+namespace ProductService.Application.Mapping;
 
 /// <summary>
-/// Профиль маппинга.
+/// Профиль маппинга, провайдеро-независимый.
 /// </summary>
-public class MapperProfile : Profile
+/// <remarks>
+/// Наследует <see cref="MappingProfileBase"/> из <c>Shared.Domain.Core</c>.
+/// Реализация (AutoMapper или Mapster) подбирается через DI.
+/// </remarks>
+public sealed class MapperProfile : MappingProfileBase
 {
     /// <summary>
-    /// Конструктор класса. Содержит конфигурации маппингов.
+    /// Инициализирует новый экземпляр <see cref="MapperProfile"/> и регистрирует конфигурации маппингов.
     /// </summary>
     public MapperProfile()
     {
-        // CreateMap<Product, ProductPayload>();
-        // CreateMap<CreateProductRequest, Product>();
+        CreateMap<Product, ProductPayload>();
+        CreateMap<CreateProductRequest, Product>()
+            .ConstructUsing(src => Product.Create(src.Name, src.Sku));
     }
 }
 ```
 
-> AutoMapper-профили автоматически регистрируются через `Shared.Infrastructure.Mapper.AutoMapper`.
+> Mapping-профили автоматически регистрируются через `DependencyInjectorBase<,>` из `Shared.Infrastructure.Mapper.Core` (реализация — в `Shared.Infrastructure.Mapper.AutoMapper` или `Shared.Infrastructure.Mapster`). Для замены провайдера достаточно подключить нужный NuGet-пакет и заменить DI-инжектор в `Program.cs`.
 
 ---
 
@@ -1074,7 +1062,6 @@ dotnet sln Template.sln add Services/Product/ProductService.Domain/ProductServic
 dotnet sln Template.sln add Services/Product/ProductService.Application/ProductService.Application.csproj
 dotnet sln Template.sln add Services/Product/ProductService.Infrastructure/ProductService.Infrastructure.csproj
 dotnet sln Template.sln add Services/Product/ProductService.Infrastructure.Dal/ProductService.Infrastructure.Dal.csproj
-dotnet sln Template.sln add Services/Product/ProductService.Infrastructure.Mapping/ProductService.Infrastructure.Mapping.csproj
 dotnet sln Template.sln add Services/Product/ProductService.Presentation/ProductService.Presentation.csproj
 dotnet sln Template.sln add Services/Product/ProductService.Api/ProductService.Api.csproj
 ```
@@ -1333,6 +1320,7 @@ namespace ProductService.Application.Features.ProductFeature.Cqrs.Commands;
 /// </summary>
 public sealed class CreateProductCommandHandler(
     ILoggerFactory loggerFactory,
+    // IMapper — из Shared.Domain.Core.Mapping.Interfaces
     IMapper mapper,
     IUnitOfWork unitOfWork,
     IEnumerable<IValidator<Product>> validators,
