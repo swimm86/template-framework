@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="7.2.2" />
+	<PackageReference Include="FluentAssertions" Version="7.2.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
 	<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
 	  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.AutoMapper\Shared.Infrastructure.Mapper.AutoMapper.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.Mapster\Shared.Infrastructure.Mapper.Mapster.csproj" />
     <ProjectReference Include="..\Shared.Infrastructure.Mapper.Tests\Shared.Infrastructure.Mapper.Tests.csproj" />
   </ItemGroup>
 

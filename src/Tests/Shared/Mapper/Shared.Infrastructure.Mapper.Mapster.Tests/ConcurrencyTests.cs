@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------------------------
-// <copyright file="MapperTests.cs" company="swimm86@yandex.ru">
+// <copyright file="ConcurrencyTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
@@ -7,17 +7,17 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Domain.Core.Mapping.Interfaces;
-using Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection;
-using Shared.Infrastructure.Mapper.Tests.Mapper;
+using Shared.Infrastructure.Mapper.Mapster.DependencyInjection;
+using Shared.Infrastructure.Mapper.Tests.Concurrency;
 
-namespace Shared.Infrastructure.Mapper.AutoMapper.Tests;
+namespace Shared.Infrastructure.Mapper.Mapster.Tests;
 
 /// <summary>
-/// Тесты преобразователя (mapper) для AutoMapper. Содержит только DI-специфичный код;
-/// общая логика тестов — в <see cref="MapperTestBase"/>.
+/// Тесты thread-safety маппера для Mapster. Содержит только DI-специфичный код;
+/// общая логика тестов — в <see cref="ConcurrencyTestBase"/>.
 /// </summary>
-public sealed class MapperTests
-    : MapperTestBase
+public sealed class ConcurrencyTests
+    : ConcurrencyTestBase
 {
     protected override IMapper CreateMapper()
     {

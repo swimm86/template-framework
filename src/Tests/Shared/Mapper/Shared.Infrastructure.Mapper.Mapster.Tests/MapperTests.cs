@@ -7,13 +7,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Domain.Core.Mapping.Interfaces;
-using Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection;
+using Shared.Infrastructure.Mapper.Mapster.DependencyInjection;
 using Shared.Infrastructure.Mapper.Tests.Mapper;
 
-namespace Shared.Infrastructure.Mapper.AutoMapper.Tests;
+namespace Shared.Infrastructure.Mapper.Mapster.Tests;
 
 /// <summary>
-/// Тесты преобразователя (mapper) для AutoMapper. Содержит только DI-специфичный код;
+/// Тесты преобразователя (mapper) для Mapster. Содержит только DI-специфичный код;
 /// общая логика тестов — в <see cref="MapperTestBase"/>.
 /// </summary>
 public sealed class MapperTests
