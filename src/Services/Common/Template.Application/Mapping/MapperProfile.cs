@@ -1,23 +1,23 @@
 ﻿// ----------------------------------------------------------------------------------------------
-// <copyright file="MapperProfile.cs" company="ООО Газпромнефть - Цифровые решения">
-// Copyright (c) ООО Газпромнефть - Цифровые решения. All rights reserved.
+// <copyright file="MapperProfile.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using AutoMapper;
+using Shared.Domain.Core.Mapping;
 using Template.Application.Dto.Person;
 using Template.Domain.Entities;
 
-namespace Template.Infrastructure.Mapping;
+namespace Template.Application.Mapping;
 
 /// <summary>
 /// Профиль маппинга.
 /// </summary>
 public class MapperProfile
-    : Profile
+    : MappingProfileBase
 {
     /// <summary>
-    /// Инициализирует новый экземпляр <see cref="MapperProfile"/>. Содержит конфигурации маппингов.
+    /// Инициализирует новый экземпляр <see cref="MapperProfile"/> и регистрирует конфигурации маппингов.
     /// </summary>
     public MapperProfile()
     {

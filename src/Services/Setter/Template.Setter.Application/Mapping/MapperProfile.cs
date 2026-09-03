@@ -4,20 +4,20 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using AutoMapper;
+using Shared.Domain.Core.Mapping;
 using Template.Domain.Entities;
 using Template.Setter.Application.Abstractions.Features.Person.Create.Request;
 
-namespace Template.Setter.Infrastructure.Mapping;
+namespace Template.Setter.Application.Mapping;
 
 /// <summary>
 /// Профиль маппинга.
 /// </summary>
 public class MapperProfile
-    : Profile
+    : MappingProfileBase
 {
     /// <summary>
-    /// Инициализирует новый экземпляр <see cref="MapperProfile"/>. Содержит конфигурации маппингов.
+    /// Инициализирует новый экземпляр <see cref="MapperProfile"/> и регистрирует конфигурации маппингов.
     /// </summary>
     public MapperProfile()
     {

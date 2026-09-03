@@ -4,17 +4,18 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using AutoMapper;
+using Shared.Domain.Core.Mapping;
 
-namespace Template.Bff.Infrastructure.Mapping.Mapping;
+namespace Template.Bff.Application.Mapping;
 
 /// <summary>
 /// Профиль маппинга.
 /// </summary>
-public class MapperProfile : Profile
+public class MapperProfile
+    : MappingProfileBase
 {
     /// <summary>
-    /// Конструктор класса. Содержит конфигурации маппингов.
+    /// Инициализирует новый экземпляр <see cref="MapperProfile"/> и регистрирует конфигурации маппингов.
     /// </summary>
     public MapperProfile()
     {
