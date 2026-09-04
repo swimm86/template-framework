@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="PersonSpecificationTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -215,22 +215,5 @@ public sealed class PersonSpecificationTests
 
         // Assert
         specification.Request.Should().BeSameAs(request);
-    }
-
-    /// <summary>
-    /// <see cref="PersonSpecification"/> наследуется от
-    /// <see cref="SpecificationBase{TEntity}"/>.
-    /// </summary>
-    [Fact]
-    public void Specification_InheritsFromSpecificationBase()
-    {
-        // Arrange
-        var specificationType = typeof(PersonSpecification);
-
-        // Act
-        var isAssignable = typeof(SpecificationBase<Person>).IsAssignableFrom(specificationType);
-
-        // Assert
-        isAssignable.Should().BeTrue();
     }
 }

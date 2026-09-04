@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="AddCacheJobExtensionsTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -106,7 +106,7 @@ public sealed class AddCacheJobExtensionsTests
         var ctx = new ScheduledJobContext(
             options.Definitions[0].JobKey,
             sp,
-            CancellationToken.None)
+            TestContext.Current.CancellationToken)
         {
             Action = options.Definitions[0].Action,
         };
@@ -244,7 +244,7 @@ public sealed class AddCacheJobExtensionsTests
         var ctx = new ScheduledJobContext(
             options.Definitions[0].JobKey,
             sp,
-            CancellationToken.None)
+            TestContext.Current.CancellationToken)
         {
             Action = options.Definitions[0].Action,
         };
@@ -370,7 +370,7 @@ public sealed class AddCacheJobExtensionsTests
         var sp = services.BuildServiceProvider();
         var options = sp.GetRequiredService<JobSchedulerOptions>();
         var executor = sp.GetRequiredService<IScheduledJobExecutor>();
-        var ctx = new ScheduledJobContext(TestCacheKey, sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext(TestCacheKey, sp, TestContext.Current.CancellationToken)
         {
             JobType = options.Definitions[0].JobType,
         };
@@ -457,7 +457,7 @@ public sealed class AddCacheJobExtensionsTests
         var ctx = new ScheduledJobContext(
             TestCacheKey,
             sp,
-            CancellationToken.None)
+            TestContext.Current.CancellationToken)
         {
             Action = options.Definitions[0].Action,
             RetryOptions = RetryTestSupport.DefaultOptions(),
@@ -496,7 +496,7 @@ public sealed class AddCacheJobExtensionsTests
         var ctx = new ScheduledJobContext(
             TestCacheKey,
             sp,
-            CancellationToken.None)
+            TestContext.Current.CancellationToken)
         {
             Action = options.Definitions[0].Action,
             RetryOptions = RetryTestSupport.WithMaxAttempts(2),

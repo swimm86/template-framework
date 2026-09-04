@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="SqliteUnitOfWorkIntegrationTestBase.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;

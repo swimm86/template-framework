@@ -20,4 +20,10 @@
     <AdditionalFiles Include="..\..\..\stylecop.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Template.Setter.Application.Tests" />
+    <InternalsVisibleTo Include="Template.Getter.Application.Tests" />
+    <InternalsVisibleTo Include="Template.Bff.Application.Tests" />
+  </ItemGroup>
+
 </Project>

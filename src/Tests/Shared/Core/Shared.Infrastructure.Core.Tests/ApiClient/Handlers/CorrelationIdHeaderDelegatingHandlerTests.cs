@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="CorrelationIdHeaderDelegatingHandlerTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shared.Application.Core.CorrelationId;
@@ -30,7 +36,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
         // Act
-        await invoker.SendAsync(request, CancellationToken.None);
+        await invoker.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         stub.CapturedRequest.Should().NotBeNull();
@@ -58,7 +64,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var request = new HttpRequestMessage();
 
         // Act
-        await invoker.SendAsync(request, CancellationToken.None);
+        await invoker.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         stub.CapturedRequest!.Headers.GetValues(CorrelationIdHeader).Single().Should().Be(correlationId.ToString("D"));
@@ -85,7 +91,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
             var request = new HttpRequestMessage();
 
             // Act
-            await invoker.SendAsync(request, CancellationToken.None);
+            await invoker.SendAsync(request, TestContext.Current.CancellationToken);
 
             // Assert
             stub.CapturedRequest!.Headers.GetValues(CorrelationIdHeader).Single().Should().Be(jobCorrelationId.ToString("D"));
@@ -113,7 +119,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var request = new HttpRequestMessage { RequestUri = new Uri("https://example.com/test") };
 
         // Act
-        await invoker.SendAsync(request, CancellationToken.None);
+        await invoker.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         logger.LogEntries.Should().ContainSingle(entry => entry.Level == LogLevel.Error);
@@ -142,7 +148,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
 
         // Act
-        await invoker.SendAsync(request, CancellationToken.None);
+        await invoker.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         stub.CapturedRequest!.Headers.GetValues("X-Custom-Header").Single().Should().Be("custom-value");
@@ -169,7 +175,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         var request = new HttpRequestMessage();
 
         // Act
-        var response = await invoker.SendAsync(request, CancellationToken.None);
+        var response = await invoker.SendAsync(request, TestContext.Current.CancellationToken);
 
         // Assert
         response.Should().NotBeNull();
@@ -182,9 +188,7 @@ public sealed class CorrelationIdHeaderDelegatingHandlerTests
         HttpMessageHandler innerHandler)
     {
         var handler = new CorrelationIdHeaderDelegatingHandler(httpContextAccessor, logger);
-        typeof(DelegatingHandler)
-            .GetProperty("InnerHandler", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)!
-            .SetValue(handler, innerHandler);
+        handler.SetInnerHandlerForTesting(innerHandler);
         return handler;
     }
 

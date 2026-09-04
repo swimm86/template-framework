@@ -64,7 +64,10 @@ src/
 │   │   ├── Shared.Infrastructure.Dal.EFCore
 │   │   └── Shared.Infrastructure.Dal.EFCore.Postgres
 │   ├── Logging/                         # Логирование
-│   ├── Mapper/                          # Маппинг (AutoMapper)
+│   ├── Mapper/                          # Маппинг (провайдеро-независимый слой)
+│   │   ├── Shared.Infrastructure.Mapper.Core           # Базовый DI, NullMapper, MapperContextScope
+│   │   ├── Shared.Infrastructure.Mapper.AutoMapper     # AutoMapper 14.0.0 адаптер
+│   │   └── Shared.Infrastructure.Mapper.Mapster        # Mapster адаптер
 │   ├── Job/                             # Фоновые задачи
 │   └── Utils/                           # Утилиты
 │
@@ -94,7 +97,9 @@ src/
         ├── Logging/
         │   └── Shared.Infrastructure.Logging.Tests
         ├── Mapper/
-        │   └── Shared.Infrastructure.Mapper.AutoMapper.Tests
+        │   ├── Shared.Infrastructure.Mapper.AutoMapper.Tests
+        │   ├── Shared.Infrastructure.Mapper.Mapster.Tests
+        │   └── Shared.Infrastructure.Mapper.Tests        # Общие базовые классы (ConcurrencyTestBase, MapperTestBase, ProfileFeaturesTestBase, SqliteIntegrationTestBase)
         └── Utils/
             └── Shared.Utils.DatabaseUpgrade.Tests
 ```
@@ -125,7 +130,9 @@ src/
 | Компонент | Описание |
 |-----------|----------|
 | `Shared.Infrastructure.Logging` | Централизованное логирование |
-| `Shared.Infrastructure.Mapper.AutoMapper` | Настройка AutoMapper |
+| `Shared.Infrastructure.Mapper.Core` | Общая инфраструктура маппинга (DI-base, NullMapper, MapperContextScope) — без зависимости от провайдеров |
+| `Shared.Infrastructure.Mapper.AutoMapper` | Адаптер маппинга на AutoMapper 14.0.0 |
+| `Shared.Infrastructure.Mapper.Mapster` | Адаптер маппинга на Mapster |
 | `Shared.Infrastructure.Job.Quartz` | Планировщик задач Quartz.NET |
 | `Shared.Infrastructure.Job.Hangfire` | Планировщик задач Hangfire |
 | `Shared.Utils.DatabaseUpgrade` | Утилиты для миграции БД |
@@ -195,7 +202,7 @@ Service/
 └── Infrastructure/            # Инфраструктурные реализации
 ```
 
-> **Примечание:** `Abstractions` присутствует только в Getter/Setter. Bff использует 3-проектную структуру (без Abstractions, тк никто не знает о Bff, но Bff знает обо всех). В `Services/Common` дополнительно выделены `Domain`, `Infrastructure.Dal`, `Infrastructure.Mapping` и `Presentation`.
+> **Примечание:** `Abstractions` присутствует только в Getter/Setter. Bff использует 3-проектную структуру (без Abstractions, тк никто не знает о Bff, но Bff знает обо всех). В `Services/Common` дополнительно выделены `Domain`, `Infrastructure.Dal` и `Presentation`. Профили маппинга располагаются в `Template.Application/Mapping/MapperProfile.cs`.
 
 ### Common компоненты
 
@@ -204,10 +211,9 @@ Service/
 | Проект | Описание |
 |--------|----------|
 | `Template.Domain` | Доменные модели (Entities, ValueObjects, Enums) |
-| `Template.Application` | Общие сервисы приложения, валидаторы, behaviors |
+| `Template.Application` | Общие сервисы, behaviors, **Mapping-профили (`Mapping/MapperProfile.cs`)** |
 | `Template.Infrastructure` | Общая инфраструктура, HTTP clients |
 | `Template.Infrastructure.Dal` | EF Core конфигурации, репозитории |
-| `Template.Infrastructure.Mapping` | AutoMapper profiles |
 | `Template.Presentation` | Общие DTO, Response models, Swagger config |
 
 ---
@@ -230,7 +236,9 @@ Service/
 | `Shared.Infrastructure.Job.Quartz.Tests` | Unit-тесты для Quartz (планировщик, JobContext) |
 | `Shared.Infrastructure.Job.Hangfire.Tests` | Unit-тесты для Hangfire (планировщик, адаптер) |
 | `Shared.Infrastructure.Logging.Tests` | Unit-тесты для Logging (LogTask, логирование) |
-| `Shared.Infrastructure.Mapper.AutoMapper.Tests` | Unit-тесты для AutoMapper (конфигурация, IMapper) |
+| `Shared.Infrastructure.Mapper.Tests` | Общие базовые классы для тестов обоих адаптеров (ConcurrencyTestBase, MapperTestBase, ProfileFeaturesTestBase, интеграционные с SQLite) |
+| `Shared.Infrastructure.Mapper.AutoMapper.Tests` | Тесты AutoMapper-адаптера (конфигурация профилей, ProjectTo, behavior) |
+| `Shared.Infrastructure.Mapper.Mapster.Tests` | Тесты Mapster-адаптера (конфигурация, ProjectTo, эквивалентность AutoMapper) |
 | `Shared.Utils.DatabaseUpgrade.Tests` | Тесты для DatabaseUpgrade утилит (включая интеграционные) |
 | `Shared.Testing` | Библиотека helpers (FakeMapper, FakeRepository, FakeLogger, FakeUnitOfWork, TestEntity, ServiceProviderBuilder) |
 
@@ -365,7 +373,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 - [Cache](docs/cache.md) — CacheService<T>, ScopedMemoryCache, thundering herd prevention
 - [Configuration](docs/configuration.md) — .env support, GetOptions<TOptions>(), module-based resolution
 - [Correlation ID](docs/correlation-id.md) — distributed tracing, JobCorrelationContext
-- [Mapping](docs/mapping.md) — IMapper abstraction, AutoMapper, ConfigureCollection diff-merge
+- [Mapping](docs/mapping.md) — провайдеро-независимый слой маппинга: IMapper, MappingProfileBase, ITypeConverter, AutoMapper/Mapster адаптеры, ConfigureCollection diff-merge
 - [Logging](docs/logging.md) — LogTask, [LogMethod] attribute, Fody weaving
 - [NLog Configuration](docs/nlog-configuration.md) — NlogSettings, correlation layout renderers
 - [FluentValidation Integration](docs/fluent-validation-integration.md) — auto-discovery, pipeline validation
@@ -413,7 +421,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
 | [Cache](docs/cache.md) | CacheService<T>, ScopedMemoryCache | [Job Scheduler](docs/job-scheduler.md), [CQRS](docs/cqrs.md) |
 | [Configuration](docs/configuration.md) | .env, GetOptions<TOptions> | [Api Client](docs/api-client.md), [Controllers](docs/controllers.md) |
 | [Correlation ID](docs/correlation-id.md) | distributed tracing | [Api Client](docs/api-client.md), [Logging](docs/logging.md), [Job Scheduler](docs/job-scheduler.md) |
-| [Mapping](docs/mapping.md) | IMapper, ConfigureCollection | [CQRS](docs/cqrs.md), [EF Core](docs/efcore-internals.md) |
+| [Mapping](docs/mapping.md) | IMapper, MappingProfileBase, ITypeConverter, ResolutionContext, ConfigureCollection | [CQRS](docs/cqrs.md), [EF Core](docs/efcore-internals.md), [Auto-Registration](docs/auto-registration.md), [Service Startup](docs/service-startup.md) |
 | [Job Scheduler](docs/job-scheduler.md) | `IScheduledJob`, `IJobScheduler`, middleware pipeline | [Cache](docs/cache.md), [Correlation ID](docs/correlation-id.md) |
 | [Logging](docs/logging.md) | LogTask, [LogMethod] | [Pipeline Behaviors](docs/pipeline-behaviors.md), [NLog](docs/nlog-configuration.md) |
 | [NLog Configuration](docs/nlog-configuration.md) | NlogSettings, layout renderers | [Logging](docs/logging.md), [Correlation ID](docs/correlation-id.md) |
@@ -458,7 +466,7 @@ dotnet run --project Services/DatabaseUpgrade/Template.DatabaseUpgrade
    ├── Template.MyNewService.Application.Abstractions/  # Контракты (IClient, CQRS interfaces)
    └── Template.MyNewService.Infrastructure/            # Infrastructure
    ```
-   - **Common-стиль** — копируйте из `Services/Common` (используется для переиспользуемых компонентов, включает `Domain`, `Infrastructure.Dal`, `Infrastructure.Mapping`, `Presentation`).
+   - **Common-стиль** — копируйте из `Services/Common` (используется для переиспользуемых компонентов, включает `Domain`, `Infrastructure.Dal`, `Presentation`; профили маппинга — в `Application/Mapping/MapperProfile.cs`).
 
 2. **Обновите namespace'ы** — замените `Template.MyNewService` на ваш namespace
 

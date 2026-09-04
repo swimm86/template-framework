@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="EfRepositoryTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -1031,7 +1031,7 @@ public sealed class EfRepositoryTests
         context.Entities.Add(CreateEntity());
 
         // Act
-        await repo.SaveChangesAsync(CancellationToken.None);
+        await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         context.Entities.Should().HaveCount(1);

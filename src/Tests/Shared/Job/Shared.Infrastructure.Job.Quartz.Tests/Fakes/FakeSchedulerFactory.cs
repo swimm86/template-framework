@@ -1,35 +1,36 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="FakeSchedulerFactory.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Moq;
+using NSubstitute;
 using Quartz;
 
 namespace Shared.Infrastructure.Job.Quartz.Tests.Fakes;
 
 /// <summary>
 /// Заглушка <see cref="ISchedulerFactory"/>, которая всегда возвращает один и тот же
-/// <see cref="IScheduler"/> из <see cref="SchedulerMock"/>.
+/// <see cref="IScheduler"/> из <see cref="Scheduler"/>.
 /// Используется только в unit-тестах.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Вся <see cref="IScheduler"/> описана через <c>Mock&lt;IScheduler&gt;</c> — это снимает
-/// необходимость поддерживать руками полный stub при каждом обновлении версии Quartz.
+/// <see cref="IScheduler"/> сгенерирован через <c>Substitute.For&lt;IScheduler&gt;()</c> —
+/// это снимает необходимость поддерживать руками полный stub при каждом обновлении версии Quartz.
 /// </para>
 /// <para>
-/// Тест получает <see cref="SchedulerMock"/>, настраивает expectations и
-/// верифицирует вызовы через стандартный API Moq.
+/// Тест получает <see cref="Scheduler"/>, настраивает expectations и
+/// верифицирует вызовы через стандартный API NSubstitute (<see cref="NSubstitute.SubstituteExtensions"/>
+/// и <c>ReceivedCalls()</c>).
 /// </para>
 /// </remarks>
 internal sealed class FakeSchedulerFactory : ISchedulerFactory
 {
     /// <summary>
-    /// Mock, описывающий поведение возвращаемого планировщика.
+    /// Substitute, описывающий поведение возвращаемого планировщика.
     /// </summary>
-    public Mock<IScheduler> SchedulerMock { get; } = new();
+    public IScheduler Scheduler { get; } = Substitute.For<IScheduler>();
 
     /// <summary>
     /// Журнал вызовов <see cref="GetScheduler(CancellationToken)"/>.
@@ -40,7 +41,7 @@ internal sealed class FakeSchedulerFactory : ISchedulerFactory
     public Task<IScheduler> GetScheduler(CancellationToken cancellationToken = default)
     {
         GetSchedulerCalls.Add(cancellationToken);
-        return Task.FromResult(SchedulerMock.Object);
+        return Task.FromResult(Scheduler);
     }
 
     /// <inheritdoc />
@@ -57,5 +58,5 @@ internal sealed class FakeSchedulerFactory : ISchedulerFactory
     /// Не используется в тестируемых сценариях; возвращаем фиктивные данные.
     /// </summary>
     public Task<IReadOnlyList<IScheduler>> GetAllSchedulers(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<IScheduler>>([SchedulerMock.Object]);
+        Task.FromResult<IReadOnlyList<IScheduler>>([Scheduler]);
 }

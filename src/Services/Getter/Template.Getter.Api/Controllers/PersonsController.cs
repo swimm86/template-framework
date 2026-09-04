@@ -5,7 +5,6 @@
 // ----------------------------------------------------------------------------------------------
 
 using MediatR;
-using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Core.Dto.Responses;
 using Template.Getter.Api.Controllers.Base;
 using Template.Getter.Application.Abstractions.Features.Person.List.Request;
@@ -21,8 +20,8 @@ namespace Template.Getter.Api.Controllers;
 public sealed class PersonsController(
     IPersonsService personsService,
     ISender sender,
-    ILogger<PersonsController> logger)
-    : GetterControllerBase(logger)
+    ILoggerFactory loggerFactory)
+    : GetterControllerBase(loggerFactory)
 {
     /// <summary>
     /// Возвращает коллекцию сущностей "Персона" через слой приложения (без CQRS).

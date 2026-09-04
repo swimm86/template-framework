@@ -26,10 +26,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Shared.Infrastructure.Core\Shared.Infrastructure.Core.csproj" />
+    <ProjectReference Include="..\Shared.Infrastructure.Mapper.Core\Shared.Infrastructure.Mapper.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Extensions\" />
-  </ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="Shared.Infrastructure.Mapper.AutoMapper.Tests" />
+	</ItemGroup>
 
 </Project>

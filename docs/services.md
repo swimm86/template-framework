@@ -89,8 +89,10 @@ public class Person : EntityBase<Guid>
 
 | Паттерн | Где показан | Файл |
 |---------|-------------|------|
-| **AutoMapper Profile** | Common | `src/Services/Common/Template.Infrastructure.Mapping/MapperProfile.cs` |
-| **DTO ↔ Entity** | Все сервисы | `CreateMap<Person, PersonDto>()` |
+| **MappingProfile** | Common | `src/Services/Common/Template.Application/Mapping/MapperProfile.cs` (наследует `MappingProfileBase`) |
+| **Provider-agnostic Profile** | Все сервисы | `MappingProfileBase` из `Shared.Domain.Core` — без зависимости от AutoMapper/Mapster |
+| **DTO ↔ Entity** | Все сервисы | `CreateMap<Person, PersonDto>()` через `IMappingExpression` |
+| **ConfigureCollection (diff-merge)** | Все сервисы | `.ConfigureCollection<TDto, TEntity>()` в `MapperProfile.cs` |
 
 ### HTTP Client
 
@@ -131,17 +133,15 @@ Bff/
 │   │   └── PersonController.cs          # POST /person/list, /person/create
 │   └── DependencyInjection/
 │       └── DependencyInjector.cs        # Регистрация HTTP-клиентов
-├── Template.Bff.Application/            # CQRS (запросы к другим сервисам)
+├── Template.Bff.Application/            # CQRS (запросы к другим сервисам), маппинг
 │   ├── Features/Queries/Person/Cqrs/List/
 │   │   ├── PersonListQuery.cs
 │   │   ├── PersonListQueryHandler.cs    # выбирает GetPersonsPattern по UseCqrs
 │   │   └── Requests/PersonListRequest.cs
 │   ├── HttpClients/                     # GetterClient, SetterClient
 │   ├── Interfaces/HttpClients/          # IGetterClient, ISetterClient
-│   └── HttpClients/Enums/               # GetPersonsPattern (Services | Cqrs)
-└── Template.Bff.Infrastructure/         # Маппинг, конфигурация
-    ├── Mapping/
-    └── DependencyInjection/
+│   ├── HttpClients/Enums/               # GetPersonsPattern (Services | Cqrs)
+│   └── Mapping/                         # ← MapperProfile.cs (MappingProfileBase)
 ```
 
 > **Важно:** проекта `Template.Bff.Abstractions` **не существует** — абстракции DTO лежат внутри `Template.Bff.Application`. Контракты, разделяемые с другими сервисами, находятся в `Template.Getter.Application.Abstractions` / `Template.Setter.Application.Abstractions` (см. ниже).
@@ -171,7 +171,6 @@ Getter/
 └── Template.Getter.Infrastructure/               # EF Core, конфигурации
     ├── Specifications/
     ├── Dal/Configuration/
-    ├── Mapping/MapperProfile.cs
     └── DependencyInjection/
 ```
 
@@ -197,26 +196,24 @@ Setter/
 │       ├── Common/Dto/                           # (пустая папка — зарезервировано)
 │       ├── Create/Request/PersonCreateRequest.cs
 │       └── Create/Response/PersonCreateResponse.cs
-└── Template.Setter.Infrastructure/               # Mapping, persistence
-    ├── Mapping/MapperProfile.cs
+└── Template.Setter.Infrastructure/               # EF Core, persistence
     ├── Dal/Configuration/PersonConfigurations.cs
     └── DependencyInjection/
 ```
 
 > **Примечание:** в отличие от Getter, `Features/Person/Create/` (с прописной/строчной `Request/` / `Response/`) находится **внутри** `Template.Setter.Application`, а в `Abstractions/.../Create/` — `Request/`, `Response/` (синглтон-папки). Папки `Requests/`, `Responses/` (множественное число) **не существуют** — опечатка в старой версии документации.
 
-### Common (Shared between services) — 6 проектов
+### Common (Shared between services) — 5 проектов
 
 | Проект | Назначение |
 |--------|-----------|
 | `Template.Domain` | Сущности (Person) |
-| `Template.Application` | Общие сервисы, behaviors |
+| `Template.Application` | Общие сервисы, behaviors, **Mapping-профили** (`src/Services/Common/Template.Application/Mapping/MapperProfile.cs`, наследует `MappingProfileBase`) |
 | `Template.Infrastructure` | HTTP clients, внешние сервисы |
 | `Template.Infrastructure.Dal` | EF Core конфигурации |
-| `Template.Infrastructure.Mapping` | AutoMapper profiles (`src/Services/Common/Template.Infrastructure.Mapping/MapperProfile.cs`) |
 | `Template.Presentation` | Общие DTO, Swagger config |
 
-> **Важно:** `MapperProfile.cs` находится именно в `src/Services/Common/Template.Infrastructure.Mapping/MapperProfile.cs`, **не** в `Common/MapperProfile.cs` (последний путь в старой версии документации был неточным).
+> **Важно:** `MapperProfile.cs` находится именно в `src/Services/Common/Template.Application/Mapping/MapperProfile.cs` (а не в `Template.Infrastructure.Mapping/` — этот проект удалён после миграции на провайдеро-независимый слой маппинга). Класс наследует `Shared.Domain.Core.Mapping.MappingProfileBase`, а не AutoMapper `Profile`.
 
 ---
 
@@ -226,6 +223,6 @@ Setter/
 - [CQRS](cqrs.md) — паттерн команд и запросов
 - [Repository](repository.md) — доступ к данным
 - [Api Client](api-client.md) — HTTP-клиенты с валидацией
-- [Mapping](mapping.md) — AutoMapper интеграция
+- [Mapping](mapping.md) — провайдеро-независимый слой маппинга (AutoMapper/Mapster адаптеры)
 - [Service Startup](service-startup.md) — bootstrap-флоу
 - [Filtering & Sorting Guide](filtering-sorting-guide.md) — BFF routing Services vs Cqrs

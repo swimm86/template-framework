@@ -17,8 +17,8 @@ namespace Template.Bff.Api.Controllers;
 /// </summary>
 public class TestController(
     ISender sender,
-    ILogger<TestController> logger)
-    : BffControllerBase(logger)
+    ILoggerFactory loggerFactory)
+    : BffControllerBase(loggerFactory)
 {
     /// <summary>
     /// Запускает сквозную цепочку вызовов BFF → Setter → Getter для проверки проброса

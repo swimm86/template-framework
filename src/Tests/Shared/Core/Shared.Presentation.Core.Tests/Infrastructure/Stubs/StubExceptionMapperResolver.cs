@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="StubExceptionMapperResolver.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Application.Core.Dto.Responses;
 using Shared.Presentation.Core.Exceptions.Interfaces;
 

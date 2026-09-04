@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Common\Template.Infrastructure.Dal\Template.Infrastructure.Dal.csproj" />
-    <ProjectReference Include="..\..\Common\Template.Infrastructure.Mapping\Template.Infrastructure.Mapping.csproj" />
     <ProjectReference Include="..\Template.Setter.Application\Template.Setter.Application.csproj" />
   </ItemGroup>
 

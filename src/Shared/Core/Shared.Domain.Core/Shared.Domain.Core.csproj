@@ -26,4 +26,11 @@
     <ProjectReference Include="..\Shared.Common\Shared.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Shared.Infrastructure.Mapper.AutoMapper" />
+    <InternalsVisibleTo Include="Shared.Infrastructure.Mapper.Mapster" />
+    <InternalsVisibleTo Include="Shared.Infrastructure.Mapper.Core" />
+    <InternalsVisibleTo Include="Shared.Domain.Core.Tests" />
+  </ItemGroup>
+
 </Project>

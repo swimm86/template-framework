@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="UpdateCommandHandlerTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using FluentValidation;
 using Shared.Application.Cqrs.Core.Abstractions.Commands.Handlers;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;

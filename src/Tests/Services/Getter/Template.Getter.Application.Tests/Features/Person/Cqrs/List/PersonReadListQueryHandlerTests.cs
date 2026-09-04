@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="PersonReadListQueryHandlerTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -152,17 +152,19 @@ public sealed class PersonReadListQueryHandlerTests
     }
 
     /// <summary>
-    /// <see cref="PersonReadListQueryHandler"/> пробрасывает <see cref="CancellationToken"/>
-    /// в репозиторий.
+    /// <see cref="PersonReadListQueryHandler"/> пробрасывает в <c>repository.GetRangeAsync</c>
+    /// тот же экземпляр <see cref="CancellationToken"/>, что был передан в <c>Handle</c>
+    /// (identity, а не просто <c>CanBeCanceled</c>).
     /// </summary>
     [Fact]
-    public async Task Handle_PassesCancellationTokenToRepo()
+    public async Task Handle_ForwardsExactCancellationTokenToRepositoryGetRange()
     {
         // Arrange
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var uniqueToken = linkedCts.Token;
         var unitOfWork = new Shared.Testing.Doubles.Repository.FakeUnitOfWork();
-        var repository = unitOfWork.GetOrCreateRepository<PersonEntity>();
-        Seed(repository, 5);
-        repository.ExceptionToThrowOnGet = new OperationCanceledException();
+        var fakeRepository = unitOfWork.GetOrCreateRepository<PersonEntity>();
+        Seed(fakeRepository, 5);
         var sut = new PersonReadListQueryHandler(NullLoggerFactory.Instance, unitOfWork);
         var query = new PersonListQuery(new PersonListRequest(DalPattern.UnitOfWork)
         {
@@ -170,11 +172,18 @@ public sealed class PersonReadListQueryHandlerTests
             PageSize = 10,
         });
 
-        // Act
-        var act = () => sut.Handle(query, TestContext.Current.CancellationToken);
+        try
+        {
+            // Act
+            await sut.Handle(query, uniqueToken);
 
-        // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
+            // Assert
+            fakeRepository.LastGetRangeCancellationToken.Should().Be(uniqueToken);
+        }
+        finally
+        {
+            linkedCts.Dispose();
+        }
     }
 
     /// <summary>

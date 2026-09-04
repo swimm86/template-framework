@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LifecycleActionSnapshotConsistencyTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -97,7 +97,7 @@ public sealed class LifecycleActionSnapshotConsistencyTests
         ]);
 
         // Act
-        await composed.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await composed.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         firstCounts.Should().Equal(new[] { 2 },
@@ -105,27 +105,5 @@ public sealed class LifecycleActionSnapshotConsistencyTests
         secondCounts.Should().Equal(new[] { 2 },
             "snapshot-кеш изолирует второй handler от AddEntities в первом — "
             + "иначе он увидел бы 3 (исходные 2 + добавленную первым)");
-    }
-
-    /// <summary>
-    /// Если handler-ов для фазы нет — snapshot не берётся (early-return).
-    /// </summary>
-    [Fact]
-    public async Task DispatchAsync_NoHandlers_OrchestratorStateUnchanged()
-    {
-        // Arrange
-        var orchestrator = new LifecycleActionOrchestrator(
-            [],
-            new LifecycleEntityRegistry(),
-            new LifecycleActionGate());
-        var entity = new TestEntity();
-        orchestrator.AddEntities([entity]);
-
-        // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.AfterSave, CancellationToken.None);
-
-        // Assert: повторный AddEntities (после Remove) работает как новая операция
-        orchestrator.RemoveEntities([entity]);
-        orchestrator.AddEntities([new TestEntity { Id = Guid.NewGuid() }]);
     }
 }

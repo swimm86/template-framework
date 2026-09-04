@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="QueryableExtensionsTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Shared.Domain.Core.Dal.Repository.Models;

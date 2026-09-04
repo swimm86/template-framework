@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="InMemoryDbContextOptionsBuilderInitializer.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Core.Dal.Settings.Models.Base;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;

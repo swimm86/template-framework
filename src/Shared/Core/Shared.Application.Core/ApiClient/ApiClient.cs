@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="ApiClient.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -253,7 +253,7 @@ public abstract partial class ApiClient
         Dictionary<string, string>? queryParams)
     {
         return queryParams?.Any() == true
-            ? relativePath + QueryString.Create(queryParams)
+            ? relativePath + QueryString.Create(queryParams!)
             : relativePath;
     }
 

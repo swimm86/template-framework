@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="UnauthorizedExceptionMapperTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Domain.Core.Exceptions.Models;
 using Shared.Presentation.Core.Exceptions.Mappers;
 using Shared.Presentation.Core.Exceptions.Models;

@@ -19,7 +19,7 @@ namespace Shared.Application.Core.Dal.DbSeeder.Implementation;
 /// <summary>
 /// Сервис для применения seed-процессов к базе данных.
 /// </summary>
-public class DbSeeder(
+public sealed class DbSeeder(
     IUnitOfWork unitOfWork,
     IServiceProvider serviceProvider,
     ILogger<DbSeeder>? logger = null)

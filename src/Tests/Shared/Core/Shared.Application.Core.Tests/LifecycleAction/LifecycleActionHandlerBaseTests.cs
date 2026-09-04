@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LifecycleActionHandlerBaseTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -102,7 +102,7 @@ public sealed class LifecycleActionHandlerBaseTests
         ];
 
         // Act
-        await handler.ExecuteAsync(mixed, CancellationToken.None);
+        await handler.ExecuteAsync(mixed, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().ContainSingle();
@@ -122,7 +122,7 @@ public sealed class LifecycleActionHandlerBaseTests
         ICollection<IEntity> onlyOthers = [new OtherEntity(), new OtherEntity()];
 
         // Act
-        await handler.ExecuteAsync(onlyOthers, CancellationToken.None);
+        await handler.ExecuteAsync(onlyOthers, TestContext.Current.CancellationToken);
 
         // Assert
         handler.Calls.Should().BeEmpty();

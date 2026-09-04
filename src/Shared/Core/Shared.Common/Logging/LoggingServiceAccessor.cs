@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LoggingServiceAccessor.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -16,7 +16,7 @@ namespace Shared.Common.Logging;
 /// </summary>
 public static class LoggingServiceAccessor
 {
-    private static volatile ILoggerFactory? _loggerFactory;
+    private static readonly AsyncLocal<ILoggerFactory?> LoggerFactory = new();
 
     /// <summary>
     /// Конфигурирует аксессор, извлекая <see cref="ILoggerFactory"/> из <see cref="IServiceProvider"/>.
@@ -25,7 +25,7 @@ public static class LoggingServiceAccessor
     /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     public static void Configure(IServiceProvider serviceProvider)
     {
-        _loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+        LoggerFactory.Value = serviceProvider.GetService<ILoggerFactory>();
     }
 
     /// <summary>
@@ -36,8 +36,8 @@ public static class LoggingServiceAccessor
     public static ILogger? GetLogger(Type type)
     {
         Debug.Assert(
-            _loggerFactory != null,
+            LoggerFactory.Value != null,
             $"{nameof(LoggingServiceAccessor)}.{nameof(Configure)} was not called.");
-        return _loggerFactory?.CreateLogger(type);
+        return LoggerFactory.Value?.CreateLogger(type);
     }
 }

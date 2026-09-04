@@ -1,4 +1,10 @@
-﻿using Shared.Utils.DatabaseUpgrade.Tests.Support;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="DbUtilsScriptIntegrationTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Shared.Utils.DatabaseUpgrade.Tests.Support;
 using Testcontainers.PostgreSql;
 
 namespace Shared.Utils.DatabaseUpgrade.Tests;

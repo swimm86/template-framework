@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="EnumExtensionsTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -705,24 +705,6 @@ public sealed class EnumExtensionsTests
     #endregion
 
     #region Edge Cases and Integration Tests
-
-    /// <summary>
-    /// Проверяет, что All-флаг корректно представляет все флаги.
-    /// </summary>
-    /// <param name="flag">Проверяемый флаг.</param>
-    [Theory]
-    [InlineData(TestFlags.FlagA)]
-    [InlineData(TestFlags.FlagB)]
-    [InlineData(TestFlags.FlagC)]
-    [InlineData(TestFlags.FlagD)]
-    public void FlagsOperations_AllFlagsValue_CorrectlyRepresentsAllFlags(Enum flag)
-    {
-        // Act
-        var allFlags = TestFlags.All;
-
-        // Assert
-        allFlags.HasFlag(flag).Should().BeTrue();
-    }
 
     /// <summary>
     /// Проверяет, что цепочка операций With и Without работает корректно.

@@ -26,49 +26,9 @@
     <ProjectReference Include="..\..\Shared.Testing\Shared.Testing.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Infrastructure\**" />
-    <Compile Remove="Abstractions\**" />
-    <Compile Remove="Features\**" />
-    <Compile Include="Infrastructure\TestDoubles\TestModels.cs" />
-    <Compile Include="Infrastructure\TestDoubles\FakeValidator.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestRequestHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestRequestHandlerThatThrows.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestEntityRequestHandlers.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestReadByKeyQuery.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestListFilter.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestPageableRequest.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestPageableResponse.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestReadListQuery.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestReadQueryHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestReadListQueryHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestEntityWithoutDateCreated.cs" />
-    <Compile Include="Infrastructure\TestDoubles\GuardThrowingReadQueryHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\NoDateCreatedHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\PostProcessTrackingReadListQueryHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\OptionsCapturingReadListQueryHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\OptionsCapturingNoDateCreatedReadListQueryHandler.cs" />
-    <Compile Include="Infrastructure\TestDoubles\CallbackRepository.cs" />
-    <Compile Include="Infrastructure\TestDoubles\CallbackUnitOfWork.cs" />
-    <Compile Include="Infrastructure\TestDoubles\FakeUserProvider.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestCommandHandlers.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestDeleteCommand.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestCloneCommand.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestUpdateCommand.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestCreateCommand.cs" />
-    <Compile Include="Infrastructure\TestDoubles\TestEntityRemoveCommand.cs" />
-    <Compile Include="Abstractions\RequestHandlerTests.cs" />
-    <Compile Include="Abstractions\EntityRequestHandlerTests.cs" />
-    <Compile Include="Abstractions\Queries\Requests\ReadByKeyQueryTests.cs" />
-    <Compile Include="Abstractions\Queries\Requests\ReadListQueryTests.cs" />
-    <Compile Include="Abstractions\Queries\Handlers\ReadQueryHandlerTests.cs" />
-    <Compile Include="Abstractions\Queries\Handlers\ReadListQueryHandlerTests.cs" />
-    <Compile Include="Abstractions\Commands\Handlers\CreateCommandHandlerTests.cs" />
-    <Compile Include="Abstractions\Commands\Handlers\DeleteCommandHandlerTests.cs" />
-    <Compile Include="Abstractions\Commands\Handlers\CloneCommandHandlerTests.cs" />
-    <Compile Include="Abstractions\Commands\Handlers\UpdateCommandHandlerTests.cs" />
-    <Compile Include="Abstractions\Commands\Responses\ResponseRecordsTests.cs" />
-    <Compile Include="Features\Entity\Remove\EntityRemoveCommandTests.cs" />
-    <Compile Include="Features\Entity\Remove\EntityRemoveCommandHandlerTests.cs" />
+    <Using Include="FluentAssertions" />
+    <Using Include="Shared.Testing.Doubles.Infrastructure" />
+    <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="FluentAssertions" />

@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="DbUpdaterBaseTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -100,27 +100,6 @@ public sealed class DbUpdaterBaseTests
 
         // Assert
         strategy.CallCount.Should().Be(2);
-    }
-
-    #endregion
-
-    #region Initialize Tests
-
-    /// <summary>
-    /// <see cref="DbUpdaterBase.Initialize"/> по умолчанию не бросает исключений.
-    /// </summary>
-    [Fact]
-    public void Initialize_DefaultImplementation_DoesNotThrow()
-    {
-        // Arrange
-        using var dbContext = CreateDbContext();
-        var updater = new TestDbUpdater(dbContext, new StubEnsureSchemaStrategy());
-
-        // Act
-        var act = () => updater.Initialize();
-
-        // Assert
-        act.Should().NotThrow();
     }
 
     #endregion

@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Core\Shared.Infrastructure.Core\Shared.Infrastructure.Core.csproj" />
     <ProjectReference Include="..\..\..\Shared\Logging\Shared.Infrastructure.Logging\Shared.Infrastructure.Logging.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Mapper\Shared.Infrastructure.Mapper.Mapster\Shared.Infrastructure.Mapper.Mapster.csproj" />
     <ProjectReference Include="..\Template.Application\Template.Application.csproj" />
   </ItemGroup>
 

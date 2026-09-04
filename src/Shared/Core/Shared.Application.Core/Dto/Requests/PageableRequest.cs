@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using FluentValidation;
 using Shared.Common.Batch;
 using Shared.Common.Extensions;
 using Shared.Domain.Core.Dal;
@@ -45,30 +44,59 @@ public abstract record PageableRequest
     /// <summary>
     /// Преобразует настройки сортировки в коллекцию экземпляров класса <see cref="SortOption"/>.
     /// </summary>
+    /// <remarks>
+    /// Формат элемента: <c>"key.direction"</c>, где разделитель — <see cref="ValueDelimiter"/>.
+    /// Если направление не указано (строка не содержит разделителя), сортировка выполняется
+    /// по возрастанию (<see cref="OrderDirectionType.Ascending"/>).
+    /// Префиксные и постфиксные пробелы вокруг ключа и направления игнорируются.
+    /// </remarks>
     /// <returns>Коллекция экземпляров класса <see cref="SortOption"/>.</returns>
+    /// <exception cref="ArgumentException">
+    /// Выбрасывается при невалидном входе: пустой ключ (например, <c>".asc"</c> или <c>"."</c>),
+    /// пустой сегмент направления (например, <c>"Name."</c>),
+    /// или если сегмент направления не соответствует ни одному элементу
+    /// <see cref="OrderDirectionType"/> по его <c>Description</c>-атрибуту (например, <c>"Name.invalid"</c>).
+    /// </exception>
     public ICollection<SortOption> ConvertSortOptions()
     {
-        if (!SortOptions?.Any() ?? true)
+        if (SortOptions?.Any() != true)
         {
             return [];
         }
 
         return SortOptions
-            .Where(value => !string.IsNullOrEmpty(value))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value =>
             {
-                var sortOptionValues = value.Split(ValueDelimiter);
+                var segments = value
+                    .Split(ValueDelimiter)
+                    .Select(segment => segment.Trim())
+                    .ToArray();
+
+                if (segments.Length == 1)
+                {
+                    return new SortOption(
+                        key: segments[0],
+                        directionType: OrderDirectionType.Ascending);
+                }
+
+                var key = string.Join(ValueDelimiter, segments[..^1]);
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    throw new ArgumentException(
+                        $"Invalid sort key in '{value}': key must not be empty.");
+                }
+
                 return new SortOption(
-                    key: string.Join(ValueDelimiter, sortOptionValues[..^1]),
-                    directionType: GetDirectionType(
-                        sortOptionValues.ElementAtOrDefault(sortOptionValues.Length - 1)));
+                    key: key,
+                    directionType: GetDirectionType(segments[^1]));
             })
             .ToList();
     }
 
     private static OrderDirectionType GetDirectionType(string? str) =>
-        str.GetEnumValueByDescription<OrderDirectionType>() ??
-        throw new ValidationException($"Invalid sort direction: '{str}'");
+        str.GetEnumValueByDescription<OrderDirectionType>()
+            ?? throw new ArgumentException($"Invalid sort direction: '{str}'");
 }
 
 /// <summary>

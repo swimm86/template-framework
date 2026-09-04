@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="TestException.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Domain.Core.Exceptions.Models.Base;
 
 namespace Shared.Presentation.Core.Tests.Infrastructure.TestDoubles;

@@ -182,12 +182,13 @@ var request = new PersonListRequest(DalPattern.Specification)
 
 ## Формат сортировки
 
-Сортировка задаётся в формате: `"поле.направление"`, где разделитель — символ `.` (точка), определённый в `PageableRequest.ValueDelimiter`.
+Сортировка задаётся в формате: `"поле.направление"`, где разделитель — символ `.` (точка), определённый в `PageableRequest.ValueDelimiter`. Если направление не указано (строка не содержит разделителя), сортировка выполняется по возрастанию — это соответствует конвенциям OData, JSON:API и EF Core.
 
 ### Примеры:
 - `"name.asc"` — сортировка по имени по возрастанию
 - `"email.desc"` — сортировка по email по убыванию
 - `"createdDate.asc"` — сортировка по дате создания по возрастанию
+- `"name"` — сортировка по имени по возрастанию (дефолт)
 
 ### Множественная сортировка:
 ```csharp
@@ -195,13 +196,29 @@ SortOptions = new List<string>
 {
     "name.asc",      // Сначала по имени (A-Z)
     "email.desc",    // Затем по email (Z-A)
-    "age.asc"        // Затем по возрасту (младшие сначала)
+    "age"            // Затем по возрасту (младшие сначала, по умолчанию Ascending)
 }
 ```
 
 ### Как работает ConvertSortOptions
 
-Метод `PageableRequest.ConvertSortOptions()` разбирает строки `"key.direction"` разделённые точкой, при этом ключ может содержать точки, а направление — это последнее значение. Направление маппится через `Description`-атрибут enum'а `OrderDirectionType` (`"asc"` → `Ascending`, `"desc"` → `Descending`). При некорректном направлении выбрасывается `ValidationException`.
+Метод `PageableRequest.ConvertSortOptions()` разбирает строки формата `"key.direction"`, разделённые точкой: ключ может содержать точки, а направление — это последнее значение. Префиксные и постфиксные пробелы вокруг ключа и направления игнорируются. Направление маппится через `Description`-атрибут enum'а `OrderDirectionType` (`"asc"` → `Ascending`, `"desc"` → `Descending`) без учёта регистра. Если строка не содержит разделителя, вся строка используется как ключ, а направление по умолчанию — `Ascending`.
+
+**Ошибки парсинга** — единый тип исключения `System.ArgumentException`:
+
+| Сценарий | Результат |
+|----------|-----------|
+| Пустой ключ (`".asc"`, `"."`) | `ArgumentException` |
+| Пустое направление (`"Name."`) | `ArgumentException` |
+| Неизвестное направление (`"Name.invalid"`) | `ArgumentException` |
+| Пустые/whitespace строки в коллекции | Отбрасываются (не бросают) |
+| `null` элемент в коллекции | Отбрасывается (не бросает) |
+| Смешанные valid + invalid | `ArgumentException` (fail-fast, частичный результат не возвращается) |
+
+**Валидация `PageNumber` и `PageSize`** обеспечивается на двух уровнях:
+
+1. `PageableRequestValidator` (FluentValidator) — срабатывает на API-boundary через `AddFluentValidationAutoValidation`.
+2. `HttpRequestExtensions.BatchSelectPagesAsync` (execution-time) — `ArgumentOutOfRangeException`, если валидатор не отработал. Защита нужна потому, что свойства `PageNumber` и `PageSize` мутируются внутри батчинга, и валидация на construction (setter) сделала бы валидатор мёртвым кодом.
 
 ## Реализация в контроллерах
 
@@ -405,7 +422,7 @@ var options = new QueryOptions<User>()
 Система автоматически обрабатывает следующие ошибки:
 
 - Некорректные имена полей в `SortOption` — свойство игнорируется, если не найдено в сущности
-- Некорректное направление сортировки — выбрасывается `ValidationException`
+- Некорректный ввод `SortOptions` — выбрасывается `ArgumentException`
 - Для `bool`-свойств направление автоматически инвертируется при сортировке
 
 Пример ошибки невалидного направления:

@@ -62,7 +62,7 @@ public class EfUnitOfWork<TDbContext>
     /// <summary>
     /// Конструктор по умолчанию.
     /// </summary>
-    /// <param name="dbContext"><see cref="TDbContext"/>.</param>
+    /// <param name="dbContext">Контекст взаимодействия с БД (<see cref="Microsoft.EntityFrameworkCore.DbContext"/>).</param>
     /// <param name="serviceProvider">Провайдер сервисов для получения зависимостей.</param>
     /// <param name="settings">Настройки.</param>
     /// <param name="lifecycleActionOrchestrator"><inheritdoc cref="ILifecycleActionOrchestrator" path="/summary"/></param>

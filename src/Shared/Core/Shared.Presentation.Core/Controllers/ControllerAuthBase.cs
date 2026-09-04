@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="ControllerAuthBase.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -15,5 +15,5 @@ namespace Shared.Presentation.Core.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-public abstract class ControllerAuthBase(ILogger logger)
-    : ControllerBase(logger);
+public abstract class ControllerAuthBase(ILoggerFactory loggerFactory)
+    : ControllerBase(loggerFactory);

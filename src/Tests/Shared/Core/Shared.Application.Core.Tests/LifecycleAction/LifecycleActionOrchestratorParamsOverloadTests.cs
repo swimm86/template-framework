@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LifecycleActionOrchestratorParamsOverloadTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -121,7 +121,7 @@ public sealed class LifecycleActionOrchestratorParamsOverloadTests
         orchestrator.IsActionEnabled(other, "my-key", LifecyclePhase.BeforeSave)
             .Should().BeTrue("для other действие НЕ должно быть затронуто");
 
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         handler.CallCount.Should().Be(1, "handler должен быть вызван ровно один раз — для other");
     }

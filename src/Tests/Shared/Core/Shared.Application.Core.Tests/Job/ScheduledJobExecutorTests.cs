@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="ScheduledJobExecutorTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -35,7 +35,7 @@ public sealed class ScheduledJobExecutorTests
         var ctx = new ScheduledJobContext(
             jobKey: "test",
             serviceProvider: sp,
-            cancellationToken: CancellationToken.None)
+            cancellationToken: TestContext.Current.CancellationToken)
         {
             Action = (_, _) =>
             {
@@ -63,7 +63,7 @@ public sealed class ScheduledJobExecutorTests
         var sp = services.BuildServiceProvider();
         var executor = ActivatorUtilities.CreateInstance<ScheduledJobExecutor>(sp);
 
-        var ctx = new ScheduledJobContext("lambda", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("lambda", sp, TestContext.Current.CancellationToken)
         {
             Action = (_, _) =>
             {
@@ -93,7 +93,7 @@ public sealed class ScheduledJobExecutorTests
         var sp = services.BuildServiceProvider();
         var executor = ActivatorUtilities.CreateInstance<ScheduledJobExecutor>(sp);
 
-        var ctx = new ScheduledJobContext("class", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("class", sp, TestContext.Current.CancellationToken)
         {
             JobType = typeof(FakeJob),
         };
@@ -119,7 +119,7 @@ public sealed class ScheduledJobExecutorTests
         var sp = services.BuildServiceProvider();
         var executor = ActivatorUtilities.CreateInstance<ScheduledJobExecutor>(sp);
 
-        var ctx = new ScheduledJobContext("keyed", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("keyed", sp, TestContext.Current.CancellationToken)
         {
             JobType = typeof(FakeJob),
             ServiceKey = "key1",
@@ -144,7 +144,7 @@ public sealed class ScheduledJobExecutorTests
         var sp = services.BuildServiceProvider();
         var executor = ActivatorUtilities.CreateInstance<ScheduledJobExecutor>(sp);
 
-        var ctx = new ScheduledJobContext("billing-job", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("billing-job", sp, TestContext.Current.CancellationToken)
         {
             JobType = typeof(FakeJob),
             ServiceKey = "missing",

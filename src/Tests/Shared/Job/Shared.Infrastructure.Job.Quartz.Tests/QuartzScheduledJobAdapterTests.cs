@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="QuartzScheduledJobAdapterTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -7,10 +7,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
+using NSubstitute;
 using Quartz;
 using Shared.Application.Core.Job.Pipeline;
 using Shared.Application.Core.Job.Pipeline.Interfaces;
+using Shared.Testing.Doubles.Job;
 using Shared.Testing.Doubles.Logging;
 using Shared.Testing.Job;
 
@@ -33,12 +34,12 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_NoJobTypeNoAction_LogsErrorAndSkipsExecutor()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var logger = new FakeLogger();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             new FakeLogger<QuartzScheduledJobAdapter>(logger));
 
         var context = NewExecutionContext("empty", new JobDataMap(), TestContext.Current.CancellationToken);
@@ -47,9 +48,7 @@ public sealed class QuartzScheduledJobAdapterTests
         await adapter.Execute(context);
 
         // Assert
-        executor.Verify(
-            e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()),
-            Times.Never,
+        executor.ExecuteAsyncCallCount.Should().Be(0,
             "executor не должен вызываться, если нечего выполнять");
         logger.Entries.Should().Contain(e =>
             e.Level == LogLevel.Error && e.Message.Contains("empty"));
@@ -64,11 +63,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_ClassJob_BuildsContextWithJobTypeAndNoAction()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var data = new JobDataMap
@@ -77,21 +76,15 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("classJob", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.JobKey.Should().Be("classJob");
-        captured.JobType.Should().Be<FakeScheduledJob>();
-        captured.Action.Should().BeNull();
-        captured.ServiceKey.Should().BeNull();
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.JobKey.Should().Be("classJob");
+        executor.LastContext.JobType.Should().Be<FakeScheduledJob>();
+        executor.LastContext.Action.Should().BeNull();
+        executor.LastContext.ServiceKey.Should().BeNull();
     }
 
     /// <summary>
@@ -102,11 +95,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_ClassJobWithServiceKey_ForwardsServiceKeyToContext()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var data = new JobDataMap
@@ -116,20 +109,14 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("keyed", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.JobKey.Should().Be("keyed");
-        captured.ServiceKey.Should().Be("primary");
-        captured.JobType.Should().Be<FakeScheduledJob>();
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.JobKey.Should().Be("keyed");
+        executor.LastContext.ServiceKey.Should().Be("primary");
+        executor.LastContext.JobType.Should().Be<FakeScheduledJob>();
     }
 
     /// <summary>
@@ -141,11 +128,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_LambdaJob_ForwardsActionToContext()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         Func<IServiceProvider, CancellationToken, Task> action = (_, _) => Task.CompletedTask;
@@ -155,19 +142,13 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("lambda", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.JobType.Should().BeNull();
-        captured.Action.Should().BeSameAs(action);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.JobType.Should().BeNull();
+        executor.LastContext.Action.Should().BeSameAs(action);
     }
 
     /// <summary>
@@ -179,11 +160,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_UnresolvableJobTypeWithAction_FallsBackToAction()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         Func<IServiceProvider, CancellationToken, Task> action = (_, _) => Task.CompletedTask;
@@ -195,19 +176,13 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("fallback", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.JobType.Should().BeNull("нерезолвящийся JobType → null");
-        captured.Action.Should().BeSameAs(action);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.JobType.Should().BeNull("нерезолвящийся JobType → null");
+        executor.LastContext.Action.Should().BeSameAs(action);
     }
 
     /// <summary>
@@ -218,11 +193,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_ForwardsCancellationTokenToContext()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         using var cts = new CancellationTokenSource();
@@ -232,18 +207,12 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("ct", data, cts.Token);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.CancellationToken.Should().Be(cts.Token);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.CancellationToken.Should().Be(cts.Token);
     }
 
     /// <summary>
@@ -254,11 +223,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_ForwardsServiceProviderToContext()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var data = new JobDataMap
@@ -267,18 +236,12 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("sp", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.ServiceProvider.Should().BeSameAs(sp);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.ServiceProvider.Should().BeSameAs(sp);
     }
 
     /// <summary>
@@ -289,11 +252,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_ForwardsJobKeyFromIJobDetail()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var data = new JobDataMap
@@ -302,18 +265,12 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("billing-jobs-nightly", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.JobKey.Should().Be("billing-jobs-nightly");
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.JobKey.Should().Be("billing-jobs-nightly");
     }
 
     /// <summary>
@@ -324,11 +281,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_WithRetryOptions_ForwardsToContext()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var retryOptions = new RetryOptions
@@ -343,18 +300,12 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("with-retry", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.RetryOptions.Should().BeSameAs(retryOptions);
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.RetryOptions.Should().BeSameAs(retryOptions);
     }
 
     /// <summary>
@@ -366,11 +317,11 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_WithoutRetryOptions_LeavesContextRetryOptionsNull()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
+        var executor = new FakeScheduledJobExecutor();
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var data = new JobDataMap
@@ -379,18 +330,12 @@ public sealed class QuartzScheduledJobAdapterTests
         };
         var context = NewExecutionContext("no-retry", data, TestContext.Current.CancellationToken);
 
-        ScheduledJobContext? captured = null;
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .Callback<ScheduledJobContext>(ctx => captured = ctx)
-            .Returns(Task.CompletedTask);
-
         // Act
         await adapter.Execute(context);
 
         // Assert
-        captured.Should().NotBeNull();
-        captured!.RetryOptions.Should().BeNull();
+        executor.LastContext.Should().NotBeNull();
+        executor.LastContext!.RetryOptions.Should().BeNull();
     }
 
     /// <summary>
@@ -401,15 +346,14 @@ public sealed class QuartzScheduledJobAdapterTests
     public async Task Execute_WhenExecutorThrows_PropagatesException()
     {
         // Arrange
-        var executor = new Mock<IScheduledJobExecutor>();
-        executor
-            .Setup(e => e.ExecuteAsync(It.IsAny<ScheduledJobContext>()))
-            .ThrowsAsync(new InvalidOperationException("executor boom"));
-
+        var executor = new FakeScheduledJobExecutor
+        {
+            ExceptionToThrowOnExecuteAsync = new InvalidOperationException("executor boom"),
+        };
         var sp = new ServiceCollection().BuildServiceProvider();
         var adapter = new QuartzScheduledJobAdapter(
             sp,
-            executor.Object,
+            executor,
             NullLogger<QuartzScheduledJobAdapter>.Instance);
 
         var data = new JobDataMap
@@ -427,7 +371,7 @@ public sealed class QuartzScheduledJobAdapterTests
     }
 
     /// <summary>
-    /// Создаёт <see cref="IJobExecutionContext"/> на базе <see cref="Mock{T}"/>
+    /// Создаёт <see cref="IJobExecutionContext"/> на базе NSubstitute-сабститутов
     /// с заданным <see cref="JobKey"/>, <see cref="JobDataMap"/> и
     /// <see cref="CancellationToken"/>.
     /// </summary>
@@ -436,14 +380,14 @@ public sealed class QuartzScheduledJobAdapterTests
         JobDataMap data,
         CancellationToken ct = default)
     {
-        var jobDetail = new Mock<IJobDetail>();
-        jobDetail.SetupGet(d => d.Key).Returns(new JobKey(jobKey));
-        jobDetail.SetupGet(d => d.JobDataMap).Returns(data);
+        var jobDetail = Substitute.For<IJobDetail>();
+        jobDetail.Key.Returns(new JobKey(jobKey));
+        jobDetail.JobDataMap.Returns(data);
 
-        var ctx = new Mock<IJobExecutionContext>();
-        ctx.SetupGet(c => c.JobDetail).Returns(jobDetail.Object);
-        ctx.SetupGet(c => c.CancellationToken).Returns(ct);
-        return ctx.Object;
+        var ctx = Substitute.For<IJobExecutionContext>();
+        ctx.JobDetail.Returns(jobDetail);
+        ctx.CancellationToken.Returns(ct);
+        return ctx;
     }
 
 }

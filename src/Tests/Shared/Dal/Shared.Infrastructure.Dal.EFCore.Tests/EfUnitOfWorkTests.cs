@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="EfUnitOfWorkTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -41,14 +41,19 @@ public sealed class EfUnitOfWorkTests
         return new FakeServiceProvider();
     }
 
-    private static TestEfUnitOfWork CreateUnitOfWork(
+    private static EfUnitOfWork<TestDbContext> CreateUnitOfWork(
         TestDbContext context,
         DbSettingsBase settings,
         IBeforeSaveChangesService? beforeSaveService = null,
         FakeServiceProvider? serviceProvider = null)
     {
         serviceProvider ??= CreateServiceProvider();
-        return new TestEfUnitOfWork(context, serviceProvider, settings, beforeSaveService);
+        return new EfUnitOfWork<TestDbContext>(
+            context,
+            serviceProvider,
+            settings,
+            new LifecycleActionOrchestrator([], new LifecycleEntityRegistry(), new LifecycleActionGate()),
+            beforeSaveService);
     }
 
     #region Constructor Tests
@@ -57,34 +62,36 @@ public sealed class EfUnitOfWorkTests
     /// Проверяет что конструктор включает транзакции когда TransactionsEnabled=true.
     /// </summary>
     [Fact]
-    public void Constructor_TransactionsEnabled_SetsUseTransactionTrue()
+    public async Task Constructor_TransactionsEnabled_CommitTransactionSucceeds()
     {
         // Arrange
-        using var context = CreateContext();
+        await using var context = CreateContext();
         var settings = CreateSettings(transactionsEnabled: true);
 
         // Act
         var uow = CreateUnitOfWork(context, settings);
 
         // Assert
-        uow.IsTransactionEnabled.Should().BeTrue();
+        var act = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await act.Should().NotThrowAsync();
     }
 
     /// <summary>
     /// Проверяет что конструктор отключает транзакции когда TransactionsEnabled=false.
     /// </summary>
     [Fact]
-    public void Constructor_TransactionsDisabled_SetsUseTransactionFalse()
+    public async Task Constructor_TransactionsDisabled_CommitTransactionThrows()
     {
         // Arrange
-        using var context = CreateContext();
+        await using var context = CreateContext();
         var settings = CreateSettings(transactionsEnabled: false);
 
         // Act
         var uow = CreateUnitOfWork(context, settings);
 
         // Assert
-        uow.IsTransactionEnabled.Should().BeFalse();
+        var act = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     #endregion
@@ -106,7 +113,7 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        var result = await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         result.Should().Be(1);
@@ -134,14 +141,14 @@ public sealed class EfUnitOfWorkTests
         var act = () => uow.SaveChangesAsync(cts.Token, commitTransaction: false);
 
         // Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
     /// <summary>
-    /// Проверяет что SaveChangesAsync с commitTransaction=false не коммитит транзакцию.
+    /// Проверяет что SaveChangesAsync с commitTransaction=false не коммитит транзакцию и оставляет её открытой.
     /// </summary>
     [Fact]
-    public async Task SaveChangesAsync_CommitTransactionFalse_DoesNotCommitTransaction()
+    public async Task SaveChangesAsync_CommitTransactionFalse_LeavesTransactionOpen()
     {
         // Arrange
         await using var context = CreateContext();
@@ -152,11 +159,12 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        var result = await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         result.Should().Be(1);
-        uow.IsTransactionEnabled.Should().BeTrue();
+        var act = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await act.Should().NotThrowAsync();
     }
 
     /// <summary>
@@ -174,7 +182,7 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None);
+        var result = await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(1);
@@ -200,7 +208,7 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None);
+        var result = await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(1);
@@ -226,10 +234,10 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        var act = () => uow.SaveChangesAsync(CancellationToken.None);
+        var act = () => uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(act);
+        await act.Should().ThrowAsync<InvalidOperationException>();
         context.Entities.Should().NotContain(e => e.Name == "rollback-test");
     }
 
@@ -253,7 +261,7 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         beforeSaveService.ProcessAsyncCallCount.Should().Be(1);
@@ -275,7 +283,7 @@ public sealed class EfUnitOfWorkTests
         context.Entities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None, commitTransaction: false);
+        var result = await uow.SaveChangesAsync(TestContext.Current.CancellationToken, commitTransaction: false);
 
         // Assert
         result.Should().Be(1);
@@ -359,23 +367,25 @@ public sealed class EfUnitOfWorkTests
     #region EnableTransaction / DisableTransaction Tests
 
     /// <summary>
-    /// Проверяет что EnableTransaction устанавливает флаг использования транзакции.
+    /// Проверяет что EnableTransaction активирует транзакцию — CommitTransactionAsync начинает работать.
     /// </summary>
     [Fact]
-    public void EnableTransaction_SetsUseTransactionFlag()
+    public async Task EnableTransaction_CommitTransactionSucceeds()
     {
         // Arrange
-        using var context = CreateContext();
+        await using var context = CreateContext();
         var settings = CreateSettings(transactionsEnabled: false);
         var uow = CreateUnitOfWork(context, settings);
 
-        uow.IsTransactionEnabled.Should().BeFalse();
+        var actBefore = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actBefore.Should().ThrowAsync<InvalidOperationException>();
 
         // Act
         uow.EnableTransaction();
 
         // Assert
-        uow.IsTransactionEnabled.Should().BeTrue();
+        var actAfter = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actAfter.Should().NotThrowAsync();
     }
 
     /// <summary>
@@ -397,23 +407,25 @@ public sealed class EfUnitOfWorkTests
     }
 
     /// <summary>
-    /// Проверяет что DisableTransaction сбрасывает флаг использования транзакции.
+    /// Проверяет что DisableTransaction деактивирует транзакцию — CommitTransactionAsync бросает исключение.
     /// </summary>
     [Fact]
-    public void DisableTransaction_ClearsUseTransactionFlag()
+    public async Task DisableTransaction_CommitTransactionThrows()
     {
         // Arrange
-        using var context = CreateContext();
+        await using var context = CreateContext();
         var settings = CreateSettings(transactionsEnabled: true);
         var uow = CreateUnitOfWork(context, settings);
 
-        uow.IsTransactionEnabled.Should().BeTrue();
+        var actBefore = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actBefore.Should().NotThrowAsync();
 
         // Act
         uow.DisableTransaction();
 
         // Assert
-        uow.IsTransactionEnabled.Should().BeFalse();
+        var actAfter = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actAfter.Should().ThrowAsync<InvalidOperationException>();
     }
 
     /// <summary>
@@ -450,10 +462,10 @@ public sealed class EfUnitOfWorkTests
         var uow = CreateUnitOfWork(context, settings);
 
         // Act
-        var act = () => uow.CommitTransactionAsync(CancellationToken.None);
+        var act = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(act);
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     #endregion
@@ -472,10 +484,10 @@ public sealed class EfUnitOfWorkTests
         var uow = CreateUnitOfWork(context, settings);
 
         // Act
-        var act = () => uow.RollbackTransactionAsync(CancellationToken.None);
+        var act = () => uow.RollbackTransactionAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(act);
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     #endregion
@@ -512,45 +524,27 @@ public sealed class EfUnitOfWorkTests
     /// Проверяет что Dispose освобождает текущую транзакцию.
     /// </summary>
     [Fact]
-    public void Dispose_DisposesCurrentTransaction()
+    public async Task Dispose_CommitTransactionThrowsAfterDispose()
     {
         // Arrange
         using var context = CreateContext();
         var settings = CreateSettings(transactionsEnabled: true);
         var uow = CreateUnitOfWork(context, settings);
 
-        uow.CurrentTransaction.Should().NotBeNull();
+        var actBefore = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actBefore.Should().NotThrowAsync();
 
         // Act
         uow.Dispose();
 
         // Assert
-        uow.CurrentTransaction.Should().BeNull();
+        var actAfter = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actAfter.Should().ThrowAsync<InvalidOperationException>();
     }
 
     #endregion
 
     #region Helper Classes
-
-    /// <summary>
-    /// Подкласс EfUnitOfWork для тестирования защищённых и приватных членов.
-    /// </summary>
-    private sealed class TestEfUnitOfWork(
-        TestDbContext dbContext,
-        IServiceProvider serviceProvider,
-        DbSettingsBase settings,
-        IBeforeSaveChangesService? beforeSaveChangesService = default)
-        : EfUnitOfWork<TestDbContext>(
-            dbContext,
-            serviceProvider,
-            settings,
-            new LifecycleActionOrchestrator([], new LifecycleEntityRegistry(), new LifecycleActionGate()),
-            beforeSaveChangesService)
-    {
-        public bool IsTransactionEnabled => UseTransaction;
-
-        public object? CurrentTransaction => CurrentDbTransaction;
-    }
 
     /// <summary>
     /// Простая реализация IServiceProvider для регистрации и резолва сервисов в тестах.
@@ -575,8 +569,6 @@ public sealed class EfUnitOfWorkTests
             return _services.TryGetValue(serviceType, out var service) ? service : null;
         }
     }
-
-
 
     #endregion
 }

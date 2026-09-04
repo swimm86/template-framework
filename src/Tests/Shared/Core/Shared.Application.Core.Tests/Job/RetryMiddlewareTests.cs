@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="RetryMiddlewareTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -31,7 +31,7 @@ public sealed class RetryMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = RetryTestSupport.DefaultOptions(),
         };
@@ -62,7 +62,7 @@ public sealed class RetryMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = RetryTestSupport.DefaultOptions(),
         };
@@ -92,7 +92,7 @@ public sealed class RetryMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = RetryTestSupport.DefaultOptions(),
         };
@@ -124,7 +124,7 @@ public sealed class RetryMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("k", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = RetryTestSupport.WithMaxAttempts(1),
         };
@@ -155,7 +155,7 @@ public sealed class RetryMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("billing-job", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("billing-job", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = RetryTestSupport.DefaultOptions(),
         };
@@ -188,7 +188,7 @@ public sealed class RetryMiddlewareTests
         var delay = TimeSpan.FromMilliseconds(200);
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("slow", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("slow", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = new RetryOptions
             {
@@ -269,7 +269,7 @@ public sealed class RetryMiddlewareTests
         var logger = new FakeLogger();
         var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
         var sp = new ServiceCollection().BuildServiceProvider();
-        var ctx = new ScheduledJobContext("no-retry", sp, CancellationToken.None)
+        var ctx = new ScheduledJobContext("no-retry", sp, TestContext.Current.CancellationToken)
         {
             RetryOptions = null,
         };
@@ -292,14 +292,17 @@ public sealed class RetryMiddlewareTests
     }
 
     /// <summary>
-    /// <see cref="RetryOptions.MaxAttempts"/> значение <c>0</c> выбрасывает
-    /// <see cref="ArgumentOutOfRangeException"/> — защита от бесконечного цикла.
+    /// <see cref="RetryOptions.MaxAttempts"/> со значением вне допустимого диапазона
+    /// (ноль или отрицательное) выбрасывает <see cref="ArgumentOutOfRangeException"/>
+    /// — защита от бесконечного цикла.
     /// </summary>
-    [Fact]
-    public void RetryOptions_MaxAttemptsZero_ThrowsArgumentOutOfRangeException()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RetryOptions_MaxAttemptsOutOfRange_ThrowsArgumentOutOfRangeException(int invalidValue)
     {
         // Arrange / Act
-        var act = () => new RetryOptions { MaxAttempts = 0 };
+        var act = () => new RetryOptions { MaxAttempts = invalidValue };
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>()
@@ -307,17 +310,220 @@ public sealed class RetryMiddlewareTests
     }
 
     /// <summary>
-    /// <see cref="RetryOptions.MaxAttempts"/> отрицательное значение выбрасывает
-    /// <see cref="ArgumentOutOfRangeException"/>.
+    /// Отмена <see cref="CancellationToken"/> во время <c>Task.Delay</c> между попытками
+    /// приводит к <see cref="OperationCanceledException"/>, и вторая попытка не выполняется.
     /// </summary>
     [Fact]
-    public void RetryOptions_MaxAttemptsNegative_ThrowsArgumentOutOfRangeException()
+    public async Task InvokeAsync_CancellationDuringRetryDelay_ThrowsOperationCanceledWithoutRetry()
     {
-        // Arrange / Act
-        var act = () => new RetryOptions { MaxAttempts = -1 };
+        // Arrange
+        var logger = new FakeLogger();
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromMilliseconds(100));
+
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var ctx = new ScheduledJobContext("k", sp, cts.Token)
+        {
+            RetryOptions = RetryTestSupport.WithDelay(TimeSpan.FromSeconds(30)),
+        };
+
+        var attempts = 0;
+        ScheduledJobDelegate next = _ =>
+        {
+            attempts++;
+            throw new InvalidOperationException("boom");
+        };
+
+        // Act
+        var act = () => middleware.InvokeAsync(ctx, next);
 
         // Assert
-        act.Should().Throw<ArgumentOutOfRangeException>()
-            .WithMessage("*at least 1*");
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        attempts.Should().Be(1, "отмена во время Delay должна прервать retry до второй попытки");
+    }
+
+    /// <summary>
+    /// При предварительно отменённом <see cref="CancellationToken"/> первая неудача
+    /// приводит к <see cref="OperationCanceledException"/> без retry (счётчик = 1).
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_PreCancelledToken_ThrowsOperationCanceledImmediately()
+    {
+        // Arrange
+        var logger = new FakeLogger();
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var ctx = new ScheduledJobContext("k", sp, cts.Token)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
+
+        var attempts = 0;
+        ScheduledJobDelegate next = _ =>
+        {
+            attempts++;
+            throw new InvalidOperationException("boom");
+        };
+
+        // Act
+        var act = () => middleware.InvokeAsync(ctx, next);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        attempts.Should().Be(1, "pre-cancelled CT: Task.Delay возвращает cancelled task ещё до retry");
+    }
+
+    /// <summary>
+    /// Отмена <see cref="CancellationToken"/> внутри <c>next</c> после успешного
+    /// выполнения не прерывает middleware и не мешает пост-обработке в pipeline.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_CancellationAfterSuccess_NextActionStillRuns()
+    {
+        // Arrange
+        var logger = new FakeLogger();
+        var retryMiddleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
+        using var cts = new CancellationTokenSource();
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var ctx = new ScheduledJobContext("k", sp, cts.Token)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
+
+        var nextHandlerInvoked = false;
+        ScheduledJobDelegate terminalAction = _ =>
+        {
+            cts.Cancel();
+            return Task.CompletedTask;
+        };
+
+        ScheduledJobDelegate nextInPipeline = async _ =>
+        {
+            await retryMiddleware.InvokeAsync(ctx, terminalAction);
+            nextHandlerInvoked = true;
+        };
+
+        // Act
+        await nextInPipeline(ctx);
+
+        // Assert
+        nextHandlerInvoked.Should().BeTrue(
+            "next handler в pipeline должен выполниться, даже если токен отменён в terminalAction");
+    }
+
+    /// <summary>
+    /// При <see cref="RetryOptions.Delay"/> = <see cref="TimeSpan.Zero"/> и отменённом
+    /// <see cref="CancellationToken"/> <see cref="OperationCanceledException"/> пробрасывается
+    /// сразу после первой неудачи: <c>Task.Delay(0, cancelledToken)</c> возвращает cancelled task.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_DelayIsZero_CancellationImmediate()
+    {
+        // Arrange
+        var logger = new FakeLogger();
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var ctx = new ScheduledJobContext("k", sp, cts.Token)
+        {
+            RetryOptions = new RetryOptions
+            {
+                MaxAttempts = 5,
+                Delay = TimeSpan.Zero,
+            },
+        };
+
+        var attempts = 0;
+        ScheduledJobDelegate next = _ =>
+        {
+            attempts++;
+            throw new InvalidOperationException("boom");
+        };
+
+        // Act
+        var act = () => middleware.InvokeAsync(ctx, next);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        attempts.Should().Be(1, "Delay = Zero + cancelled CT: Task.Delay возвращает cancelled task, retry не выполняется");
+    }
+
+    /// <summary>
+    /// Многократный вызов <c>Cancel</c> на <see cref="CancellationTokenSource"/> идемпотентен:
+    /// middleware выбрасывает ровно одно <see cref="OperationCanceledException"/> и не делает
+    /// лишних попыток.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_MultipleCancellations_DoesNotDoubleThrow()
+    {
+        // Arrange
+        var logger = new FakeLogger();
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
+        using var cts = new CancellationTokenSource();
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var ctx = new ScheduledJobContext("k", sp, cts.Token)
+        {
+            RetryOptions = RetryTestSupport.WithDelay(TimeSpan.FromSeconds(30)),
+        };
+
+        var attempts = 0;
+        ScheduledJobDelegate next = _ =>
+        {
+            attempts++;
+            throw new InvalidOperationException("boom");
+        };
+
+        // Многократная отмена токена — должна быть идемпотентной
+        cts.Cancel();
+        cts.Cancel();
+        cts.Cancel();
+
+        // Act
+        var act = () => middleware.InvokeAsync(ctx, next);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        attempts.Should().Be(1, "многократный Cancel CTS идемпотентен — одна попытка, одно исключение");
+    }
+
+    /// <summary>
+    /// Middleware реагирует только на <see cref="ScheduledJobContext.CancellationToken"/>;
+    /// отмена постороннего <see cref="CancellationToken"/> не учитывается.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_CancellationViaDifferentToken_OnlyRespondsToOwnToken()
+    {
+        // Arrange
+        var logger = new FakeLogger();
+        var middleware = new RetryMiddleware(new FakeLogger<RetryMiddleware>(logger));
+        using var unrelatedCts = new CancellationTokenSource();
+        unrelatedCts.Cancel();
+
+        var sp = new ServiceCollection().BuildServiceProvider();
+        var ctx = new ScheduledJobContext("k", sp, TestContext.Current.CancellationToken)
+        {
+            RetryOptions = RetryTestSupport.DefaultOptions(),
+        };
+
+        var attempts = 0;
+        ScheduledJobDelegate next = _ =>
+        {
+            attempts++;
+            throw new InvalidOperationException("boom");
+        };
+
+        // Act
+        var act = () => middleware.InvokeAsync(ctx, next);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        attempts.Should().Be(RetryTestSupport.DefaultOptions().MaxAttempts,
+            "retry выполняется до MaxAttempts, потому что context.CancellationToken не отменён");
     }
 }

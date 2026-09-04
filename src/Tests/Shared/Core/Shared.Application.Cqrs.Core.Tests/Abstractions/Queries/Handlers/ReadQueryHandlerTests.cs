@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ReadQueryHandlerTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Application.Cqrs.Core.Abstractions.Queries.Handlers;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 using Shared.Domain.Core.Exceptions.Models;
@@ -91,7 +97,10 @@ public sealed class ReadQueryHandlerTests
         var unitOfWork = new FakeUnitOfWork();
         var expectedException = new InvalidOperationException("guard-failed");
 
-        var sut = new GuardThrowingReadQueryHandler(CreateLoggerFactory(), mapper, unitOfWork, expectedException);
+        var sut = new GuardThrowingReadQueryHandler(CreateLoggerFactory(), mapper, unitOfWork)
+        {
+            ExceptionToThrow = expectedException,
+        };
         var query = new TestReadByKeyQuery("any-key");
 
         // Act

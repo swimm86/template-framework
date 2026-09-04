@@ -374,49 +374,120 @@ public sealed class PersonValidator : AbstractValidator<Domain.Entities.Person>
 │  1. HTTP POST /api/persons/create                            │
 │     Body: { "name": "John", "email": "john@example.com" }    │
 └──────────────────────┬───────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  2. Controller: PersonsController.Create(request)            │
-│     → sender.Send(new PersonCreateCommand(request))           │
+│     → sender.Send(new PersonCreateCommand(request))          │
 └──────────────────────┬───────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  3. LoggingPipelineBehaviour                                  │
-│     → logger.LogTaskAsync("PersonCreateCommand handler")      │
+│  3. LoggingPipelineBehaviour                                 │
+│     → logger.LogTaskAsync("PersonCreateCommand handler")     │
 └──────────────────────┬───────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  4. ValidationPipelineBehaviour                               │
-│     → Inject: IValidator<PersonCreateCommand>                 │
-│     → Task.WhenAll(validators)                                │
-│     → Если есть failures → ValidationException                │
-│     → Если OK → next() (handler)                              │
+│  4. ValidationPipelineBehaviour                              │
+│     → Inject: IValidator<PersonCreateCommand>                │
+│     → Task.WhenAll(validators)                               │
+│     → Если есть failures → ValidationException               │
+│     → Если OK → next() (handler)                             │
 └──────────────────────┬───────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  5. PersonCreateCommandHandler                                │
-│     → GuardAsync()                                            │
-│     → CreateAsync()                                           │
-│        → mapper.Map<PersonCreateRequest, Person>(...)         │
-│        → ProcessEntityAsync(entity, command)                  │
-│        → ValidateAsync(entity, validators) ← TEntity          │
-│        → Repository.AddAsync(...)                             │
-│        → unitOfWork.SaveChangesAsync()                        │
-│     → Return PersonCreateResponse                             │
+│  5. PersonCreateCommandHandler                               │
+│     → GuardAsync()                                           │
+│     → CreateAsync()                                          │
+│        → mapper.Map<PersonCreateRequest, Person>(...)        │
+│        → ProcessEntityAsync(entity, command)                 │
+│        → ValidateAsync(entity, validators) ← TEntity         │
+│        → Repository.AddAsync(...)                            │
+│        → unitOfWork.SaveChangesAsync()                       │
+│     → Return PersonCreateResponse                            │
 └──────────────────────┬───────────────────────────────────────┘
-                       │
-                       ▼
+                        │
+                        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  6. HTTP 201 Created                                          │
-│     Body: PersonCreateResponse                                │
+│  6. HTTP 201 Created                                         │
+│     Body: PersonCreateResponse                               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 При ошибке валидации `ValidationException` обрабатывается `IExceptionHandler` → `ValidationExceptionMapper` → `ErrorResponse` с `StatusCode = 400`.
+
+---
+
+## 📦 Валидация базовых типов фреймворка
+
+Фреймворк поставляет предсобранные валидаторы для базовых DTO, которые также подхватываются auto-discovery:
+
+### PageableRequestValidator
+
+**Файл:** `src/Shared/Core/Shared.Application.Core/Dto/Requests/Validators/PageableRequestValidator.cs`
+
+Generic-валидатор постраничного запроса. Проверяет инварианты, общие для всех наследников `PageableRequest`: номер страницы и размер страницы должны быть положительными числами.
+
+```csharp
+public class PageableRequestValidator<TPageable>
+    : AbstractValidator<TPageable>
+    where TPageable : PageableRequest
+{
+    public const string PageNumberMustBePositive = "Номер страницы должен быть положительным числом.";
+    public const string PageSizeMustBePositive = "Размер страницы должен быть положительным числом.";
+
+    public PageableRequestValidator()
+    {
+        RuleFor(x => x.PageNumber).GreaterThan(0).WithMessage(PageNumberMustBePositive);
+        RuleFor(x => x.PageSize).GreaterThan(0).WithMessage(PageSizeMustBePositive);
+    }
+}
+```
+
+### Двухуровневая валидация PageableRequest
+
+`PageableRequest` — особый случай: помимо FluentValidator защита обеспечивается **на уровне исполнения** (defense in depth), потому что свойства `PageNumber` и `PageSize` мутируются внутри `HttpRequestExtensions.BatchSelectPagesAsync` во время обхода страниц.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Уровень 1: PageableRequestValidator (FluentValidator)       │
+│  Срабатывает: на API-boundary при ModelState validation      │
+│  Гарантия: запрос с <=0 не доходит до handler'а              │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ (если валидатор не отработал /
+                                запрос создан вручную в коде)
+┌──────────────────────────────────────────────────────────────┐
+│  Уровень 2: HttpRequestExtensions.BatchSelectPagesAsync      │
+│  Срабатывает: при первом вызове метода                       │
+│  Гарантия: ArgumentOutOfRangeException до выполнения HTTP    │
+│  Файл: src/Shared/Core/Shared.Application.Core/Batch/        │
+│        Http/Extensions/HttpRequestExtensions.cs:158-172      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Почему два уровня:** свойства `PageNumber` и `PageSize` свободно мутируют (внутри батчинга), поэтому валидация на construction (setter) сделала бы FluentValidator мёртвым кодом. Execution-time проверка гарантирует, что некорректное состояние будет отловлено в момент использования.
+
+### Доработка валидаторов для конкретных Request
+
+Конкретные наследники `PageableRequest<TFilter>` подключают базовые правила через **наследование** от `PageableRequestValidator<TPageable>` и добавляют свои:
+
+```csharp
+public sealed class PersonListRequestValidator
+    : PageableRequestValidator<PersonListRequest>
+{
+    public PersonListRequestValidator(PersonListFilterValidator filterValidator)
+    {
+        // PageNumber/PageSize валидируются базовым PageableRequestValidator<PersonListRequest>.
+        RuleFor(x => x.PageSize).LessThanOrEqualTo(1000).WithMessage("...");
+        RuleFor(x => x.Filter!).SetValidator(filterValidator).When(x => x.Filter != null);
+    }
+}
+```
+
+> Generic-параметр обязателен: FluentValidation включает правила только между валидаторами, валидирующими один и тот же тип. Без generic приведение `PersonListRequest` → `PageableRequest` потребовало бы `Include(new PageableRequestValidator())`, который не сработает из-за несовпадения типов.
 
 ---
 

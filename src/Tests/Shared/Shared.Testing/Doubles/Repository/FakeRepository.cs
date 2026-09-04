@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="FakeRepository.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -34,7 +40,43 @@ public sealed class FakeRepository<TEntity>
     public Exception? ExceptionToThrowOnRemove { get; set; }
     public Exception? ExceptionToThrowOnSaveChanges { get; set; }
 
-    public int RemoveCallCount { get; private set; }
+    /// <summary>
+    /// Последний <see cref="CancellationToken"/>, переданный в <c>GetRangeAsync</c>.
+    /// Используется тестами для проверки identity-пробрасывания токена.
+    /// </summary>
+    private CancellationToken _lastGetRangeCancellationToken;
+    private readonly object _lastGetRangeCancellationTokenLock = new();
+
+    /// <summary>
+    /// Последний <see cref="CancellationToken"/>, переданный в <c>GetRangeAsync</c>.
+    /// Используется тестами для проверки identity-пробрасывания токена.
+    /// </summary>
+    public CancellationToken LastGetRangeCancellationToken
+    {
+        get { lock (_lastGetRangeCancellationTokenLock) { return _lastGetRangeCancellationToken; } }
+    }
+
+    /// <summary>
+    /// Последний <see cref="CancellationToken"/>, переданный в <c>CountAsync</c>.
+    /// </summary>
+    private CancellationToken _lastCountCancellationToken;
+    private readonly object _lastCountCancellationTokenLock = new();
+
+    /// <summary>
+    /// Последний <see cref="CancellationToken"/>, переданный в <c>CountAsync</c>.
+    /// </summary>
+    public CancellationToken LastCountCancellationToken
+    {
+        get { lock (_lastCountCancellationTokenLock) { return _lastCountCancellationToken; } }
+    }
+
+    private int _removeCallCount;
+
+    /// <summary>
+    /// Счётчик вызовов <c>RemoveAsync</c>/<c>RemoveRangeAsync</c>/<c>RemovePermanentRangeAsync</c>/
+    /// <c>ExecuteRemoveRangeAsync</c> и их перегрузок.
+    /// </summary>
+    public int RemoveCallCount => Volatile.Read(ref _removeCallCount);
 
     public IReadOnlyCollection<TEntity> Items => _storage.Values.ToList().AsReadOnly();
 
@@ -114,6 +156,7 @@ public sealed class FakeRepository<TEntity>
         int? take = null,
         CancellationToken cancellationToken = default)
     {
+        lock (_lastGetRangeCancellationTokenLock) { _lastGetRangeCancellationToken = cancellationToken; }
         ThrowIfConfigured(ExceptionToThrowOnGet);
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         if (skip.HasValue) query = query.Skip(skip.Value);
@@ -135,6 +178,7 @@ public sealed class FakeRepository<TEntity>
         Expression<Func<TEntity, TOut>>? selector = null,
         CancellationToken cancellationToken = default)
     {
+        lock (_lastGetRangeCancellationTokenLock) { _lastGetRangeCancellationToken = cancellationToken; }
         ThrowIfConfigured(ExceptionToThrowOnGet);
         var query = ApplyOptions(_storage.Values.AsQueryable(), options);
         if (skip.HasValue) query = query.Skip(skip.Value);
@@ -276,6 +320,7 @@ public sealed class FakeRepository<TEntity>
         QueryOptions<TEntity>? options = null,
         CancellationToken cancellationToken = default)
     {
+        lock (_lastCountCancellationTokenLock) { _lastCountCancellationToken = cancellationToken; }
         ThrowIfConfigured(ExceptionToThrowOnGet);
         return Task.FromResult(ApplyOptions(_storage.Values.AsQueryable(), options).Count());
     }
@@ -511,7 +556,7 @@ public sealed class FakeRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
+        Interlocked.Increment(ref _removeCallCount);
         if (!hard && entity is IWithDeleted deletable)
         {
             deletable.SetIsDeleted();
@@ -538,7 +583,7 @@ public sealed class FakeRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
+        Interlocked.Increment(ref _removeCallCount);
         foreach (var entity in entities)
         {
             if (!hard && entity is IWithDeleted deletable)
@@ -559,7 +604,7 @@ public sealed class FakeRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
+        Interlocked.Increment(ref _removeCallCount);
         foreach (var entity in entities)
             _storage.TryRemove(GetKey(entity), out _);
         return Task.CompletedTask;
@@ -571,7 +616,7 @@ public sealed class FakeRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
+        Interlocked.Increment(ref _removeCallCount);
         var toRemove = ApplyOptions(_storage.Values.AsQueryable(), options).ToList();
         foreach (var entity in toRemove)
             _storage.TryRemove(GetKey(entity), out _);
@@ -584,7 +629,7 @@ public sealed class FakeRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
+        Interlocked.Increment(ref _removeCallCount);
         var toRemove = _storage.Values.Where(predicate.Compile()).ToList();
         foreach (var entity in toRemove)
             _storage.TryRemove(GetKey(entity), out _);
@@ -607,7 +652,7 @@ public sealed class FakeRepository<TEntity>
         CancellationToken cancellationToken = default)
     {
         ThrowIfConfigured(ExceptionToThrowOnRemove);
-        RemoveCallCount++;
+        Interlocked.Increment(ref _removeCallCount);
         var toRemove = ApplyOptions(_storage.Values.AsQueryable(), options).ToList();
         foreach (var entity in toRemove)
             _storage.TryRemove(GetKey(entity), out _);

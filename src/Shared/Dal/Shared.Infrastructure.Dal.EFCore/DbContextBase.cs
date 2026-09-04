@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Globalization;
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
 using Shared.Infrastructure.Dal.EFCore.Conventions;
@@ -14,6 +13,9 @@ namespace Shared.Infrastructure.Dal.EFCore;
 /// <summary>
 /// Базовый класс для <see cref="DbContext"/>.
 /// </summary>
+/// <remarks>
+/// Предоставляет базовые conventions: snake_case имена колонок и автоприменение конфигураций.
+/// </remarks>
 public abstract class DbContextBase(
     DbContextOptions options,
     IHostEnvironment environment)
@@ -41,15 +43,6 @@ public abstract class DbContextBase(
             optionsBuilder.EnableSensitiveDataLogging();
         }
 
-        ConfigureDateCulture();
         base.OnConfiguring(optionsBuilder);
-    }
-
-    private static void ConfigureDateCulture()
-    {
-        var cultureInfo = new CultureInfo("en-US") { DateTimeFormat = { ShortDatePattern = "dd/MM/yyyy" } };
-
-        CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
     }
 }

@@ -4,7 +4,6 @@
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Core.Dto.Responses;
 using Template.Getter.Api.Controllers.Base;
 
@@ -14,8 +13,8 @@ namespace Template.Getter.Api.Controllers;
 /// Контроллер, предоставляющий витрину для тестирования функциональности.
 /// </summary>
 public sealed class TestController(
-    ILogger<TestController> logger)
-    : GetterControllerBase(logger)
+    ILoggerFactory loggerFactory)
+    : GetterControllerBase(loggerFactory)
 {
     /// <summary>
     /// Генерирует необработанное исключение для проверки трансляции ошибок

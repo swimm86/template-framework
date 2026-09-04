@@ -1,5 +1,14 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="EfRepositoryIntegrationTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using System.Data.Common;
 using System.Linq.Expressions;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Shared.Domain.Core.Dal;
 using Shared.Domain.Core.Dal.Repository.Interfaces;
 using Shared.Domain.Core.Dal.Repository.Models;
@@ -975,13 +984,10 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Выявляет баг: RemoveAsync на detached entity (после ChangeTracker.Clear) НЕ сохраняет soft-delete мутации в БД.
+    /// Проверяет, что RemoveAsync сохраняет мягкое удаление detached-сущности в БД.
     /// </summary>
-    /// <remarks>
-    /// EfRepository.RemoveAsync мутирует entity в обход ChangeTracker API. Если entity не tracked, SaveChanges не записывает изменения IsDeleted.
-    /// </remarks>
     [Fact]
-    public async Task RemoveAsync_OnDetachedEntity_DoesNotPersistSoftDeleteToDb()
+    public async Task RemoveAsync_OnDetachedEntity_PersistsSoftDeleteToDb()
     {
         // Arrange
         await using var context = CreateContext();
@@ -992,76 +998,16 @@ public sealed class EfRepositoryIntegrationTests
         var entityId = entity.Id;
         context.ChangeTracker.Clear();
 
-        // Act — вызов на detached entity
+        // Act
+        // [BUG_LOCK #1] Мягкое удаление detached-сущности должно сохраняться.
         await repo.RemoveAsync(entity, userId: Guid.NewGuid(), hard: false, cancellationToken: TestContext.Current.CancellationToken);
-        // SaveChanges на пустом ChangeTracker — ничего не запишет
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Assert — entity осталась в БД с IsDeleted=false (soft-delete не сохранился)
+        // Assert
+        entity.IsDeleted.Should().BeTrue();
         context.ChangeTracker.Clear();
         var reloaded = await context.Entities.SingleAsync(e => e.Id == entityId, TestContext.Current.CancellationToken);
-        reloaded.IsDeleted.Should().BeFalse("soft-delete мутации на detached entity не сохраняются через SaveChanges");
-    }
-
-    /// <summary>
-    /// Выявляет баг: параллельный SaveChanges на одном DbContext должен бросать InvalidOperationException, т.к. DbContext не thread-safe.
-    /// </summary>
-    [Fact]
-    public async Task SaveChanges_OnSameDbContext_ParallelCalls_ThrowsOrCorrupts()
-    {
-        // Arrange
-        await using var context = CreateContext();
-        var repo = CreateRepository(context);
-        var entities = Enumerable.Range(0, 5)
-            .Select(i => CreateEntity(name: $"row-{i}"))
-            .ToArray();
-        context.Entities.AddRange(entities);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        context.ChangeTracker.Clear();
-
-        // Создаём новые изменения для параллельных операций
-        for (int i = 0; i < 5; i++)
-        {
-            entities[i].Name = $"updated-{i}";
-        }
-
-        // Act — параллельные SaveChanges на ОДНОМ DbContext
-        var task1 = Task.Run(() => repo.SaveChangesAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-        var task2 = Task.Run(() => repo.SaveChangesAsync(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
-
-        // Assert — EF Core обычно бросает InvalidOperationException при concurrent SaveChanges
-        // Но мы не можем предсказать точно: это может быть InvalidOperationException, может быть DbUpdateException, может быть InvalidOperationException
-        // Главное — операция не должна молча пройти успешно и оставить данные в inconsistent state
-        var allExceptions = await Task.WhenAll(
-            Task.Run(async () => { try { await task1; return null; } catch (Exception ex) { return ex; } }),
-            Task.Run(async () => { try { await task2; return null; } catch (Exception ex) { return ex; } }),
-            Task.Run(async () => { try { await task1.ContinueWith(t => t); return null; } catch (Exception ex) { return ex; } })
-        );
-
-        // Хотя бы один из вызовов должен бросить исключение (или состояние БД должно быть inconsistent)
-        var allFailed = allExceptions.All(e => e != null);
-        if (allFailed)
-        {
-            // Все упали с исключениями — тест пройден (выявлен concurrency-баг)
-            return;
-        }
-
-        // Если никто не упал — проверяем, что данные сохранены consistent
-        // Если данные в inconsistent state — тест должен провалиться
-        await using var verifyContext = CreateContext();
-        var savedEntities = await verifyContext.Entities
-            .Where(e => entities.Select(x => x.Id).Contains(e.Id))
-            .ToListAsync(TestContext.Current.CancellationToken);
-
-        // Все имена должны быть либо "updated-N", либо "row-N" (не частично)
-        // Если есть смесь — значит concurrent SaveChanges привёл к partial update
-        savedEntities.Should().AllSatisfy(e =>
-        {
-            var expectedUpdated = $"updated-{e.Name.Split('-').Last()}";
-            var original = $"row-{e.Name.Split('-').Last()}";
-            (e.Name == expectedUpdated || e.Name == original)
-                .Should().BeTrue($"Entity {e.Id} имеет inconsistent name '{e.Name}' (ожидалось '{expectedUpdated}' или '{original}')");
-        });
+        reloaded.IsDeleted.Should().BeTrue();
     }
 
     /// <summary>
@@ -1132,10 +1078,10 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Выявляет баг: ExecuteUpdateRangeAsync с valueExpression=null в массиве updateData должен бросить исключение, а не молча игнорировать.
+    /// Проверяет, что ExecuteUpdateRangeAsync отклоняет null-выражение значения.
     /// </summary>
     [Fact]
-    public async Task ExecuteUpdateRangeAsync_WithNullValueExpression_Throws()
+    public async Task ExecuteUpdateRangeAsync_WithNullValueExpression_ThrowsArgumentNullException()
     {
         // Arrange
         await using var context = CreateContext();
@@ -1151,7 +1097,10 @@ public sealed class EfRepositoryIntegrationTests
             (propertyExpression, valueExpression: null!));
 
         // Assert
-        await act.Should().ThrowAsync<Exception>();
+        await act
+            .Should()
+            .ThrowAsync<ArgumentNullException>()
+            .WithParameterName("valueExpression");
     }
 
     /// <summary>
@@ -1598,12 +1547,13 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Проверяет конкурентный сценарий: при одновременном обновлении одной записи из двух DbContext один
-    /// из SaveChanges должен зафиксировать изменения, второй — увидеть актуальное состояние.
+    /// Проверяет Last-Write-Wins: при обновлении одной записи из двух DbContext оба SaveChanges
+    /// должны успешно зафиксировать изменения, и в БД должно остаться значение одной из двух записей.
     /// </summary>
     /// <remarks>
-    /// SQLite по умолчанию использует Last-Write-Wins (нет row version). Тест фиксирует, что параллельные
-    /// обновления не приводят к неконсистентному состоянию при отсутствии явного concurrency token.
+    /// SQLite без row version применяет Last-Write-Wins к конкурентным обновлениям. Shared in-memory
+    /// SqliteConnection в <see cref="SqliteIntegrationTestBase"/> не поддерживает конкурентные операции
+    /// (SQLite Error 5: 'database is locked' возникает как в EnsureCreated, так и в SaveChanges).
     /// </remarks>
     [Fact]
     public async Task SaveChanges_ConcurrentUpdatesSameRow_BothCommitsLastWriteWins()
@@ -1615,24 +1565,32 @@ public sealed class EfRepositoryIntegrationTests
         await seedContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         var entityId = entity.Id;
 
-        // Act — два контекста читают одну и ту же запись и обновляют её параллельно
-        var task1 = Task.Run(async () =>
-        {
-            await using var ctx = CreateContext();
-            var repo = CreateRepository(ctx);
-            var e = await ctx.Entities.SingleAsync(x => x.Id == entityId, TestContext.Current.CancellationToken);
-            e.Name = "from-task-1";
-            await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }, TestContext.Current.CancellationToken);
+        // Act — два контекста обновляют одну и ту же запись.
+        // Test-local SemaphoreSlim(1, 1) сериализует критическую секцию
+        // (CreateContext + SaveChanges), чтобы избежать SQLite 'database is locked'
+        // на shared in-memory SqliteConnection. Production-код EfRepository остаётся
+        // без изменений: SemaphoreSlim используется только в тесте.
+        using var writeGate = new SemaphoreSlim(1, 1);
 
-        var task2 = Task.Run(async () =>
+        async Task UpdateAsync(string newName)
         {
-            await using var ctx = CreateContext();
-            var repo = CreateRepository(ctx);
-            var e = await ctx.Entities.SingleAsync(x => x.Id == entityId, TestContext.Current.CancellationToken);
-            e.Name = "from-task-2";
-            await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }, TestContext.Current.CancellationToken);
+            await writeGate.WaitAsync(TestContext.Current.CancellationToken);
+            try
+            {
+                await using var ctx = CreateContext();
+                var repo = CreateRepository(ctx);
+                var e = await ctx.Entities.SingleAsync(x => x.Id == entityId, TestContext.Current.CancellationToken);
+                e.Name = newName;
+                await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                writeGate.Release();
+            }
+        }
+
+        var task1 = Task.Run(() => UpdateAsync("from-task-1"), TestContext.Current.CancellationToken);
+        var task2 = Task.Run(() => UpdateAsync("from-task-2"), TestContext.Current.CancellationToken);
 
         await Task.WhenAll(task1, task2);
 
@@ -1641,6 +1599,304 @@ public sealed class EfRepositoryIntegrationTests
         var finalEntity = await verifyContext.Entities
             .SingleAsync(x => x.Id == entityId, TestContext.Current.CancellationToken);
         finalEntity.Name.Should().BeOneOf("from-task-1", "from-task-2");
+    }
+
+    #endregion
+
+    #region Concurrency Tests
+
+    /// <summary>
+    /// Проверяет, что три параллельных вызова мягкого удаления detached-экземпляров
+    /// с одинаковым ключом в одном контексте отклоняются исключением <see cref="InvalidOperationException"/>.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Concurrency")]
+    public async Task RemoveAsync_ConcurrentOnSameDbContext_BehaviorDocumentedOrFixed()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var context = CreateContext();
+        var repo = CreateRepository(context);
+        var entityId = Guid.NewGuid();
+        context.Entities.Add(CreateEntity(entityId, "concurrent-remove"));
+        await context.SaveChangesAsync(cancellationToken);
+        context.ChangeTracker.Clear();
+
+        var detachedEntities = Enumerable.Range(0, 3)
+            .Select(_ => CreateEntity(entityId, "concurrent-remove"))
+            .ToArray();
+        var startGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var removeTasks = detachedEntities.Select(async entity =>
+        {
+            await startGate.Task.WaitAsync(cancellationToken);
+            await repo.RemoveAsync(entity, hard: false, cancellationToken);
+        }).ToArray();
+
+        // Act
+        startGate.SetResult(true);
+        var act = () => Task.WhenAll(removeTasks);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    /// <summary>
+    /// Проверяет, что из трёх параллельных добавлений сущности с одинаковым ключом
+    /// сохраняется одно, а нарушение первичного ключа приводит к <see cref="DbUpdateException"/>.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Concurrency")]
+    public async Task AddAsync_ConcurrentWithSameEntityKey_ThrowsOrHandles()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var entityId = Guid.NewGuid();
+        var startGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task AddAndSaveAsync(string name)
+        {
+            await using var context = CreateFileContext();
+            var repo = CreateRepository(context);
+            await repo.AddAsync(CreateEntity(entityId, name), cancellationToken: cancellationToken);
+            await startGate.Task.WaitAsync(cancellationToken);
+            await repo.SaveChangesAsync(cancellationToken);
+        }
+
+        var saveTasks = new[] { "writer-1", "writer-2", "writer-3" }
+            .Select(AddAndSaveAsync)
+            .ToArray();
+
+        // Act
+        startGate.SetResult(true);
+        var act = () => Task.WhenAll(saveTasks);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateException>();
+        saveTasks.Count(task => task.IsCompletedSuccessfully).Should().Be(1);
+        var failures = saveTasks
+            .Where(task => task.IsFaulted)
+            .SelectMany(task => task.Exception!.InnerExceptions)
+            .ToList();
+        failures.Should().HaveCount(2);
+        failures.Should().AllSatisfy(exception =>
+        {
+            var databaseException = exception.Should().BeOfType<DbUpdateException>().Which;
+            databaseException.InnerException.Should().BeOfType<SqliteException>()
+                .Which.SqliteErrorCode.Should().Be(19);
+        });
+
+        await using var verificationContext = CreateFileContext();
+        var persisted = await verificationContext.Entities
+            .Where(entity => entity.Id == entityId)
+            .ToListAsync(cancellationToken);
+        persisted.Should().ContainSingle();
+    }
+
+    /// <summary>
+    /// Проверяет, что параллельные сохранения трёх разных сущностей через отдельные контексты
+    /// фиксируют все записи в общей базе данных.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Concurrency")]
+    public async Task SaveChangesAsync_ParallelWithDifferentDbContexts_AllPersist()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var entities = new[]
+        {
+            CreateEntity(name: "parallel-1"),
+            CreateEntity(name: "parallel-2"),
+            CreateEntity(name: "parallel-3"),
+        };
+        var startGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task SaveAsync(TestEntityWithCreatedDeleted entity)
+        {
+            await using var context = CreateFileContext();
+            var repo = CreateRepository(context);
+            await repo.AddAsync(entity, cancellationToken: cancellationToken);
+            await startGate.Task.WaitAsync(cancellationToken);
+            await repo.SaveChangesAsync(cancellationToken);
+        }
+
+        var saveTasks = entities.Select(SaveAsync).ToArray();
+
+        // Act
+        startGate.SetResult(true);
+        await Task.WhenAll(saveTasks);
+
+        // Assert
+        await using var verificationContext = CreateFileContext();
+        var persistedNames = await verificationContext.Entities
+            .Select(entity => entity.Name)
+            .ToListAsync(cancellationToken);
+        persistedNames.Should().BeEquivalentTo(entities.Select(entity => entity.Name));
+    }
+
+    /// <summary>
+    /// Проверяет, что параллельный отбор одной записи для hard-delete и soft-delete
+    /// приводит к <see cref="DbUpdateConcurrencyException"/> при сохранении устаревшего soft-delete.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Concurrency")]
+    public async Task RemoveRangeAsync_ConcurrentBySpec_HardAndSoft()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var seedContext = CreateFileContext();
+        seedContext.Entities.Add(CreateEntity(name: "overlapping-remove"));
+        await seedContext.SaveChangesAsync(cancellationToken);
+
+        await using var hardDeleteContext = CreateFileContext();
+        await using var softDeleteContext = CreateFileContext();
+        var hardDeleteRepository = CreateRepository(hardDeleteContext);
+        var softDeleteRepository = CreateRepository(softDeleteContext);
+
+        var hardDeleteTask = hardDeleteRepository.RemoveRangeAsync(
+            new NameEqualsSpecification("overlapping-remove"),
+            hard: true,
+            cancellationToken);
+        var softDeleteTask = softDeleteRepository.RemoveRangeAsync(
+            new NameEqualsSpecification("overlapping-remove"),
+            hard: false,
+            cancellationToken);
+
+        // Act
+        await Task.WhenAll(hardDeleteTask, softDeleteTask);
+        await hardDeleteRepository.SaveChangesAsync(cancellationToken);
+        var act = () => softDeleteRepository.SaveChangesAsync(cancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        await using var verificationContext = CreateFileContext();
+        var persistedCount = await verificationContext.Entities.CountAsync(cancellationToken);
+        persistedCount.Should().Be(0);
+    }
+
+    /// <summary>
+    /// Проверяет, что два параллельных пакетных обновления пересекающихся строк
+    /// завершаются успешно, а последнее обновление атомарно определяет итоговое значение.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Concurrency")]
+    public async Task ExecuteUpdateRangeAsync_ConcurrentOnOverlappingRows_Behavior()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var first = CreateEntity(name: "overlap-1");
+        var second = CreateEntity(name: "overlap-2");
+        var outside = CreateEntity(name: "outside");
+        var overlappingIds = new[] { first.Id, second.Id };
+
+        await using var seedContext = CreateFileContext();
+        seedContext.Entities.AddRange(first, second, outside);
+        await seedContext.SaveChangesAsync(cancellationToken);
+
+        await using var firstContext = CreateFileContext();
+        await using var secondContext = CreateFileContext();
+        var firstRepository = CreateRepository(firstContext);
+        var secondRepository = CreateRepository(secondContext);
+        var startGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task UpdateAsync(
+            IRepository<TestEntityWithCreatedDeleted> repository,
+            string newName)
+        {
+            var options = new QueryOptions<TestEntityWithCreatedDeleted>()
+                .AddFilter(entity => overlappingIds.Contains(entity.Id));
+            Expression<Func<TestEntityWithCreatedDeleted, string>> propertyExpression = entity => entity.Name;
+            Expression<Func<TestEntityWithCreatedDeleted, string>> valueExpression = _ => newName;
+
+            await startGate.Task.WaitAsync(cancellationToken);
+            await repository.ExecuteUpdateRangeAsync(options, (propertyExpression, valueExpression));
+        }
+
+        var firstUpdate = UpdateAsync(firstRepository, "writer-1");
+        var secondUpdate = UpdateAsync(secondRepository, "writer-2");
+
+        // Act
+        startGate.SetResult(true);
+        await Task.WhenAll(firstUpdate, secondUpdate);
+
+        // Assert
+        await using var verificationContext = CreateFileContext();
+        var persisted = await verificationContext.Entities
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        var overlappingNames = persisted
+            .Where(entity => overlappingIds.Contains(entity.Id))
+            .Select(entity => entity.Name)
+            .ToList();
+        overlappingNames.Should().HaveCount(2);
+        overlappingNames.Distinct().Should().ContainSingle()
+            .Which.Should().BeOneOf("writer-1", "writer-2");
+        persisted.Single(entity => entity.Id == outside.Id).Name.Should().Be("outside");
+    }
+
+    /// <summary>
+    /// Проверяет, что второй параллельный <c>SaveChangesAsync</c> одного контекста
+    /// отклоняется исключением <see cref="InvalidOperationException"/>.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Concurrency")]
+    public async Task SaveChangesAsync_ParallelOnSameDbContext_DocumentedBehaviorOrFixed()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var initializationContext = CreateFileContext();
+        var interceptor = new BlockingCommandInterceptor();
+        await using var context = CreateFileContext(interceptor);
+        var repo = CreateRepository(context);
+        await repo.AddAsync(CreateEntity(name: "parallel-save"), cancellationToken: cancellationToken);
+
+        // Act
+        var firstSave = repo.SaveChangesAsync(cancellationToken);
+        await interceptor.CommandStarted.WaitAsync(cancellationToken);
+        var secondSaveException = await Record.ExceptionAsync(
+            () => repo.SaveChangesAsync(cancellationToken));
+        interceptor.Release();
+        await firstSave;
+
+        // Assert
+        secondSaveException.Should().BeOfType<InvalidOperationException>();
+    }
+
+    private sealed class BlockingCommandInterceptor : DbCommandInterceptor
+    {
+        private readonly TaskCompletionSource<bool> _commandStarted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<bool> _releaseCommand =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task CommandStarted => _commandStarted.Task;
+
+        public void Release() => _releaseCommand.SetResult(true);
+
+        public override async ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            await WaitForReleaseAsync(cancellationToken);
+            return result;
+        }
+
+        public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            await WaitForReleaseAsync(cancellationToken);
+            return result;
+        }
+
+        private async Task WaitForReleaseAsync(CancellationToken cancellationToken)
+        {
+            _commandStarted.TrySetResult(true);
+            await _releaseCommand.Task.WaitAsync(cancellationToken);
+        }
     }
 
     #endregion
@@ -1822,12 +2078,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Локализует баг: <see cref="ISetterRepository{TEntity}.RemoveRangeAsync(ISpecification{TEntity}, bool, CancellationToken)"/>
-    /// с <c>hard=true</c> должен физически удалять сущности. Сейчас бросает
-    /// <see cref="InvalidOperationException"/> "another instance with the same key is already being tracked",
-    /// потому что internal-impl делегирует к <c>RemoveRangeAsync(QueryOptions, hard)</c> без
-    /// <c>withTracking=true</c>, и последующий <c>DbSet.Remove</c> на detached-инстансе
-    /// конфликтует с уже-tracked оригиналом.
+    /// Проверяет, что RemoveRangeAsync по спецификации физически удаляет выбранные сущности.
     /// </summary>
     [Fact]
     public async Task RemoveRangeAsync_BySpecificationHardTrue_ShouldRemoveFromDatabase()
@@ -1856,11 +2107,7 @@ public sealed class EfRepositoryIntegrationTests
     }
 
     /// <summary>
-    /// Локализует баг: <see cref="ISetterRepository{TEntity}.RemoveRangeAsync(ISpecification{TEntity}, bool, CancellationToken)"/>
-    /// с <c>hard=false</c> должен сохранять soft-delete в БД. Сейчас мутации IsDeleted на
-    /// detached-инстансах не отслеживаются ChangeTracker-ом, поэтому <c>SaveChangesAsync</c>
-    /// не записывает их в БД (тот же баг, что и
-    /// <c>RemoveAsync_OnDetachedEntity_DoesNotPersistSoftDeleteToDb</c>).
+    /// Проверяет, что RemoveRangeAsync по спецификации сохраняет мягкое удаление выбранных сущностей.
     /// </summary>
     [Fact]
     public async Task RemoveRangeAsync_BySpecificationSoftDelete_ShouldPersistIsDeleted()

@@ -1,4 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ServiceProviderInfrastructureTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Core.Batch.Http.RetryPolicy.Models;
 using Shared.Testing.DependencyInjection;
 

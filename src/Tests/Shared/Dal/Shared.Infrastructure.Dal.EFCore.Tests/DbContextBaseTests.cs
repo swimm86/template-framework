@@ -1,10 +1,9 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="DbContextBaseTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
 // ----------------------------------------------------------------------------------------------
 
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -16,7 +15,7 @@ namespace Shared.Infrastructure.Dal.EFCore.Tests;
 
 /// <summary>
 /// Тесты для базового класса <see cref="DbContextBase"/>.
-/// Проверяет конфигурацию логирования, культуры и conventions.
+/// Проверяет конфигурацию логирования и conventions.
 /// </summary>
 public sealed class DbContextBaseTests
 {
@@ -68,42 +67,6 @@ public sealed class DbContextBaseTests
         // CoreOptionsExtension may be null or have IsSensitiveDataLoggingEnabled = false
         var sensitiveLoggingEnabled = coreOptions?.IsSensitiveDataLoggingEnabled ?? false;
         sensitiveLoggingEnabled.Should().BeFalse();
-    }
-
-    /// <summary>
-    /// Проверяет, что при конфигурации устанавливается DefaultThreadCurrentCulture и DefaultThreadCurrentUICulture.
-    /// </summary>
-    [Fact]
-    public async Task OnConfiguring_SetsDefaultThreadCulture()
-    {
-        // Arrange
-        var originalCulture = CultureInfo.DefaultThreadCurrentCulture;
-        var originalUiCulture = CultureInfo.DefaultThreadCurrentUICulture;
-        try
-        {
-            var environment = CreateMockEnvironment(isDevelopment: false);
-            var options = new DbContextOptionsBuilder<TestDbContextForBase>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
-
-            // Act
-            await using var context = new TestDbContextForBase(options, environment);
-            _ = context.Model;
-
-            // Assert
-            CultureInfo.DefaultThreadCurrentCulture.Should().NotBeNull();
-            CultureInfo.DefaultThreadCurrentCulture.Name.Should().Be("en-US");
-            CultureInfo.DefaultThreadCurrentCulture.DateTimeFormat.ShortDatePattern.Should().Be("dd/MM/yyyy");
-
-            CultureInfo.DefaultThreadCurrentUICulture.Should().NotBeNull();
-            CultureInfo.DefaultThreadCurrentUICulture.Name.Should().Be("en-US");
-            CultureInfo.DefaultThreadCurrentUICulture.DateTimeFormat.ShortDatePattern.Should().Be("dd/MM/yyyy");
-        }
-        finally
-        {
-            CultureInfo.DefaultThreadCurrentCulture = originalCulture;
-            CultureInfo.DefaultThreadCurrentUICulture = originalUiCulture;
-        }
     }
 
     #endregion

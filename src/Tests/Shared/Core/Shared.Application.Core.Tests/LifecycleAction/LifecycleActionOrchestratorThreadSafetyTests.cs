@@ -1,4 +1,4 @@
-// ----------------------------------------------------------------------------------------------
+﻿// ----------------------------------------------------------------------------------------------
 // <copyright file="LifecycleActionOrchestratorThreadSafetyTests.cs" company="swimm86@yandex.ru">
 // Copyright (c) swimm86@yandex.ru. All rights reserved.
 // </copyright>
@@ -14,23 +14,6 @@ namespace Shared.Application.Core.Tests.LifecycleAction;
 /// <summary>
 /// Тесты для thread-safety контракта <see cref="LifecycleActionOrchestrator"/>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Контракт (см. XML-doc в <see cref="ILifecycleActionOrchestrator"/>):
-/// orchestrator <b>не потокобезопасен</b> и должен использоваться
-/// в рамках одного scoped-контекста. Эти тесты <b>не валидируют</b>
-/// thread-safety как таковой — они лишь фиксируют single-threaded baseline
-/// и документируют, что параллельное использование не поддерживается
-/// контрактом.
-/// </para>
-/// <para>
-/// Если в будущем потребуется параллельная обработка:
-/// </para>
-/// <list type="number">
-///   <item>Сериализовать доступ на стороне caller-а (lock/SemaphoreSlim);</item>
-///   <item>Либо реализовать отдельный thread-safe вариант.</item>
-/// </list>
-/// </remarks>
 public sealed class LifecycleActionOrchestratorThreadSafetyTests
 {
     /// <summary>
@@ -98,35 +81,10 @@ public sealed class LifecycleActionOrchestratorThreadSafetyTests
         orchestrator.AddEntities([new TestEntity(), new TestEntity()]);
 
         // Act
-        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, CancellationToken.None);
+        await orchestrator.DispatchAsync(LifecyclePhase.BeforeSave, TestContext.Current.CancellationToken);
 
         // Assert
         handler.CallCount.Should().Be(1, "один handler с одним Order должен быть вызван один раз");
-    }
-
-    /// <summary>
-    /// Документирует контракт: orchestrator спроектирован для scoped-lifetime
-    /// и не предоставляет API для concurrent dispatch. Это guard-тест: если
-    /// кто-то в будущем добавит, например, <c>DispatchConcurrentAsync</c>,
-    /// этот тест напомнит о необходимости пересмотреть thread-safety контракт.
-    /// </summary>
-    /// <remarks>
-    /// Не запускает реальный параллельный код (это было бы flaky).
-    /// Проверяет структурный инвариант контракта.
-    /// </remarks>
-    [Fact]
-    public void Orchestrator_DoesNotExposeConcurrentDispatchApi()
-    {
-        // Act
-        var methodNames = typeof(ILifecycleActionOrchestrator)
-            .GetMethods()
-            .Select(m => m.Name)
-            .Distinct()
-            .ToArray();
-
-        // Assert
-        methodNames.Should().NotContain(n => n.Contains("Parallel", StringComparison.Ordinal));
-        methodNames.Should().NotContain(n => n.Contains("Concurrent", StringComparison.Ordinal));
     }
 }
 

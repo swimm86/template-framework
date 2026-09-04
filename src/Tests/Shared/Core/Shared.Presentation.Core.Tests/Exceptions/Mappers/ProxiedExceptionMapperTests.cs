@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ProxiedExceptionMapperTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Core.Exceptions.Models;
 using Shared.Presentation.Core.Exceptions.Mappers;

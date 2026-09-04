@@ -14,9 +14,8 @@ namespace Template.Getter.Api.Controllers.Base;
 /// <summary>
 /// Базовый класс для Getter Controller-ов.
 /// </summary>
-/// <param name="logger">Экземпляр <see cref="ILogger"/> для работы с логированием.</param>
 [AppName(Constants.AppName)]
 [ControllerType("getter")]
 public abstract class GetterControllerBase(
-    ILogger logger)
-    : ControllerBase(logger);
+    ILoggerFactory loggerFactory)
+    : ControllerBase(loggerFactory);

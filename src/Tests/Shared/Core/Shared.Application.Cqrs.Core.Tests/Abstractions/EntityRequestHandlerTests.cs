@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="EntityRequestHandlerTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Application.Cqrs.Core.Abstractions;
 using Shared.Application.Cqrs.Core.Tests.Infrastructure.TestDoubles;
 using Shared.Domain.Core.Dal.Repository.Interfaces;

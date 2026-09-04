@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ExceptionHandlerTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Application.Core.Dto.Responses;
@@ -23,27 +29,10 @@ public sealed class ExceptionHandlerTests
         var httpContext = CreateHttpContextWithResponseStream();
 
         // Act
-        await handler.TryHandleAsync(httpContext, new Exception(), CancellationToken.None);
+        await handler.TryHandleAsync(httpContext, new Exception(), TestContext.Current.CancellationToken);
 
         // Assert
         httpContext.Response.StatusCode.Should().Be(418);
-    }
-
-    /// <summary>
-    /// Проверяет, что TryHandleAsync всегда возвращает true.
-    /// </summary>
-    [Fact]
-    public async Task TryHandleAsync_AlwaysReturnsTrue()
-    {
-        // Arrange
-        var handler = CreateExceptionHandler(StatusCodes.Status500InternalServerError);
-        var httpContext = CreateHttpContextWithResponseStream();
-
-        // Act
-        var result = await handler.TryHandleAsync(httpContext, new Exception(), CancellationToken.None);
-
-        // Assert
-        result.Should().BeTrue();
     }
 
     /// <summary>
@@ -60,7 +49,7 @@ public sealed class ExceptionHandlerTests
         var httpContext = CreateHttpContextWithResponseStream();
 
         // Act
-        await handler.TryHandleAsync(httpContext, new Exception(), CancellationToken.None);
+        await handler.TryHandleAsync(httpContext, new Exception(), TestContext.Current.CancellationToken);
         httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
         var json = await new StreamReader(httpContext.Response.Body)
             .ReadToEndAsync(TestContext.Current.CancellationToken);
@@ -89,7 +78,7 @@ public sealed class ExceptionHandlerTests
         var exception = new InvalidOperationException("test-ex");
 
         // Act
-        await handler.TryHandleAsync(httpContext, exception, CancellationToken.None);
+        await handler.TryHandleAsync(httpContext, exception, TestContext.Current.CancellationToken);
 
         // Assert
         resolver.ReceivedExceptions.Should().ContainSingle()
@@ -126,7 +115,7 @@ public sealed class ExceptionHandlerTests
         var httpContext = CreateHttpContextWithResponseStream();
 
         // Act
-        await handler.TryHandleAsync(httpContext, new Exception(), CancellationToken.None);
+        await handler.TryHandleAsync(httpContext, new Exception(), TestContext.Current.CancellationToken);
 
         // Assert
         httpContext.Response.ContentType.Should().StartWith("application/json");

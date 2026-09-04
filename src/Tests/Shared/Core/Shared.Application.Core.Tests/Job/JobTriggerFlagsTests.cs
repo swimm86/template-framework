@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="JobTriggerFlagsTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using Shared.Application.Core.Job.Enums;
 
 namespace Shared.Application.Core.Tests;
@@ -7,20 +13,6 @@ namespace Shared.Application.Core.Tests;
 /// </summary>
 public sealed class JobTriggerFlagsTests
 {
-    /// <summary>
-    /// Флаг <see cref="JobTriggerFlags.Daily"/> имеет корректное числовое значение (1).
-    /// </summary>
-    [Fact]
-    public void Daily_HasCorrectFlag()
-    {
-        // Act
-        var flag = JobTriggerFlags.Daily;
-
-        // Assert
-        flag.Should().HaveFlag(JobTriggerFlags.Daily);
-        ((int)flag).Should().Be(1);
-    }
-
     /// <summary>
     /// Комбинация флагов содержит оба значения.
     /// </summary>

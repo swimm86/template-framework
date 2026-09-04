@@ -1,3 +1,9 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="ExceptionFormattingPoolTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using System.Text;
 using Microsoft.Extensions.ObjectPool;
 using Shared.Presentation.Core.Exceptions;

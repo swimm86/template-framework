@@ -1,8 +1,13 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="DependencyInjectorTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Infrastructure.Mapper.AutoMapper.DependencyInjection;
-
 using IMapper = Shared.Domain.Core.Mapping.Interfaces.IMapper;
 
 namespace Shared.Infrastructure.Mapper.AutoMapper.Tests.DependencyInjection;

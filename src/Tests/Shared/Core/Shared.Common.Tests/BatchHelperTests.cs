@@ -1,4 +1,10 @@
-﻿using Shared.Common.Batch;
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="BatchHelperTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Shared.Common.Batch;
 
 namespace Shared.Common.Tests;
 

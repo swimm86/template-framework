@@ -1,3 +1,10 @@
+﻿// ----------------------------------------------------------------------------------------------
+// <copyright file="EfUnitOfWorkIntegrationTests.cs" company="swimm86@yandex.ru">
+// Copyright (c) swimm86@yandex.ru. All rights reserved.
+// </copyright>
+// ----------------------------------------------------------------------------------------------
+
+using Shared.Application.Core.LifecycleAction;
 using Shared.Infrastructure.Dal.EFCore.Interfaces;
 using Shared.Infrastructure.Dal.EFCore.Settings;
 using Shared.Infrastructure.Dal.EFCore.Tests.Infrastructure;
@@ -20,14 +27,6 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
         };
     }
 
-    private static TestEfUnitOfWorkWrapper CreateUnitOfWorkWrapper(
-        IntegrationTestUnitOfWorkDbContext context,
-        bool transactionsEnabled = true)
-    {
-        var settings = new IntegrationTestEfDbSettings(transactionsEnabled);
-        return new TestEfUnitOfWorkWrapper(context, new FakeServices(), settings);
-    }
-
     #region Transaction Commit Tests
 
     /// <summary>Проверяет что SaveChangesAsync коммитит транзакцию при успехе.</summary>
@@ -36,13 +35,13 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWorkWrapper(context, transactionsEnabled: true);
+        var uow = CreateUnitOfWork(context, transactionsEnabled: true);
 
         var entity = CreateEntity(name: "commit-test");
         context.Entities.Add(entity);
 
         // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None);
+        var result = await uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().Be(1);
@@ -64,20 +63,24 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
             OnProcessAsync = () => throw new InvalidOperationException("save failed"),
         };
         var settings = new IntegrationTestEfDbSettings(transactionsEnabled: true);
-        var uow = new TestEfUnitOfWorkWrapper(
+        var uow = new EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
             context,
             new FakeServices(),
             settings,
+            new LifecycleActionOrchestrator(
+                [],
+                new LifecycleEntityRegistry(),
+                new LifecycleActionGate()),
             beforeSaveService);
 
         var entity = CreateEntity(name: "rollback-test");
         context.Entities.Add(entity);
 
         // Act
-        var act = () => uow.SaveChangesAsync(CancellationToken.None);
+        var act = () => uow.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(act);
+        await act.Should().ThrowAsync<InvalidOperationException>();
         context.Entities.Should().NotContain(e => e.Name == "rollback-test");
     }
 
@@ -91,10 +94,10 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWorkWrapper(context, transactionsEnabled: true);
+        var uow = CreateUnitOfWork(context, transactionsEnabled: true);
 
         // Act
-        var act = () => uow.CommitTransactionAsync(CancellationToken.None);
+        var act = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().NotThrowAsync();
@@ -110,10 +113,10 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
     {
         // Arrange
         await using var context = CreateContext();
-        var uow = CreateUnitOfWorkWrapper(context, transactionsEnabled: true);
+        var uow = CreateUnitOfWork(context, transactionsEnabled: true);
 
         // Act
-        var act = () => uow.RollbackTransactionAsync(CancellationToken.None);
+        var act = () => uow.RollbackTransactionAsync(TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().NotThrowAsync();
@@ -125,44 +128,26 @@ public sealed class EfUnitOfWorkIntegrationTests : SqliteUnitOfWorkIntegrationTe
 
     /// <summary>Проверяет что Dispose освобождает текущую транзакцию.</summary>
     [Fact]
-    public void Dispose_DisposesCurrentTransaction()
+    public async Task Dispose_CommitTransactionThrowsAfterDispose()
     {
         // Arrange
         using var context = CreateContext();
-        var uow = CreateUnitOfWorkWrapper(context, transactionsEnabled: true);
+        var uow = CreateUnitOfWork(context, transactionsEnabled: true);
 
-        uow.CurrentTransaction.Should().NotBeNull();
+        var actBefore = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actBefore.Should().NotThrowAsync();
 
         // Act
         uow.Dispose();
 
-        // Assert — after dispose, CurrentTransaction is explicitly set to null
-        uow.CurrentTransaction.Should().BeNull();
+        // Assert — after dispose, current transaction is released, commit fails
+        var actAfter = () => uow.CommitTransactionAsync(TestContext.Current.CancellationToken);
+        await actAfter.Should().ThrowAsync<InvalidOperationException>();
     }
 
     #endregion
 
     #region Helpers
-
-    private sealed class TestEfUnitOfWorkWrapper(
-        IntegrationTestUnitOfWorkDbContext dbContext,
-        IServiceProvider serviceProvider,
-        EfDbSettingsBase<IntegrationTestUnitOfWorkDbContext> settings,
-        IBeforeSaveChangesService? beforeSaveChangesService = null)
-        : EfUnitOfWork<IntegrationTestUnitOfWorkDbContext>(
-            dbContext,
-            serviceProvider,
-            settings,
-            new Shared.Application.Core.LifecycleAction.LifecycleActionOrchestrator(
-                [],
-                new Shared.Application.Core.LifecycleAction.LifecycleEntityRegistry(),
-                new Shared.Application.Core.LifecycleAction.LifecycleActionGate()),
-            beforeSaveChangesService)
-    {
-        public bool IsTransactionEnabled => UseTransaction;
-
-        public object? CurrentTransaction => CurrentDbTransaction;
-    }
 
     private sealed class IntegrationTestEfDbSettings : EfDbSettingsBase<IntegrationTestUnitOfWorkDbContext>
     {
