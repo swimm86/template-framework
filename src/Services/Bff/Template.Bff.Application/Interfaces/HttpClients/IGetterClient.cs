@@ -22,6 +22,7 @@ public interface IGetterClient
     /// <param name="pattern">Паттерн: Services или CQRS.</param>
     /// <param name="cancellationToken"><see cref="CancellationToken"/> для отмены операции.</param>
     /// <returns>Коллекция сущностей "Персона".</returns>
+    /// <exception cref="ArgumentException">Выбрасывается, если указан неподдерживаемый паттерн обработки запроса.</exception>
     Task<PersonListResponse> GetPersonsAsync(
         PersonListRequest request,
         GetPersonsPattern pattern,
